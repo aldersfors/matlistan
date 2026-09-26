@@ -93,10 +93,14 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 		Approved: plan.Status == weekplan.StatusApproved, HasEntries: len(plan.Entries) > 0,
 		PrevHref: weekHref(k.AddWeeks(-1)), NextHref: weekHref(k.AddWeeks(1)),
 		StatusHref: fmt.Sprintf("/fragments/week-status?y=%d&w=%d", k.Year, k.Week),
-		RateHref:   fmt.Sprintf("/week/rate?y=%d&w=%d", k.Year, k.Week),
 		Errors:     e}
 	if plan.Error != "" {
 		v.Error = c.T(plan.Error)
+	}
+	if v.Approved && slices.ContainsFunc(plan.Entries, func(e weekplan.Entry) bool {
+		return s.eaten(k, e.Day)
+	}) {
+		v.RateHref = fmt.Sprintf("/week/rate?y=%d&w=%d", k.Year, k.Week)
 	}
 	for i := range 7 {
 		day := monday.AddDate(0, 0, i)

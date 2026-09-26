@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/recipes"
@@ -47,6 +48,9 @@ func (s *server) rateWeek(w http.ResponseWriter, r *http.Request) {
 	v := views.RateWeek{Label: c.WeekLabel(k.Week), Hint: c.T("rate.hint"),
 		Range: c.T("week.range", "from", c.Date(monday), "to", c.Date(monday.AddDate(0, 0, 6)))}
 	for _, e := range plan.Entries {
+		if !s.eaten(k, e.Day) {
+			continue
+		}
 		d := views.RateDinner{Day: e.Day, Title: e.Title,
 			DayName: c.WeekdayShort(monday.AddDate(0, 0, e.Day-1).Weekday())}
 		for _, m := range members {
@@ -54,7 +58,22 @@ func (s *server) rateWeek(w http.ResponseWriter, r *http.Request) {
 		}
 		v.Dinners = append(v.Dinners, d)
 	}
+	if len(v.Dinners) == 0 {
+		s.notFound(w, r)
+		return
+	}
 	s.render(w, r, http.StatusOK, views.RateWeekPage(v))
+}
+
+// eaten reports whether day (1 is Monday) of week k is today or earlier: a dinner can be
+// rated from its own evening on.
+func (s *server) eaten(k weekplan.Key, day int) bool {
+	now := s.Now()
+	date := func(t time.Time) time.Time {
+		y, m, d := t.Date()
+		return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	}
+	return !date(k.Monday(now.Location()).AddDate(0, 0, day-1)).After(date(now))
 }
 
 func (s *server) rateRow(k weekplan.Key, day int, m household.Member, score int) views.RateRow {
@@ -79,6 +98,10 @@ func (s *server) rate(w http.ResponseWriter, r *http.Request) {
 	if !ok || err1 != nil || err2 != nil || err3 != nil || day < 1 || day > 7 ||
 		!slices.Contains(recipes.Scores, score) {
 		s.badRequest(w, r)
+		return
+	}
+	if !s.eaten(k, day) {
+		s.notFound(w, r)
 		return
 	}
 	if err := s.Store.SetRating(r.Context(), k, day, member, score); err != nil {

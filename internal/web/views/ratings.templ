@@ -47,7 +47,7 @@ templ RateRowView(r RateRow) {
 					<input type="hidden" name="day" value={ strconv.Itoa(r.Day) }/>
 					<input type="hidden" name="member" value={ strconv.FormatInt(r.MemberID, 10) }/>
 					<input type="hidden" name="score" value={ strconv.Itoa(c.Score) }/>
-					<button type="submit" aria-pressed={ strconv.FormatBool(c.Pressed) } aria-label={ c.AriaLabel } class={ "min-h-11 rounded-full border px-3 text-sm font-bold", templ.KV("border-ink bg-ink text-page", c.Pressed), templ.KV("border-line", !c.Pressed) }>{ c.Label }</button>
+					<button type="submit" id={ fmt.Sprintf("rate-%d-%d-%d", r.Day, r.MemberID, c.Score) } aria-pressed={ strconv.FormatBool(c.Pressed) } aria-label={ c.AriaLabel } class={ "min-h-11 rounded-full border px-3 text-sm font-bold", templ.KV("border-ink bg-ink text-page", c.Pressed), templ.KV("border-line", !c.Pressed) }>{ c.Label }</button>
 				</form>
 			}
 		</span>

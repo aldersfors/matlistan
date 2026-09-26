@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
@@ -13,6 +14,21 @@ import (
 
 // approvedWeek plans and approves week 40 through the web, with a salt staple.
 func approvedWeek(t *testing.T) (http.Handler, *fakeStore) {
+	t.Helper()
+	h, st, _ := approvedWeekServer(t)
+	return h, st
+}
+
+// ratedWeek is approvedWeek with the clock moved past week 40, when every dinner is eaten.
+func ratedWeek(t *testing.T) (http.Handler, *fakeStore) {
+	t.Helper()
+	h, st, s := approvedWeekServer(t)
+	loc := s.Now().Location()
+	s.Now = func() time.Time { return time.Date(2026, 10, 5, 18, 0, 0, 0, loc) }
+	return h, st
+}
+
+func approvedWeekServer(t *testing.T) (http.Handler, *fakeStore, *server) {
 	t.Helper()
 	st := newFakeStore()
 	pl := &fakePlanner{st: st}
@@ -31,7 +47,7 @@ func approvedWeek(t *testing.T) (http.Handler, *fakeStore) {
 	if rec := post(t, h, "/week/approve", weekForm(nil)); rec.Code != http.StatusSeeOther {
 		t.Fatalf("approve: %d", rec.Code)
 	}
-	return h, st
+	return h, st, s
 }
 
 func TestApprovalCreatesTheList(t *testing.T) {

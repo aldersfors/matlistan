@@ -1,11 +1,13 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
@@ -17,7 +19,7 @@ func rateForm(day, member, score string) url.Values {
 }
 
 func TestRatingScreen(t *testing.T) {
-	h, st := approvedWeek(t)
+	h, st := ratedWeek(t)
 	id, _ := st.CreateMember(t.Context(), household.Member{Name: "Leo", BirthYear: 2014})
 	_, week := get(t, h, "/week?y=2026&w=40")
 	if !strings.Contains(week, `href="/week/rate?y=2026&amp;w=40"`) {
@@ -48,7 +50,7 @@ func TestRatingScreen(t *testing.T) {
 
 // Review focus 1: nothing to rate means 404; a bad score is 400.
 func TestRatingRefusals(t *testing.T) {
-	h, st := approvedWeek(t)
+	h, st := ratedWeek(t)
 	id, _ := st.CreateMember(t.Context(), household.Member{Name: "Leo", BirthYear: 2014})
 	for name, c := range map[string]struct {
 		form url.Values
@@ -84,7 +86,7 @@ func TestM5RoutesAreGuarded(t *testing.T) {
 		t.Errorf("rating signed out: %d %q", rec.Code, rec.Header().Get("Location"))
 	}
 
-	h, st := approvedWeek(t)
+	h, st := ratedWeek(t)
 	id, _ := st.CreateMember(t.Context(), household.Member{Name: "Leo", BirthYear: 2014})
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/fragments/ratings",
 		strings.NewReader(rateForm("1", itoa(id), "5").Encode()))
@@ -97,5 +99,56 @@ func TestM5RoutesAreGuarded(t *testing.T) {
 	}
 	if got, _ := st.WeekRatings(t.Context(), _w40); len(got) != 0 {
 		t.Errorf("cross-site rating was stored: %v", got)
+	}
+}
+
+// Review M5: htmx keeps focus only on an element with an id that is in the new content.
+func TestRatingButtonsKeepTheirIDs(t *testing.T) {
+	h, st := ratedWeek(t)
+	id, _ := st.CreateMember(t.Context(), household.Member{Name: "Leo", BirthYear: 2014})
+	rec := postHX(t, h, "/fragments/ratings", rateForm("1", itoa(id), "5"))
+	for _, sc := range []string{"5", "3", "1"} {
+		want := fmt.Sprintf(`id="rate-1-%d-%s"`, id, sc)
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("row lacks %s", want)
+		}
+	}
+}
+
+// Review M5: a dinner can be rated from its own day on, never before it is eaten.
+func TestOnlyEatenDinnersCanBeRated(t *testing.T) {
+	h, st, s := approvedWeekServer(t)
+	id, _ := st.CreateMember(t.Context(), household.Member{Name: "Leo", BirthYear: 2014})
+	loc := s.Now().Location()
+	at := func(day, hour int) {
+		s.Now = func() time.Time { return time.Date(2026, 9, day, hour, 0, 0, 0, loc) }
+	}
+
+	at(27, 18) // Sunday before week 40
+	if _, week := get(t, h, "/week?y=2026&w=40"); strings.Contains(week, "/week/rate") {
+		t.Error("rating link before any dinner is eaten")
+	}
+	if res, _ := get(t, h, "/week/rate?y=2026&w=40"); res.StatusCode != http.StatusNotFound {
+		t.Errorf("rating page before the week: %d", res.StatusCode)
+	}
+
+	at(28, 19) // Monday evening: Monday's dinner only
+	if _, week := get(t, h, "/week?y=2026&w=40"); !strings.Contains(week, "/week/rate") {
+		t.Error("no rating link on Monday evening")
+	}
+	_, page := get(t, h, "/week/rate?y=2026&w=40")
+	if !strings.Contains(page, "Pumpasoppa") || strings.Contains(page, "Köttbullar") {
+		t.Errorf("Monday evening should offer only Monday's dinner")
+	}
+	if rec := postHX(t, h, "/fragments/ratings", rateForm("2", itoa(id), "1")); rec.Code !=
+		http.StatusNotFound {
+		t.Errorf("rating Tuesday on Monday: %d, want 404", rec.Code)
+	}
+	if got, _ := st.WeekRatings(t.Context(), _w40); len(got) != 0 {
+		t.Errorf("a future dinner was rated: %v", got)
+	}
+	if rec := postHX(t, h, "/fragments/ratings", rateForm("1", itoa(id), "5")); rec.Code !=
+		http.StatusOK {
+		t.Errorf("rating Monday on Monday evening: %d", rec.Code)
 	}
 }
