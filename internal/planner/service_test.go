@@ -200,7 +200,7 @@ func TestFailuresAreAlwaysRecorded(t *testing.T) {
 			st.saveErr = errors.New("db down")
 			return context.Background()
 		},
-		"reading the week fails": func(st *memStore, llm *scripted) context.Context {
+		"reading the week fails": func(st *memStore, _ *scripted) context.Context {
 			st.listErr = errors.New("db down")
 			return context.Background()
 		},
