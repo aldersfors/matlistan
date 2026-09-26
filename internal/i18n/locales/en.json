@@ -181,5 +181,12 @@
   "tokens.last_used": "Last used {date}",
   "tokens.never_used": "Never used",
   "tokens.empty": "No keys yet.",
-  "shopping.all_bought": "Everything is bought."
+  "shopping.all_bought": "Everything is bought.",
+  "rate.title": "How was it?",
+  "rate.hint": "Ratings decide which dinners come back and which new dishes stay in the library.",
+  "rate.loved": "Loved it",
+  "rate.okay": "Okay",
+  "rate.not_again": "Not again",
+  "rate.for": "{name}: {choice}",
+  "week.rate": "Rate the week"
 }

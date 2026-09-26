@@ -29,7 +29,7 @@ type ContextDay struct {
 type Week struct {
 	Year, Number                                     int
 	Label, Range, Error                              string
-	PrevHref, NextHref, StatusHref                   string
+	PrevHref, NextHref, StatusHref, RateHref         string
 	Configured, Plannable, Generating, Approved      bool
 	HasEntries                                       bool
 	Days                                             []WeekDay
@@ -111,6 +111,9 @@ templ WeekPage(w Week) {
 					</li>
 				}
 			</ol>
+			if w.Approved && w.HasEntries {
+				<a class="flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink" href={ templ.URL(w.RateHref) }>{ i18n.T(ctx, "week.rate") }</a>
+			}
 			if w.Configured && w.Plannable && !w.Approved && !w.Generating {
 				if w.HasEntries {
 					<form method="post" action="/week/approve">

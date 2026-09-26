@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -37,13 +38,15 @@ type fakeStore struct {
 	lists       map[weekplan.Key]shopping.List
 	ingredients map[weekplan.Key][]shopping.Use
 	tokens      map[int64]fakeToken
+	ratings     map[weekplan.Key]map[int]map[int64]int
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{members: map[int64]household.Member{}, staples: map[int64]household.Staple{},
 		recipes: map[int64]recipes.Recipe{}, settings: household.DefaultSettings(),
 		plans: map[weekplan.Key]weekplan.Plan{}, lists: map[weekplan.Key]shopping.List{},
-		ingredients: map[weekplan.Key][]shopping.Use{}, tokens: map[int64]fakeToken{}}
+		ingredients: map[weekplan.Key][]shopping.Use{}, tokens: map[int64]fakeToken{},
+		ratings: map[weekplan.Key]map[int]map[int64]int{}}
 }
 
 func (f *fakeStore) id() int64 { f.nextID++; return f.nextID }
@@ -473,4 +476,39 @@ func (f *fakeStore) UseAPIToken(_ context.Context, hash []byte) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (f *fakeStore) SetRating(_ context.Context, k weekplan.Key, day int, memberID int64,
+	score int) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if !slices.Contains(recipes.Scores, score) {
+		return errors.New("score must be 1, 3 or 5")
+	}
+	p, ok := f.plans[k]
+	if _, isEntry := p.Entry(day); !ok || p.Status != weekplan.StatusApproved || !isEntry {
+		return store.ErrNotFound
+	}
+	if _, ok := f.members[memberID]; !ok {
+		return store.ErrNotFound
+	}
+	if f.ratings[k] == nil {
+		f.ratings[k] = map[int]map[int64]int{}
+	}
+	if f.ratings[k][day] == nil {
+		f.ratings[k][day] = map[int64]int{}
+	}
+	f.ratings[k][day][memberID] = score
+	return nil
+}
+
+func (f *fakeStore) WeekRatings(_ context.Context, k weekplan.Key) (map[int]map[int64]int,
+	error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := map[int]map[int64]int{}
+	for d, m := range f.ratings[k] {
+		out[d] = maps.Clone(m)
+	}
+	return out, nil
 }

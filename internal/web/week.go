@@ -93,6 +93,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 		Approved: plan.Status == weekplan.StatusApproved, HasEntries: len(plan.Entries) > 0,
 		PrevHref: weekHref(k.AddWeeks(-1)), NextHref: weekHref(k.AddWeeks(1)),
 		StatusHref: fmt.Sprintf("/fragments/week-status?y=%d&w=%d", k.Year, k.Week),
+		RateHref:   fmt.Sprintf("/week/rate?y=%d&w=%d", k.Year, k.Week),
 		Errors:     e}
 	if plan.Error != "" {
 		v.Error = c.T(plan.Error)

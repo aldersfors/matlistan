@@ -181,5 +181,12 @@
   "tokens.last_used": "Senast använd {date}",
   "tokens.never_used": "Aldrig använd",
   "tokens.empty": "Inga nycklar än.",
-  "shopping.all_bought": "Allt är köpt."
+  "shopping.all_bought": "Allt är köpt.",
+  "rate.title": "Hur blev det?",
+  "rate.hint": "Betygen avgör vilka middagar som kommer tillbaka och vilka nya rätter som stannar i receptbanken.",
+  "rate.loved": "Gott!",
+  "rate.okay": "Okej",
+  "rate.not_again": "Inte igen",
+  "rate.for": "{name}: {choice}",
+  "week.rate": "Betygsätt veckan"
 }

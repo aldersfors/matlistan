@@ -64,6 +64,8 @@ type Store interface {
 	ListAPITokens(ctx context.Context) ([]apitoken.Token, error)
 	RevokeAPIToken(ctx context.Context, id int64) error
 	UseAPIToken(ctx context.Context, hash []byte) (bool, error)
+	SetRating(ctx context.Context, k weekplan.Key, day int, memberID int64, score int) error
+	WeekRatings(ctx context.Context, k weekplan.Key) (map[int]map[int64]int, error)
 }
 
 // Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
@@ -157,6 +159,8 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("POST /shopping/items/{id}/delete", s.removeItem)
 	app.HandleFunc("POST /settings/tokens", s.createToken)
 	app.HandleFunc("POST /settings/tokens/{id}/delete", s.revokeToken)
+	app.HandleFunc("GET /week/rate", s.rateWeek)
+	app.HandleFunc("POST /fragments/ratings", s.rate)
 	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.
