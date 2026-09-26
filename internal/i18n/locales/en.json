@@ -32,5 +32,7 @@
   "month.short.nov": "Nov",
   "month.short.dec": "Dec",
   "format.date": "{month} {day}",
-  "format.decimal_separator": "."
+  "format.decimal_separator": ".",
+  "auth.denied": "You are signed in, but your account is not allowed to use Matlistan. Ask whoever runs it to add you.",
+  "auth.failed": "Sign-in failed. Go back and try again."
 }

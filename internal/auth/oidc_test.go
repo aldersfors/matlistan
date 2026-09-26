@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jalet/matlistan/internal/i18n"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 
@@ -91,7 +93,7 @@ func newAppWith(t *testing.T, claims, userinfo map[string]any, cfgOpt func(*Conf
 	t.Cleanup(idp.Close)
 
 	mux := http.NewServeMux()
-	srv := httptest.NewTLSServer(mux)
+	srv := httptest.NewTLSServer(_wrapTestHandler(mux))
 	t.Cleanup(srv.Close)
 
 	codec, err := NewCodec(bytes.Repeat([]byte("k"), 32), nil)
@@ -562,5 +564,43 @@ func TestSessionHonoursCurrentMaxAge(t *testing.T) {
 	a.cfgMaxAge(time.Hour)
 	if resp, _ := a.get(t, a.noRedirect(), "/"); resp.StatusCode == http.StatusOK {
 		t.Fatal("a 2h-old session passed a 1h max age")
+	}
+}
+
+// _wrapTestHandler lets a test put middleware (such as the i18n catalog) around the app.
+var _wrapTestHandler = func(h http.Handler) http.Handler { return h }
+
+func withSwedish(t *testing.T) {
+	t.Helper()
+	sv, err := i18n.Load(i18n.SV)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := _wrapTestHandler
+	_wrapTestHandler = func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r.WithContext(i18n.WithCatalog(r.Context(), sv)))
+		})
+	}
+	t.Cleanup(func() { _wrapTestHandler = old })
+}
+
+func TestLoginDeniedIsLocalized(t *testing.T) {
+	withSwedish(t)
+	a := newApp(t, map[string]any{"groups": []string{"other"}}, nil)
+	resp, body := a.get(t, a.client, "/")
+	if resp.StatusCode != http.StatusForbidden || !strings.Contains(body, "inte behörighet") {
+		t.Fatalf("status %d body %q", resp.StatusCode, body)
+	}
+}
+
+func TestSignInFailureIsLocalized(t *testing.T) {
+	withSwedish(t)
+	a := newApp(t, _viewer, nil)
+	nr := a.noRedirect()
+	a.get(t, nr, "/auth/login")
+	resp, body := a.get(t, nr, "/auth/callback?code=x&state=wrong")
+	if resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, "Inloggningen misslyckades") {
+		t.Fatalf("status %d body %q", resp.StatusCode, body)
 	}
 }

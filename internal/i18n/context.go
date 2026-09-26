@@ -18,6 +18,13 @@ func From(ctx context.Context) *Catalog {
 	return c
 }
 
+// Lookup returns the catalog in ctx, if any. Packages that also run without the web layer
+// (auth, in its own tests) use it with an English fallback.
+func Lookup(ctx context.Context) (*Catalog, bool) {
+	c, ok := ctx.Value(ctxKey{}).(*Catalog)
+	return c, ok
+}
+
 // T is From(ctx).T.
 func T(ctx context.Context, key string, args ...any) string { return From(ctx).T(key, args...) }
 

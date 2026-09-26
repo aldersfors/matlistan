@@ -24,6 +24,7 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 
+	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/store"
 )
 
@@ -237,8 +238,8 @@ func (a *Authenticator) callback(w http.ResponseWriter, r *http.Request) {
 			Outcome: store.AuthOutcomeDenied, ClaimValues: id.values})
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusForbidden)
-		_, _ = fmt.Fprintln(w, "You are signed in, but your account is not allowed to use "+
-			"this application. Ask an administrator for access.") // client gone: nothing to do
+		_, _ = fmt.Fprintln(w, text(r.Context(), "auth.denied", "You are signed in, but your "+
+			"account is not allowed to use this application.")) // client gone: nothing to do
 		return
 	}
 	s := Session{Subject: id.subject, Email: id.email, Name: id.name, IssuedAt: now,
@@ -396,7 +397,15 @@ func (a *Authenticator) readFlow(r *http.Request, name string) (flowState, error
 func (a *Authenticator) fail(w http.ResponseWriter, r *http.Request, e *flowError) {
 	a.record(r.Context(), store.AuthEvent{At: a.now(), Outcome: store.AuthOutcomeError,
 		Detail: e.detail})
-	http.Error(w, "Sign-in failed. Please try again.", e.status)
+	http.Error(w, text(r.Context(), "auth.failed", "Sign-in failed. Please try again."), e.status)
+}
+
+// text is the localized message for key, or fallback when no catalog is in ctx.
+func text(ctx context.Context, key, fallback string) string {
+	if c, ok := i18n.Lookup(ctx); ok {
+		return c.T(key)
+	}
+	return fallback
 }
 
 func (a *Authenticator) record(ctx context.Context, e store.AuthEvent) {

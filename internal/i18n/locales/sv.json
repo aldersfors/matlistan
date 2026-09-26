@@ -32,5 +32,7 @@
   "month.short.nov": "nov",
   "month.short.dec": "dec",
   "format.date": "{day} {month}",
-  "format.decimal_separator": ","
+  "format.decimal_separator": ",",
+  "auth.denied": "Du är inloggad, men ditt konto har inte behörighet att använda Matlistan. Be den som sköter den att lägga till dig.",
+  "auth.failed": "Inloggningen misslyckades. Gå tillbaka och försök igen."
 }
