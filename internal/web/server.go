@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
+	"github.com/jalet/matlistan/internal/apitoken"
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
@@ -59,6 +60,10 @@ type Store interface {
 	ToggleItem(ctx context.Context, id int64) (shopping.Item, error)
 	AddManualItem(ctx context.Context, listID int64, name string) error
 	RemoveManualItem(ctx context.Context, id int64) error
+	CreateAPIToken(ctx context.Context, subject, name string, hash []byte) error
+	ListAPITokens(ctx context.Context) ([]apitoken.Token, error)
+	RevokeAPIToken(ctx context.Context, id int64) error
+	UseAPIToken(ctx context.Context, hash []byte) (bool, error)
 }
 
 // Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
@@ -74,6 +79,7 @@ type Deps struct {
 	Auth    Authenticator
 	Store   Store
 	Planner Planner
+	BaseURL string           // public address, shown for the Shortcut
 	Now     func() time.Time // in the configured location
 	Log     zerolog.Logger
 }
@@ -114,6 +120,8 @@ func (s *server) handler() http.Handler {
 		_, _ = w.Write(themeCSS)
 	})
 	mux.HandleFunc("GET /healthz", s.healthz)
+	// The Shortcut has no session: this route checks its own key.
+	mux.HandleFunc("GET /api/v1/shopping-list/current.txt", s.exportList)
 
 	app := http.NewServeMux()
 	app.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
@@ -147,6 +155,8 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("POST /fragments/shopping/items/{id}/toggle", s.toggleItem)
 	app.HandleFunc("POST /shopping/items", s.addItem)
 	app.HandleFunc("POST /shopping/items/{id}/delete", s.removeItem)
+	app.HandleFunc("POST /settings/tokens", s.createToken)
+	app.HandleFunc("POST /settings/tokens/{id}/delete", s.revokeToken)
 	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.

@@ -45,8 +45,8 @@ func newServer(t *testing.T, l i18n.Locale, signedIn bool, st *fakeStore) http.H
 	}
 	sthlm, _ := time.LoadLocation("Europe/Stockholm")
 	return New(Deps{Catalog: c, Auth: fakeAuth{signedIn: signedIn}, Store: st,
-		Now: func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
-		Log: zerolog.Nop()})
+		Now:     func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
+		BaseURL: "https://matlistan.example.lan", Log: zerolog.Nop()})
 }
 
 func post(t *testing.T, h http.Handler, path string, form url.Values) *httptest.ResponseRecorder {

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"net/http"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/jalet/matlistan/internal/weekplan"
 
+	"github.com/jalet/matlistan/internal/apitoken"
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
@@ -34,13 +36,14 @@ type fakeStore struct {
 	plans       map[weekplan.Key]weekplan.Plan
 	lists       map[weekplan.Key]shopping.List
 	ingredients map[weekplan.Key][]shopping.Use
+	tokens      map[int64]fakeToken
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{members: map[int64]household.Member{}, staples: map[int64]household.Staple{},
 		recipes: map[int64]recipes.Recipe{}, settings: household.DefaultSettings(),
 		plans: map[weekplan.Key]weekplan.Plan{}, lists: map[weekplan.Key]shopping.List{},
-		ingredients: map[weekplan.Key][]shopping.Use{}}
+		ingredients: map[weekplan.Key][]shopping.Use{}, tokens: map[int64]fakeToken{}}
 }
 
 func (f *fakeStore) id() int64 { f.nextID++; return f.nextID }
@@ -417,7 +420,56 @@ func newPlanningServer(t *testing.T, l i18n.Locale, st *fakeStore, pl Planner) (
 	}
 	sthlm, _ := time.LoadLocation("Europe/Stockholm")
 	s := buildServer(Deps{Catalog: c, Auth: fakeAuth{signedIn: true}, Store: st, Planner: pl,
-		Now: func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
-		Log: zerolog.Nop()})
+		Now:     func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
+		BaseURL: "https://matlistan.example.lan", Log: zerolog.Nop()})
 	return s.handler(), s
+}
+
+type fakeToken struct {
+	apitoken.Token
+	hash []byte
+}
+
+func (f *fakeStore) CreateAPIToken(_ context.Context, _, name string, hash []byte) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	id := f.id()
+	f.tokens[id] = fakeToken{Token: apitoken.Token{ID: id, Name: name, CreatedAt: time.Now()},
+		hash: hash}
+	return nil
+}
+
+func (f *fakeStore) ListAPITokens(context.Context) ([]apitoken.Token, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []apitoken.Token
+	for _, t := range f.tokens {
+		out = append(out, t.Token)
+	}
+	slices.SortFunc(out, func(a, b apitoken.Token) int { return int(b.ID - a.ID) })
+	return out, nil
+}
+
+func (f *fakeStore) RevokeAPIToken(_ context.Context, id int64) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.tokens[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(f.tokens, id)
+	return nil
+}
+
+func (f *fakeStore) UseAPIToken(_ context.Context, hash []byte) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for id, t := range f.tokens {
+		if bytes.Equal(t.hash, hash) {
+			now := time.Now()
+			t.LastUsedAt = &now
+			f.tokens[id] = t
+			return true, nil
+		}
+	}
+	return false, nil
 }

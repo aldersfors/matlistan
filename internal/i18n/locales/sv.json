@@ -171,5 +171,15 @@
   "shopping.add_label": "Något mer att köpa",
   "shopping.remove": "Ta bort {name}",
   "shopping.toggle": "Markera {name} som köpt",
-  "shopping.too_many": "Listan har redan 100 egna varor."
+  "shopping.too_many": "Listan har redan 100 egna varor.",
+  "tokens.title": "Genväg till Anteckningar",
+  "tokens.hint": "Skapa en nyckel för iOS-genvägen som kopierar inköpslistan till Anteckningar. Varje enhet får en egen nyckel, och den visas bara en gång.",
+  "tokens.name": "Enhetens namn",
+  "tokens.create": "Skapa nyckel",
+  "tokens.created": "Kopiera nyckeln nu. Den visas inte igen.",
+  "tokens.url": "Adress för genvägen",
+  "tokens.revoke": "Återkalla {name}",
+  "tokens.last_used": "Senast använd {date}",
+  "tokens.never_used": "Aldrig använd",
+  "tokens.empty": "Inga nycklar än."
 }

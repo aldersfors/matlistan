@@ -19,6 +19,14 @@ type Settings struct {
 	Staples                                                           []StapleRow
 	Errors                                                            validate.Errors
 	Saved                                                             bool
+	Tokens []TokenRow
+	NewToken, ExportURL string
+}
+
+// TokenRow is one Shortcut key, without its secret.
+type TokenRow struct {
+	ID int64
+	Name, Used, RevokeLabel string
 }
 
 templ SettingsPage(v Settings) {
@@ -65,6 +73,37 @@ templ SettingsPage(v Settings) {
 				</form>
 				@errorText(v.Errors, "staple")
 			</section>
+			<section class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "tokens.title") }</h2>
+				<p class="text-muted">{ i18n.T(ctx, "tokens.hint") }</p>
+				<p class="text-sm"><span class="font-bold">{ i18n.T(ctx, "tokens.url") }</span><br/><code class="break-all">{ v.ExportURL }</code></p>
+				if v.NewToken != "" {
+					<div role="status" class="flex flex-col gap-2 rounded-xl bg-attention p-3 text-attention-text">
+						<p class="font-bold">{ i18n.T(ctx, "tokens.created") }</p>
+						<code class="break-all select-all">{ v.NewToken }</code>
+					</div>
+				}
+				if len(v.Tokens) == 0 {
+					<p class="text-muted italic">{ i18n.T(ctx, "tokens.empty") }</p>
+				}
+				<ul class="flex flex-col gap-2">
+					for _, t := range v.Tokens {
+						<li class="flex items-center justify-between gap-2">
+							<span><span class="font-bold">{ t.Name }</span><br/><span class="text-sm text-muted">{ t.Used }</span></span>
+							<form method="post" action={ templ.URL(fmt.Sprintf("/settings/tokens/%d/delete", t.ID)) }>
+								<button type="submit" class="h-11 rounded-full border border-line px-4" aria-label={ t.RevokeLabel }>{ i18n.T(ctx, "tokens.revoke", "name", t.Name) }</button>
+							</form>
+						</li>
+					}
+				</ul>
+				<form method="post" action="/settings/tokens" class="flex items-end gap-2">
+					<div class="flex-grow">
+						@textField(i18n.T(ctx, "tokens.name"), "name", "", nil)
+					</div>
+					<button type="submit" class="h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "tokens.create") }</button>
+				</form>
+				@errorText(v.Errors, "token_name")
+			</section>
 		</main>
 	}
 }
@@ -73,7 +112,7 @@ templ SettingsPage(v Settings) {
 func settingsErrors(e validate.Errors) validate.Errors {
 	out := validate.Errors{}
 	for k, v := range e {
-		if k != "staple" {
+		if k != "staple" && k != "token_name" {
 			out[k] = v
 		}
 	}
