@@ -14,7 +14,7 @@ type CookStep struct {
 
 // Cook is cook mode.
 type Cook struct {
-	Title, DayClass, Meta, Progress string
+	Title, DayClass, Meta, Progress, TimerLine string
 	Ingredients                     []string
 	Steps                           []CookStep
 }
@@ -36,6 +36,8 @@ templ CookPage(v Cook) {
 						}
 					</ul>
 				</details>
+				<ul id="cook-timers" hidden data-template={ v.TimerLine } class="flex flex-col gap-1 font-bold tabular-nums *:rounded-xl *:bg-page *:px-3 *:py-2"></ul>
+				<p id="cook-announce" aria-live="polite" class="sr-only"></p>
 				<ol class="flex flex-col gap-5">
 					for _, st := range v.Steps {
 						<li data-step class="flex flex-col gap-3">

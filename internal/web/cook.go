@@ -65,7 +65,7 @@ func (s *server) cook(w http.ResponseWriter, r *http.Request) {
 	c := s.Catalog
 	servings, day := servingsParam(r, rec.Servings), dayParam(r)
 	v := views.Cook{Title: rec.Title, Meta: c.N("recipes.servings", servings),
-		Progress: c.T("cook.progress"), DayClass: "day-1"}
+		Progress: c.T("cook.progress"), TimerLine: c.T("cook.timer_line"), DayClass: "day-1"}
 	if day > 0 {
 		v.DayClass = fmt.Sprintf("day-%d", day)
 	}

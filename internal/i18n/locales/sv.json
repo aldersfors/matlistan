@@ -197,6 +197,7 @@
   "cook.next": "Nästa steg",
   "cook.timer": {"one": "Starta timer {n} minut", "other": "Starta timer {n} minuter"},
   "cook.timer_done": "Tiden är ute",
+  "cook.timer_line": "Steg {n}: {left}",
   "week.plan_day": "Planera dagen",
   "app.description": "Veckans middagar och inköpslista."
 }

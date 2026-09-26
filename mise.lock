@@ -81,3 +81,7 @@ url_api = "https://api.github.com/repos/ko-build/ko/releases/assets/461171820"
 
 [tools.ko."platforms.macos-arm64".provenance.slsa]
 url = "https://github.com/ko-build/ko/releases/download/v0.19.1/multiple.intoto.jsonl"
+
+[[tools.node]]
+version = "22.23.2"
+backend = "core:node"

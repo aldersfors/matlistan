@@ -51,7 +51,8 @@ func TestCookMode(t *testing.T) {
 	for _, want := range []string{"Blanda smeten.", "Koka potatisen i 20 minuter.",
 		"Stek bullarna 10 min.", `data-minutes="20"`, `data-minutes="10"`,
 		"Starta timer 20 minuter", `src="/static/cook.js"`, "day-5", "750 g blandfärs",
-		`data-template="Steg {n} av {total}"`} {
+		`data-template="Steg {n} av {total}"`, `id="cook-timers"`,
+		`data-template="Steg {n}: {left}"`, `id="cook-announce" aria-live="polite"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("cook page lacks %q", want)
 		}

@@ -48,6 +48,8 @@ jobs:
         run: mise run lint
       - name: Test
         run: mise run test
+      - name: Test browser scripts
+        run: mise run js:test
       - name: Vulnerabilities
         run: mise run vuln
       - name: Build image
