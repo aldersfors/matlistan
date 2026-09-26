@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      # mise-action caches the tools; this caches Go's own work: downloaded modules, compiled
+      # packages and golangci-lint's analysis. The key follows mise.lock
+      # (the Go and tool versions) and go.sum; a partial hit still reuses most of it.
+      - name: Go cache paths
+        id: go-paths
+        run: |
+          {
+            echo "mod=$(go env GOMODCACHE)"
+            echo "build=$(go env GOCACHE)"
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ steps.go-paths.outputs.mod }}
+            ${{ steps.go-paths.outputs.build }}
+            ~/.cache/golangci-lint
+          key: go-${{ runner.os }}-${{ hashFiles('mise.lock') }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ hashFiles('mise.lock') }}-
+      - name: Templ is up to date
+        run: mise run templ:check
+      - name: CSS is up to date
+        run: mise run css:check
+      - name: Lint
+        run: mise run lint
+      - name: Test
+        run: mise run test
+      - name: Vulnerabilities
+        run: mise run vuln
+      - name: Build image
+        env:
+          VERSION: ci
+        # CI only checks that the image builds: one platform, reusing the Go cache. Releases
+        # build both.
+        run: ko build --push=false --platform=linux/amd64 ./cmd/matlistan
