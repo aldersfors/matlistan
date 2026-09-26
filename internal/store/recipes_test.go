@@ -79,3 +79,22 @@ func TestListRecipes(t *testing.T) {
 		t.Fatalf("summary = %+v", all[0])
 	}
 }
+
+// Generated recipes stay out of the library and the candidates until ratings keep them (M5).
+func TestGeneratedRecipesAreNotInTheLibrary(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	gen := soup()
+	gen.Title, gen.Source = "Pumpasoppa", "generated"
+	id, _ := s.CreateRecipe(ctx, gen)
+	if _, err := s.CreateRecipe(ctx, soup()); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := s.ListRecipes(ctx, i18n.SV, "")
+	cands, _ := s.ListCandidates(ctx, i18n.SV)
+	if len(list) != 1 || list[0].Title != "Ärtsoppa" || len(cands) != 1 || cands[0].Title != "Ärtsoppa" {
+		t.Fatalf("library %+v, candidates %+v", list, cands)
+	}
+	if r, err := s.GetRecipe(ctx, id); err != nil || r.Title != "Pumpasoppa" {
+		t.Fatalf("generated recipe page: %+v, %v", r, err)
+	}
+}

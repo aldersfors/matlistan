@@ -114,7 +114,8 @@ func (s *Store) GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error)
 func (s *Store) ListRecipes(ctx context.Context, lang i18n.Locale, query string) (
 	[]recipes.Summary, error) {
 	rows, err := s.pool.Query(ctx, `SELECT id, title, total_minutes, tags FROM recipes
-		WHERE archived_at IS NULL AND lang = $1 AND strpos(title_key, $2) > 0
+		WHERE archived_at IS NULL AND lang = $1 AND source <> 'generated'
+		AND strpos(title_key, $2) > 0
 		ORDER BY title_key, id LIMIT $3`, string(lang), recipes.TitleKey(query), _recipeListMax)
 	if err != nil {
 		return nil, fmt.Errorf("list recipes: %w", err)

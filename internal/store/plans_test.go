@@ -118,3 +118,44 @@ func TestCookedSinceAndCandidates(t *testing.T) {
 		t.Fatalf("candidates = %+v, %v", cands, err)
 	}
 }
+
+// Conditions saved while a plan was running are not undone when the plan is stored.
+func TestPlanningKeepsNewerConditions(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	id, _ := s.CreateRecipe(ctx, soup())
+	old := weekplan.DefaultContext(7)
+	newer := weekplan.DefaultContext(7)
+	newer.Days[2].Guests = 3
+	if err := s.SaveContext(ctx, _w40, newer); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SavePicks(ctx, _w40, old, []weekplan.Pick{{Day: 1, RecipeID: id, Servings: 4}},
+		true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetPlanError(ctx, _w40, old, "plan.error.invalid"); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := s.GetPlan(ctx, _w40); p.Context.Days[2].Guests != 3 {
+		t.Fatalf("conditions overwritten: %+v", p.Context.Days[2])
+	}
+}
+
+// A day marked "no dinner" loses its planned dinner, so it is neither approved nor cooked.
+func TestSkippingADayDropsItsDinner(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	id, _ := s.CreateRecipe(ctx, soup())
+	c := weekplan.DefaultContext(7)
+	if err := s.SavePicks(ctx, _w40, c, []weekplan.Pick{{Day: 1, RecipeID: id, Servings: 4},
+		{Day: 4, RecipeID: id, Servings: 4}}, true); err != nil {
+		t.Fatal(err)
+	}
+	c.Days[3].Skip = true
+	if err := s.SaveContext(ctx, _w40, c); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := s.GetPlan(ctx, _w40)
+	if len(p.Entries) != 1 || p.Entries[0].Day != 1 {
+		t.Fatalf("entries = %+v", p.Entries)
+	}
+}

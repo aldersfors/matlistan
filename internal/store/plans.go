@@ -46,9 +46,11 @@ func (s *Store) GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, err
 	return p, nil
 }
 
-// upsertDraft creates the week or updates its context, refusing approved weeks.
-func upsertDraft(ctx context.Context, tx pgx.Tx, k weekplan.Key, c weekplan.Context) (int64,
-	error) {
+// upsertDraft creates the week (with c) or, for an existing draft, replaces its conditions
+// only when overwrite is set: a plan finishing must not undo conditions saved meanwhile.
+// Approved weeks are refused.
+func upsertDraft(ctx context.Context, tx pgx.Tx, k weekplan.Key, c weekplan.Context,
+	overwrite bool) (int64, error) {
 	raw, err := json.Marshal(c)
 	if err != nil {
 		return 0, err
@@ -56,9 +58,10 @@ func upsertDraft(ctx context.Context, tx pgx.Tx, k weekplan.Key, c weekplan.Cont
 	var id int64
 	err = tx.QueryRow(ctx, `INSERT INTO week_plans (iso_year, iso_week, context)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (iso_year, iso_week) DO UPDATE SET context = EXCLUDED.context
+		ON CONFLICT (iso_year, iso_week) DO UPDATE SET context =
+			CASE WHEN $4 THEN EXCLUDED.context ELSE week_plans.context END
 		WHERE week_plans.status = 'draft'
-		RETURNING id`, k.Year, k.Week, raw).Scan(&id)
+		RETURNING id`, k.Year, k.Week, raw, overwrite).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, ErrApproved
 	}
@@ -68,7 +71,19 @@ func upsertDraft(ctx context.Context, tx pgx.Tx, k weekplan.Key, c weekplan.Cont
 // SaveContext stores the week's conditions.
 func (s *Store) SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error {
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		_, err := upsertDraft(ctx, tx, k, c)
+		id, err := upsertDraft(ctx, tx, k, c, true)
+		if err != nil {
+			return err
+		}
+		var skipped []int
+		for i, d := range c.Days {
+			if d.Skip {
+				skipped = append(skipped, i+1)
+			}
+		}
+		// A day without dinner at home keeps no dinner, so it is neither approved nor cooked.
+		_, err = tx.Exec(ctx, `DELETE FROM plan_entries WHERE plan_id = $1 AND day = ANY($2)`,
+			id, skipped)
 		return err
 	})
 	return wrapPlanErr("save context", err)
@@ -79,7 +94,7 @@ func (s *Store) SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Cont
 func (s *Store) SavePicks(ctx context.Context, k weekplan.Key, c weekplan.Context,
 	picks []weekplan.Pick, replaceAll bool) error {
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		id, err := upsertDraft(ctx, tx, k, c)
+		id, err := upsertDraft(ctx, tx, k, c, false)
 		if err != nil {
 			return err
 		}
@@ -116,7 +131,7 @@ func (s *Store) SavePicks(ctx context.Context, k weekplan.Key, c weekplan.Contex
 func (s *Store) SetPlanError(ctx context.Context, k weekplan.Key, c weekplan.Context,
 	key string) error {
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		id, err := upsertDraft(ctx, tx, k, c)
+		id, err := upsertDraft(ctx, tx, k, c, false)
 		if err != nil {
 			return err
 		}
@@ -168,7 +183,8 @@ func (s *Store) CookedSince(ctx context.Context, from, until weekplan.Key) (
 // ListCandidates returns active recipes in lang for the planner, without ingredients.
 func (s *Store) ListCandidates(ctx context.Context, lang i18n.Locale) ([]recipes.Recipe, error) {
 	rows, err := s.pool.Query(ctx, `SELECT id, title, total_minutes, tags, diets, allergens
-		FROM recipes WHERE archived_at IS NULL AND lang = $1 ORDER BY title_key, id LIMIT $2`,
+		FROM recipes WHERE archived_at IS NULL AND lang = $1 AND source <> 'generated'
+		ORDER BY title_key, id LIMIT $2`,
 		string(lang), _candidatesMax)
 	if err != nil {
 		return nil, fmt.Errorf("list candidates: %w", err)
