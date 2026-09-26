@@ -3,6 +3,7 @@ package web
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -57,6 +58,9 @@ func TestViewsUseKnownKeys(t *testing.T) {
 	for _, f := range files {
 		b, _ := os.ReadFile(f)
 		for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+			if strings.HasSuffix(m[1], ".") {
+				continue // a prefix joined at runtime; TestFormatKeysExistInEveryLocale covers it
+			}
 			if _, ok := en.Message(m[1]); !ok {
 				t.Errorf("%s uses unknown key %q", f, m[1])
 			}
@@ -81,6 +85,41 @@ func TestVendoredFilesMatchChecksums(t *testing.T) {
 		}
 		if sum := sha256.Sum256(data); hex.EncodeToString(sum[:]) != f[0] {
 			t.Errorf("%s does not match its SHA256SUMS entry", f[1])
+		}
+	}
+}
+
+// Keys passed as literals from Go code (handlers, the auth package, views' helper funcs) must
+// exist too; TestViewsUseKnownKeys only reads .templ files.
+func TestGoCodeUsesKnownKeys(t *testing.T) {
+	en, err := i18n.Load(i18n.EN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	re := regexp.MustCompile(`\b(?:i18n\.)?[TN]\((?:ctx, |r\.Context\(\), )?"([a-z0-9_.]+)"`)
+	var files []string
+	err = filepath.WalkDir("..", func(path string, _ fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") &&
+			!strings.HasSuffix(path, "_templ.go") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil || len(files) == 0 {
+		t.Fatalf("walk: %v (%d files)", err, len(files))
+	}
+	for _, f := range files {
+		b, _ := os.ReadFile(f)
+		for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+			if strings.HasSuffix(m[1], ".") {
+				continue // a prefix joined at runtime; TestFormatKeysExistInEveryLocale covers it
+			}
+			if _, ok := en.Message(m[1]); !ok {
+				t.Errorf("%s uses unknown key %q", f, m[1])
+			}
 		}
 	}
 }

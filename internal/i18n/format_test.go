@@ -25,3 +25,23 @@ func TestFormat(t *testing.T) {
 		}
 	}
 }
+
+// Keys built at runtime (weekday, month, format) must exist in every locale; a missing one
+// would show as [key] on screen, for example every March.
+func TestFormatKeysExistInEveryLocale(t *testing.T) {
+	keys := []string{"format.date", "format.decimal_separator", "week.label"}
+	for _, d := range _weekdayKeys {
+		keys = append(keys, "weekday.short."+d)
+	}
+	for _, m := range _monthKeys {
+		keys = append(keys, "month.short."+m)
+	}
+	for _, l := range Supported {
+		c := mustLoad(t, l)
+		for _, k := range keys {
+			if _, ok := c.Message(k); !ok {
+				t.Errorf("%s lacks %q", l, k)
+			}
+		}
+	}
+}
