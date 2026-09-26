@@ -164,3 +164,14 @@ func assert(cond bool, msg string) {
 		panic("invariant violated: " + msg)
 	}
 }
+
+// ErrNotFound is returned for unknown or archived rows.
+var ErrNotFound = errors.New("not found")
+
+// orEmpty keeps nil slices out of NOT NULL array columns.
+func orEmpty(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
