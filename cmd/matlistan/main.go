@@ -13,7 +13,11 @@ import (
 
 	_ "time/tzdata" // distroless has no zoneinfo; MATLISTAN_TIMEZONE needs it
 
+	"github.com/rs/zerolog"
+
+	"github.com/jalet/matlistan/internal/config"
 	"github.com/jalet/matlistan/internal/release"
+	"github.com/jalet/matlistan/internal/store"
 )
 
 // env is what every subcommand receives.
@@ -27,8 +31,29 @@ var _commands = map[string]func(ctx context.Context, e env) int{
 		_, _ = fmt.Fprintln(e.stdout, release.Version())
 		return 0
 	},
-	"migrate": notYet("migrate"),
+	"migrate": migrate,
 	"serve":   notYet("serve"),
+}
+
+func migrate(ctx context.Context, e env) int {
+	log := newLogger(e.stderr)
+	db, err := config.ParseDatabase(e.getenv)
+	if err != nil {
+		log.Error().Err(err).Msg("config")
+		return 1
+	}
+	s, err := store.Open(ctx, store.Options{URL: db.URL, CAFile: db.CAFile, Log: log})
+	if err != nil {
+		log.Error().Err(err).Msg("migrate")
+		return 1
+	}
+	s.Close()
+	log.Info().Msg("migrations applied")
+	return 0
+}
+
+func newLogger(w io.Writer) zerolog.Logger {
+	return zerolog.New(w).With().Timestamp().Str("version", release.Version()).Logger()
 }
 
 func main() {

@@ -37,3 +37,13 @@ func TestRunUnknownCommand(t *testing.T) {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }
+
+func TestMigrateWithoutDatabaseURL(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"matlistan", "migrate"}, &out, &errOut, noEnv); code != 1 {
+		t.Fatalf("exit %d, want 1", code)
+	}
+	if !strings.Contains(errOut.String(), "MATLISTAN_DATABASE_URL is required") {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
