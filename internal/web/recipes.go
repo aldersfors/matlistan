@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jalet/matlistan/internal/i18n"
+
 	"github.com/jalet/matlistan/internal/recipes"
 	"github.com/jalet/matlistan/internal/web/views"
 )
@@ -11,7 +13,12 @@ import (
 const _queryRunesMax = 100
 
 func (s *server) recipeList(w http.ResponseWriter, r *http.Request) {
-	q := []rune(strings.TrimSpace(r.URL.Query().Get("q")))
+	raw := r.URL.Query().Get("q")
+	if !storable(raw) {
+		http.Error(w, i18n.T(r.Context(), "error.bad_request"), http.StatusBadRequest)
+		return
+	}
+	q := []rune(strings.TrimSpace(raw))
 	q = q[:min(len(q), _queryRunesMax)]
 	list, err := s.Store.ListRecipes(r.Context(), s.Catalog.Locale(), string(q))
 	if err != nil {

@@ -3,7 +3,10 @@ package web
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/a-h/templ"
 
@@ -17,9 +20,23 @@ const formBytesMax = 64 << 10
 // readForm parses a bounded POST body. false means the error response is already written.
 func readForm(w http.ResponseWriter, r *http.Request) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, formBytesMax)
-	if err := r.ParseForm(); err != nil {
+	if err := r.ParseForm(); err != nil || !storableForm(r.PostForm) {
 		http.Error(w, i18n.T(r.Context(), "error.bad_request"), http.StatusBadRequest)
 		return false
+	}
+	return true
+}
+
+// storable reports whether Postgres can keep s as text: valid UTF-8 without NUL bytes.
+func storable(s string) bool { return utf8.ValidString(s) && !strings.ContainsRune(s, 0) }
+
+func storableForm(v url.Values) bool {
+	for _, vs := range v {
+		for _, s := range vs {
+			if !storable(s) {
+				return false
+			}
+		}
 	}
 	return true
 }

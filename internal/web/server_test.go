@@ -209,3 +209,23 @@ func TestOversizedFormIsRejected(t *testing.T) {
 }
 
 func itoa(id int64) string { return strconv.FormatInt(id, 10) }
+
+// Values Postgres cannot store (NUL, invalid UTF-8) are refused as a bad request, not a 500.
+func TestUnstorableTextIsRejected(t *testing.T) {
+	h := newServer(t, i18n.SV, true, newFakeStore())
+	for _, raw := range []string{"name=a%00b&birth_year=2014", "name=%FF&birth_year=2014"} {
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/family",
+			strings.NewReader(raw))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", raw, rec.Code)
+		}
+	}
+	for _, q := range []string{"%00", "%FF"} {
+		if res, _ := get(t, h, "/recipes?q="+q); res.StatusCode != http.StatusBadRequest {
+			t.Errorf("q=%s: status %d, want 400", q, res.StatusCode)
+		}
+	}
+}
