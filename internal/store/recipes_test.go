@@ -1,0 +1,81 @@
+package store
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/recipes"
+)
+
+func soup() recipes.Recipe {
+	return recipes.Recipe{Title: "Ärtsoppa", Lang: i18n.SV, Servings: 4, ActiveMinutes: 10,
+		TotalMinutes: 40, Source: "manual", Tags: []string{"torsdag"},
+		Steps:     []string{"Värm soppan", "Servera med senap"},
+		Allergens: []string{"mustard"},
+		Ingredients: []recipes.Ingredient{
+			{Name: "gul ärtsoppa", Quantity: 2, Unit: "pcs", Section: "pantry"},
+			{Name: "senap", Section: "pantry", Optional: true},
+		}}
+}
+
+func TestRecipeRoundTrip(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	id, err := s.CreateRecipe(ctx, soup())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetRecipe(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := soup()
+	want.ID = id
+	if got.Title != want.Title || got.Lang != i18n.SV || len(got.Ingredients) != 2 ||
+		got.Ingredients[0] != want.Ingredients[0] || got.Ingredients[1] != want.Ingredients[1] ||
+		len(got.Steps) != 2 || got.Allergens[0] != "mustard" {
+		t.Fatalf("got %+v", got)
+	}
+	got.Ingredients = got.Ingredients[:1]
+	got.Title = "Ärtsoppa med fläsk"
+	if err := s.UpdateRecipe(ctx, got); err != nil {
+		t.Fatal(err)
+	}
+	again, _ := s.GetRecipe(ctx, id)
+	if again.Title != "Ärtsoppa med fläsk" || len(again.Ingredients) != 1 {
+		t.Fatalf("update: %+v", again)
+	}
+	if err := s.ArchiveRecipe(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetRecipe(ctx, id); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("archived get: %v", err)
+	}
+	if err := s.UpdateRecipe(ctx, again); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("archived update: %v", err)
+	}
+}
+
+// Review focus 1: Unicode case folding in search, and the list follows the deployment language.
+func TestListRecipes(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	for _, r := range []recipes.Recipe{soup(),
+		func() recipes.Recipe { r := soup(); r.Title = "Köttbullar"; return r }(),
+		func() recipes.Recipe { r := soup(); r.Title = "Pea soup"; r.Lang = i18n.EN; return r }(),
+	} {
+		if _, err := s.CreateRecipe(ctx, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for q, want := range map[string]int{"": 2, "ärt": 1, "ÄRT": 1, "bullar": 1, "pea": 0} {
+		got, err := s.ListRecipes(ctx, i18n.SV, q)
+		if err != nil || len(got) != want {
+			t.Errorf("q=%q: %d results, want %d (%v)", q, len(got), want, err)
+		}
+	}
+	all, _ := s.ListRecipes(ctx, i18n.SV, "")
+	if all[0].Title != "Köttbullar" || all[0].TotalMinutes != 40 || all[0].Tags[0] != "torsdag" {
+		t.Fatalf("summary = %+v", all[0])
+	}
+}
