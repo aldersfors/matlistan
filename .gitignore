@@ -1,0 +1,16 @@
+# Build output
+/bin/
+/dist/
+
+# Generated
+internal/web/static/app.css
+
+# Local env
+.env
+.env.*
+.envrc
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
