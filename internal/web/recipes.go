@@ -7,6 +7,7 @@ import (
 	"github.com/jalet/matlistan/internal/i18n"
 
 	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/jalet/matlistan/internal/shopping"
 	"github.com/jalet/matlistan/internal/web/views"
 )
 
@@ -63,15 +64,7 @@ func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
 
 // ingredientLine is "1,5 dl vispgrädde", or "salt, to taste (optional)".
 func (s *server) ingredientLine(in recipes.Ingredient) string {
-	c := s.Catalog
-	line := in.Name + ", " + c.T("recipe.to_taste")
-	if in.Quantity > 0 {
-		line = strings.TrimSpace(c.Quantity(in.Quantity)+" "+c.Unit(in.Unit)) + " " + in.Name
-	}
-	if in.Optional {
-		line += " (" + c.T("recipe.optional") + ")"
-	}
-	return line
+	return shopping.Line(s.Catalog, in.Name, in.Quantity, in.Unit, in.Optional)
 }
 
 func (s *server) archiveRecipe(w http.ResponseWriter, r *http.Request) {

@@ -159,5 +159,10 @@
   "plan.error.invalid": "Planeraren hittade ingen vecka som följer alla era regler. Försök igen, eller lätta på veckans förutsättningar.",
   "plan.error.unavailable": "Planeraren gick inte att nå. Försök igen om en stund.",
   "family.planner_note": "När en vecka planeras skickas varje medlems ålder, kost, allergier och vad man tycker om och inte till Claude (Anthropic). Namn skickas inte.",
-  "week.busy": "Två andra veckor planeras just nu. Försök igen om en minut."
+  "week.busy": "Två andra veckor planeras just nu. Försök igen om en minut.",
+  "shopping.title": "Inköpslista",
+  "shopping.none": "Ingen godkänd vecka än. Godkänn en vecka för att få dess inköpslista.",
+  "shopping.empty": "Allt för veckan finns redan hemma.",
+  "shopping.export.title": "Matlistan vecka {n}",
+  "shopping.export.none": "Ingen godkänd vecka än."
 }
