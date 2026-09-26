@@ -51,6 +51,8 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 		return err
 	}
 	defer db.Close()
+	now := func() time.Time { return time.Now().In(cfg.Location) }
+	go pruneAuthEvents(ctx, db, now, log)
 
 	key, err := auth.LoadKey(cfg.SessionKeyFile)
 	if err != nil {
@@ -68,7 +70,6 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	if err != nil {
 		return err
 	}
-	now := func() time.Time { return time.Now().In(cfg.Location) }
 	authn, err := auth.New(ctx, auth.Config{Issuer: cfg.OIDC.Issuer, ClientID: cfg.OIDC.ClientID,
 		ClientSecret: strings.TrimSpace(string(secret)), RedirectURL: cfg.RedirectURL(),
 		CAPool: pool, Claim: cfg.OIDC.Claim, Allowed: cfg.OIDC.Allowed,
@@ -113,4 +114,26 @@ func caPool(path string) (*x509.CertPool, error) {
 		return nil, errors.New("oidc ca: no certificates found")
 	}
 	return p, nil
+}
+
+// Auth events hold email addresses; keep them only as long as they help an investigation.
+const authEventsRetention = 90 * 24 * time.Hour
+
+func pruneAuthEvents(ctx context.Context, db *store.Store, now func() time.Time,
+	log zerolog.Logger) {
+	tick := time.NewTicker(24 * time.Hour)
+	defer tick.Stop()
+	for {
+		n, err := db.PruneAuthEvents(ctx, now().Add(-authEventsRetention))
+		if err != nil {
+			log.Warn().Err(err).Msg("prune auth events")
+		} else if n > 0 {
+			log.Info().Int64("deleted", n).Msg("auth events pruned")
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+	}
 }

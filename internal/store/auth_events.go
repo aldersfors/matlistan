@@ -60,3 +60,12 @@ func truncate(s string, n int) string {
 	}
 	return strings.ToValidUTF8(s[:n], "")
 }
+
+// PruneAuthEvents deletes events older than before and reports how many went.
+func (s *Store) PruneAuthEvents(ctx context.Context, before time.Time) (int64, error) {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM auth_events WHERE at < $1`, before)
+	if err != nil {
+		return 0, fmt.Errorf("prune auth events: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}

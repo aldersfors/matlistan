@@ -120,3 +120,17 @@ func TestOpenUnreachableDoesNotLeakURL(t *testing.T) {
 		t.Fatalf("error leaks the password: %v", err)
 	}
 }
+
+func TestPruneAuthEvents(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	now := time.Now()
+	for _, at := range []time.Time{now.Add(-100 * 24 * time.Hour), now.Add(-time.Hour)} {
+		if err := s.InsertAuthEvent(ctx, AuthEvent{At: at, Outcome: AuthOutcomeLogin}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := s.PruneAuthEvents(ctx, now.Add(-90*24*time.Hour))
+	if err != nil || n != 1 {
+		t.Fatalf("pruned %d, %v", n, err)
+	}
+}
