@@ -45,3 +45,10 @@ func TestFormatKeysExistInEveryLocale(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionLabels(t *testing.T) {
+	sv := mustLoad(t, SV)
+	if sv.Allergen("nuts") != "Nötter" || sv.Diet("vegan") != "Vegansk" {
+		t.Errorf("labels: %q %q", sv.Allergen("nuts"), sv.Diet("vegan"))
+	}
+}
