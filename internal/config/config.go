@@ -27,6 +27,7 @@ type Config struct {
 	Locale                                                i18n.Locale
 	Location                                              *time.Location
 	OIDC                                                  OIDC
+	Planner                                               Planner
 }
 
 // RedirectURL is the OIDC callback under BaseURL.
@@ -74,6 +75,7 @@ func Parse(getenv func(string) string) (Config, error) {
 			Allowed:          splitList(req("MATLISTAN_OIDC_ALLOWED")),
 		},
 	}
+	c.Planner = parsePlanner(get)
 	var err error
 	if c.Locale, err = i18n.ParseLocale(get("MATLISTAN_LOCALE")); err != nil {
 		errs = append(errs, fmt.Errorf("MATLISTAN_LOCALE: %w", err))
@@ -119,4 +121,45 @@ func splitList(s string) []string {
 		}
 	}
 	return out
+}
+
+// Planner configures the model. An empty APIKeyFile disables planning in serve.
+type Planner struct{ APIKeyFile, Model string }
+
+// Generate is what the generate command needs.
+type Generate struct {
+	Database Database
+	Locale   i18n.Locale
+	Location *time.Location
+	Planner  Planner
+}
+
+func parsePlanner(get func(string) string) Planner {
+	return Planner{APIKeyFile: get("MATLISTAN_ANTHROPIC_API_KEY_FILE"),
+		Model: or(get("MATLISTAN_MODEL"), "claude-opus-5")}
+}
+
+// ParseGenerate reads the database, locale, timezone and planner settings; the key is
+// required.
+func ParseGenerate(getenv func(string) string) (Generate, error) {
+	get := func(name string) string { return strings.TrimSpace(getenv(name)) }
+	var errs []error
+	db, err := ParseDatabase(getenv)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	g := Generate{Database: db, Planner: parsePlanner(get)}
+	if g.Planner.APIKeyFile == "" {
+		errs = append(errs, errors.New("MATLISTAN_ANTHROPIC_API_KEY_FILE is required"))
+	}
+	if g.Locale, err = i18n.ParseLocale(get("MATLISTAN_LOCALE")); err != nil {
+		errs = append(errs, fmt.Errorf("MATLISTAN_LOCALE: %w", err))
+	}
+	if g.Location, err = time.LoadLocation(or(get("MATLISTAN_TIMEZONE"), "UTC")); err != nil {
+		errs = append(errs, fmt.Errorf("MATLISTAN_TIMEZONE: %w", err))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return Generate{}, err
+	}
+	return g, nil
 }

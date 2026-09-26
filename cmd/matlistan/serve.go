@@ -20,7 +20,7 @@ import (
 	"github.com/jalet/matlistan/internal/web"
 )
 
-func serve(ctx context.Context, e env) int {
+func serve(ctx context.Context, e env, _ []string) int {
 	log := newLogger(e.stderr)
 	cfg, err := config.Parse(e.getenv)
 	if err != nil {
@@ -53,6 +53,15 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	defer db.Close()
 	now := func() time.Time { return time.Now().In(cfg.Location) }
 	go pruneAuthEvents(ctx, db, now, log)
+	svc, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
+	if err != nil {
+		return err
+	}
+	if svc == nil {
+		log.Info().Msg("planning disabled: MATLISTAN_ANTHROPIC_API_KEY_FILE is not set")
+	} else {
+		log.Info().Str("model", cfg.Planner.Model).Msg("planning enabled")
+	}
 
 	key, err := auth.LoadKey(cfg.SessionKeyFile)
 	if err != nil {

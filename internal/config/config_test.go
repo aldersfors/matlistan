@@ -99,3 +99,31 @@ func TestParseDatabaseOnlyNeedsTheURL(t *testing.T) {
 		t.Fatal("want error")
 	}
 }
+
+func TestPlannerConfig(t *testing.T) {
+	c, err := Parse(getenv(valid()))
+	if err != nil || c.Planner.Model != "claude-opus-5" || c.Planner.APIKeyFile != "" {
+		t.Fatalf("defaults = %+v, %v", c.Planner, err)
+	}
+	m := valid()
+	m["MATLISTAN_ANTHROPIC_API_KEY_FILE"] = "/secrets/anthropic"
+	m["MATLISTAN_MODEL"] = "claude-sonnet-5"
+	if c, _ := Parse(getenv(m)); c.Planner.APIKeyFile != "/secrets/anthropic" ||
+		c.Planner.Model != "claude-sonnet-5" {
+		t.Fatalf("planner = %+v", c.Planner)
+	}
+}
+
+func TestParseGenerateNeedsTheKey(t *testing.T) {
+	m := map[string]string{"MATLISTAN_DATABASE_URL": "postgres://x"}
+	if _, err := ParseGenerate(getenv(m)); err == nil ||
+		!strings.Contains(err.Error(), "MATLISTAN_ANTHROPIC_API_KEY_FILE") {
+		t.Fatalf("err = %v", err)
+	}
+	m["MATLISTAN_ANTHROPIC_API_KEY_FILE"] = "/k"
+	m["MATLISTAN_LOCALE"] = "sv"
+	g, err := ParseGenerate(getenv(m))
+	if err != nil || g.Locale != i18n.SV || g.Planner.Model != "claude-opus-5" {
+		t.Fatalf("generate = %+v, %v", g, err)
+	}
+}

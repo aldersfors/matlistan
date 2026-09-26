@@ -65,3 +65,7 @@ export MATLISTAN_OIDC_CLIENT_SECRET_FILE=.dev/oidc.secret
 export MATLISTAN_OIDC_ALLOWED=dev
 go run ./cmd/matlistan serve
 '''
+
+[tasks."test:live"]
+description = "Call the real Claude API once (needs ANTHROPIC_API_KEY)"
+run = "MATLISTAN_LIVE=1 go test -run TestLive -v ./internal/planner/claude/"
