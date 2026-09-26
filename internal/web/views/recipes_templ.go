@@ -608,7 +608,7 @@ func RecipeFormPage(f RecipeForm) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = numberField(i18n.T(ctx, "recipe.quantity"), row(r.Index, "quantity"), r.Quantity, f.Errors).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = decimalField(i18n.T(ctx, "recipe.quantity"), row(r.Index, "quantity"), r.Quantity, f.Errors).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

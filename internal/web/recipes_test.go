@@ -136,3 +136,14 @@ func TestEditAndArchiveRecipe(t *testing.T) {
 		t.Fatalf("archived recipe: %d", res.StatusCode)
 	}
 }
+
+// Phones must offer a decimal keypad for amounts ("1,5"); whole-number fields keep numeric.
+func TestQuantityFieldAllowsDecimals(t *testing.T) {
+	_, body := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/recipes/new")
+	if !strings.Contains(body, `inputmode="decimal" name="ingredients.0.quantity"`) {
+		t.Error("quantity field lacks inputmode=decimal")
+	}
+	if !strings.Contains(body, `inputmode="numeric" name="servings"`) {
+		t.Error("servings field lost inputmode=numeric")
+	}
+}

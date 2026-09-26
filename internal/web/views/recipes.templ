@@ -148,7 +148,7 @@ templ RecipeFormPage(f RecipeForm) {
 						<div class="flex flex-col gap-2 rounded-2xl bg-panel p-3">
 							@textField(i18n.T(ctx, "recipe.ingredient"), row(r.Index, "name"), r.Name, f.Errors)
 							<div class="grid grid-cols-2 gap-2">
-								@numberField(i18n.T(ctx, "recipe.quantity"), row(r.Index, "quantity"), r.Quantity, f.Errors)
+								@decimalField(i18n.T(ctx, "recipe.quantity"), row(r.Index, "quantity"), r.Quantity, f.Errors)
 								@selectField(i18n.T(ctx, "recipe.unit"), row(r.Index, "unit"), r.Unit, f.Units, f.Errors)
 							</div>
 							@selectField(i18n.T(ctx, "recipe.section"), row(r.Index, "section"), r.Section, f.Sections, f.Errors)

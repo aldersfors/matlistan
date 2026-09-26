@@ -45,6 +45,15 @@ templ numberField(label, name, value string, e validate.Errors) {
 	</label>
 }
 
+// decimalField is numberField for amounts: phones show a keypad with a decimal separator.
+templ decimalField(label, name, value string, e validate.Errors) {
+	<label class="flex flex-col gap-1">
+		<span class="text-sm font-bold">{ label }</span>
+		<input class="h-12 rounded-xl border border-line bg-panel px-3" type="text" inputmode="decimal" name={ name } value={ value }/>
+		@errorText(e, name)
+	</label>
+}
+
 templ textArea(label, name, value string, e validate.Errors) {
 	<label class="flex flex-col gap-1">
 		<span class="text-sm font-bold">{ label }</span>
