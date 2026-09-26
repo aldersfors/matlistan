@@ -30,7 +30,8 @@ type Week struct {
 	Year, Number                                     int
 	Label, Range, Error                              string
 	PrevHref, NextHref, StatusHref                   string
-	Configured, Generating, Approved, HasEntries     bool
+	Configured, Plannable, Generating, Approved      bool
+	HasEntries                                       bool
 	Days                                             []WeekDay
 	Context                                          []ContextDay
 	Errors                                           validate.Errors
@@ -98,7 +99,7 @@ templ WeekPage(w Week) {
 								<span class="text-xs text-muted">{ d.Meta }</span>
 							}
 						</div>
-						if d.Planned && d.Title != "" && w.Configured && !w.Approved && !w.Generating {
+						if d.Planned && d.Title != "" && w.Configured && w.Plannable && !w.Approved && !w.Generating {
 							<form method="post" action="/week/swap" class="flex">
 								@w.hidden()
 								<input type="hidden" name="day" value={ strconv.Itoa(d.Index) }/>
@@ -110,7 +111,7 @@ templ WeekPage(w Week) {
 					</li>
 				}
 			</ol>
-			if w.Configured && !w.Approved && !w.Generating {
+			if w.Configured && w.Plannable && !w.Approved && !w.Generating {
 				if w.HasEntries {
 					<form method="post" action="/week/approve">
 						@w.hidden()

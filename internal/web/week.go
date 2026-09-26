@@ -33,6 +33,16 @@ func (s *server) weekKey(r *http.Request) (weekplan.Key, bool) {
 	return k, err == nil
 }
 
+// _planAheadWeeks is how far ahead planning may run; with the current week it bounds what one
+// person can spend on the model.
+const _planAheadWeeks = 8
+
+// plannable reports whether k is the current week or at most _planAheadWeeks after it.
+func (s *server) plannable(k weekplan.Key) bool {
+	now := weekplan.KeyOf(s.Now())
+	return !k.Less(now) && !now.AddWeeks(_planAheadWeeks).Less(k)
+}
+
 func weekHref(k weekplan.Key) string { return fmt.Sprintf("/week?y=%d&w=%d", k.Year, k.Week) }
 
 func (s *server) badRequest(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +88,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 	monday := k.Monday(s.Now().Location())
 	v := views.Week{Year: k.Year, Number: k.Week, Label: c.WeekLabel(k.Week),
 		Range:      c.T("week.range", "from", c.Date(monday), "to", c.Date(monday.AddDate(0, 0, 6))),
-		Configured: s.Planner != nil, Generating: s.jobs.running(k),
+		Configured: s.Planner != nil, Plannable: s.plannable(k), Generating: s.jobs.running(k),
 		Approved: plan.Status == weekplan.StatusApproved, HasEntries: len(plan.Entries) > 0,
 		PrevHref: weekHref(k.AddWeeks(-1)), NextHref: weekHref(k.AddWeeks(1)),
 		StatusHref: fmt.Sprintf("/fragments/week-status?y=%d&w=%d", k.Year, k.Week),
@@ -206,6 +216,10 @@ func (s *server) generateWeek(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !s.plannable(k) {
+		s.badRequest(w, r)
+		return
+	}
 	if s.Planner == nil {
 		s.notFound(w, r)
 		return
@@ -222,7 +236,7 @@ func (s *server) swapDinner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	day, err := strconv.Atoi(r.PostFormValue("day"))
-	if err != nil || day < 1 || day > 7 || plan.Context.Days[day-1].Skip {
+	if err != nil || day < 1 || day > 7 || plan.Context.Days[day-1].Skip || !s.plannable(k) {
 		s.badRequest(w, r)
 		return
 	}

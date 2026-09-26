@@ -155,3 +155,32 @@ func TestWeekNavigation(t *testing.T) {
 		}
 	}
 }
+
+// Planning costs money, so only the current week and the next few can be planned.
+func TestPlanningOnlyForNearWeeks(t *testing.T) {
+	st := newFakeStore()
+	h, s := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	for _, yw := range [][2]string{{"2026", "38"}, {"2027", "10"}, {"2099", "1"}} {
+		rec := post(t, h, "/week/generate", url.Values{"y": {yw[0]}, "w": {yw[1]}})
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("generate %s-W%s: %d, want 400", yw[0], yw[1], rec.Code)
+		}
+	}
+	for _, w := range []string{"39", "40", "47"} { // current week, next, current + 8
+		if rec := post(t, h, "/week/generate", url.Values{"y": {"2026"}, "w": {w}}); rec.Code != http.StatusSeeOther {
+			t.Errorf("generate 2026-W%s: %d, want 303", w, rec.Code)
+		}
+		s.jobs.wait()
+	}
+	if _, body := get(t, h, "/week?y=2027&w=10"); strings.Contains(body, "Planera veckan") {
+		t.Error("a week outside the planning window offers planning")
+	}
+}
+
+func TestFarWeekDoesNotClaimPlanningIsOff(t *testing.T) {
+	st := newFakeStore()
+	h, _ := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	if _, body := get(t, h, "/week?y=2027&w=10"); strings.Contains(body, "inte inställd") {
+		t.Fatal("configured planner reported as not set up")
+	}
+}

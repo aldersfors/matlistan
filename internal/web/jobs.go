@@ -10,6 +10,9 @@ import (
 	"github.com/jalet/matlistan/internal/weekplan"
 )
 
+// jobsMax bounds planning runs across all weeks; each run costs model tokens.
+const jobsMax = 2
+
 // jobs runs at most one planning job per week in the background. Jobs outlive the request
 // that started them; the planner records their outcome on the week itself.
 type jobs struct {
@@ -27,7 +30,7 @@ func newJobs(timeout time.Duration, log zerolog.Logger) *jobs {
 func (j *jobs) start(k weekplan.Key, fn func(context.Context) error) bool {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.active[k] {
+	if j.active[k] || len(j.active) >= jobsMax {
 		return false
 	}
 	j.active[k] = true

@@ -45,3 +45,20 @@ func TestJobsHaveATimeout(t *testing.T) {
 		t.Fatal("job context never ended")
 	}
 }
+
+// At most jobsMax planning runs at a time, whatever the week, so the API bill stays bounded.
+func TestJobsHaveAGlobalLimit(t *testing.T) {
+	j := newJobs(time.Second, zerolog.Nop())
+	release := make(chan struct{})
+	block := func(context.Context) error { <-release; return nil }
+	for w := 40; w < 40+jobsMax; w++ {
+		if !j.start(weekplan.Key{Year: 2026, Week: w}, block) {
+			t.Fatalf("job %d refused below the limit", w)
+		}
+	}
+	if j.start(weekplan.Key{Year: 2026, Week: 50}, block) {
+		t.Fatal("job above the limit accepted")
+	}
+	close(release)
+	j.wait()
+}
