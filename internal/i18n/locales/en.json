@@ -60,5 +60,21 @@
   "diet.vegetarian": "Vegetarian",
   "diet.vegan": "Vegan",
   "diet.pescatarian": "Pescatarian",
-  "diet.no_pork": "No pork"
+  "diet.no_pork": "No pork",
+  "unit.g": "g",
+  "unit.kg": "kg",
+  "unit.ml": "ml",
+  "unit.dl": "dl",
+  "unit.l": "l",
+  "unit.pcs": "pcs",
+  "unit.tbsp": "tbsp",
+  "unit.tsp": "tsp",
+  "unit.pinch": "pinch",
+  "section.produce": "Produce",
+  "section.dairy": "Dairy",
+  "section.meat_fish": "Meat and fish",
+  "section.pantry": "Pantry",
+  "section.frozen": "Frozen",
+  "section.bakery": "Bakery",
+  "section.other": "Other"
 }

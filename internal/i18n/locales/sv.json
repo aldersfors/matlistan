@@ -60,5 +60,21 @@
   "diet.vegetarian": "Vegetarisk",
   "diet.vegan": "Vegansk",
   "diet.pescatarian": "Pescetarian",
-  "diet.no_pork": "Inget fläskkött"
+  "diet.no_pork": "Inget fläskkött",
+  "unit.g": "g",
+  "unit.kg": "kg",
+  "unit.ml": "ml",
+  "unit.dl": "dl",
+  "unit.l": "l",
+  "unit.pcs": "st",
+  "unit.tbsp": "msk",
+  "unit.tsp": "tsk",
+  "unit.pinch": "krm",
+  "section.produce": "Frukt och grönt",
+  "section.dairy": "Mejeri",
+  "section.meat_fish": "Kött och fisk",
+  "section.pantry": "Skafferi",
+  "section.frozen": "Frys",
+  "section.bakery": "Bröd",
+  "section.other": "Övrigt"
 }

@@ -37,3 +37,14 @@ func (c *Catalog) Allergen(key string) string { return c.T("allergen." + key) }
 
 // Diet is the label of a diet key.
 func (c *Catalog) Diet(key string) string { return c.T("diet." + key) }
+
+// Unit is the label of a unit key; "" (no unit) stays "".
+func (c *Catalog) Unit(key string) string {
+	if key == "" {
+		return ""
+	}
+	return c.T("unit." + key)
+}
+
+// Section is the label of a store section key.
+func (c *Catalog) Section(key string) string { return c.T("section." + key) }
