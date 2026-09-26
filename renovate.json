@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate keeps Go modules, GitHub Actions, mise tools and the digest-pinned ko base image current.",
+  "extends": ["config:recommended", ":automergeMinor", ":automergeDigest"],
+  "postUpdateOptions": ["gomodTidy"],
+  "osvVulnerabilityAlerts": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The distroless base image in .ko.yaml, which no built-in manager reads",
+      "managerFilePatterns": ["/^\\.ko\\.yaml$/"],
+      "matchStrings": [
+        "defaultBaseImage: (?<depName>[^:@\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["digest"],
+      "commitMessageTopic": "the distroless base image"
+    }
+  ]
+}
