@@ -220,3 +220,22 @@ func TestBusyPlannerSaysSo(t *testing.T) {
 	close(release)
 	s.jobs.wait()
 }
+
+func TestPlanAnEmptyDay(t *testing.T) {
+	st := newFakeStore()
+	pl := &fakePlanner{st: st}
+	h, s := newPlanningServer(t, i18n.SV, st, pl)
+	post(t, h, "/week/generate", weekForm(nil))
+	s.jobs.wait()
+	_, body := get(t, h, "/week?y=2026&w=40")
+	if strings.Count(body, "Planera dagen") != 5 { // days 3-7 have no dinner in the fake
+		t.Fatalf("plan-day buttons: %d", strings.Count(body, "Planera dagen"))
+	}
+	if rec := post(t, h, "/week/swap", weekForm(url.Values{"day": {"3"}})); rec.Code != http.StatusSeeOther {
+		t.Fatalf("plan day 3: %d", rec.Code)
+	}
+	s.jobs.wait()
+	if len(pl.swapped) != 1 || pl.swapped[0] != 3 {
+		t.Fatalf("swapped %v", pl.swapped)
+	}
+}

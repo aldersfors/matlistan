@@ -195,5 +195,6 @@
   "cook.prev": "Föregående",
   "cook.next": "Nästa steg",
   "cook.timer": {"one": "Starta timer {n} minut", "other": "Starta timer {n} minuter"},
-  "cook.timer_done": "Tiden är ute"
+  "cook.timer_done": "Tiden är ute",
+  "week.plan_day": "Planera dagen"
 }

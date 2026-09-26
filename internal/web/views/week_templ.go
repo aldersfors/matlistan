@@ -464,74 +464,114 @@ func WeekPage(w Week) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
+					}
+					if w.Configured && w.Plannable && w.HasEntries && !w.Approved && !w.Generating {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<form method=\"post\" action=\"/week/swap\" class=\"mt-1\">")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = weekFields(w.Year, w.Number).Render(ctx, templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<input type=\"hidden\" name=\"day\" value=\"")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						var templ_7745c5c3_Var26 string
+						templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(d.Index))
+						if templ_7745c5c3_Err != nil {
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 99, Col: 71}
+						}
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\"> <button type=\"submit\" class=\"min-h-11 rounded-full border border-line px-3 text-sm font-bold\">")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						var templ_7745c5c3_Var27 string
+						templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.plan_day"))
+						if templ_7745c5c3_Err != nil {
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 100, Col: 134}
+						}
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</button></form>")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<a class=\"font-bold\" href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<a class=\"font-bold\" href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var26 templ.SafeURL
-					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(d.Href))
+					var templ_7745c5c3_Var28 templ.SafeURL
+					templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(d.Href))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 97, Col: 53}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var27 string
-					templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(d.Title)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 97, Col: 65}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</a> <span class=\"text-sm text-muted italic\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var28 string
-					templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(d.Why)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 98, Col: 55}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 104, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</span> <span class=\"text-xs text-muted\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var29 string
-					templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(d.Meta)
+					templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(d.Title)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 99, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 104, Col: 65}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</a> <span class=\"text-sm text-muted italic\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var30 string
+					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(d.Why)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 105, Col: 55}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</span> <span class=\"text-xs text-muted\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var31 string
+					templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(d.Meta)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 106, Col: 49}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if d.Planned && d.Title != "" && w.Configured && w.Plannable && !w.Approved && !w.Generating {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<form method=\"post\" action=\"/week/swap\" class=\"flex\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "<form method=\"post\" action=\"/week/swap\" class=\"flex\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -539,81 +579,81 @@ func WeekPage(w Week) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<input type=\"hidden\" name=\"day\" value=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "<input type=\"hidden\" name=\"day\" value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var30 string
-					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(d.Index))
+					var templ_7745c5c3_Var32 string
+					templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(d.Index))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 105, Col: 69}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 112, Col: 69}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "\"> <button type=\"submit\" class=\"w-12 text-muted\" aria-label=\"")
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var32)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var31 string
-					templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.SwapLabel)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 106, Col: 78}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var31)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "\"> <button type=\"submit\" class=\"w-12 text-muted\" aria-label=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 4v14M7 4L3 8M7 4l4 4M17 20V6M17 20l-4-4M17 20l4-4\"></path></svg></button></form>")
+					var templ_7745c5c3_Var33 string
+					templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.SwapLabel)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 113, Col: 78}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var33)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 4v14M7 4L3 8M7 4l4 4M17 20V6M17 20l-4-4M17 20l4-4\"></path></svg></button></form>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</ol>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</ol>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if w.Approved && w.HasEntries {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<a class=\"flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink\" href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<a class=\"flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink\" href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var32 templ.SafeURL
-				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(w.RateHref))
+				var templ_7745c5c3_Var34 templ.SafeURL
+				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(w.RateHref))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 115, Col: 152}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 122, Col: 152}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\">")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var33 string
-				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.rate"))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 115, Col: 181}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</a> ")
+				var templ_7745c5c3_Var35 string
+				templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.rate"))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 122, Col: 181}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "</a> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			if w.Configured && w.Plannable && !w.Approved && !w.Generating {
 				if w.HasEntries {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "<form method=\"post\" action=\"/week/approve\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<form method=\"post\" action=\"/week/approve\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -625,12 +665,12 @@ func WeekPage(w Week) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "</form>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</form>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, " <form method=\"post\" action=\"/week/generate\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, " <form method=\"post\" action=\"/week/generate\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -639,20 +679,20 @@ func WeekPage(w Week) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if w.HasEntries {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<button type=\"submit\" class=\"h-12 w-full rounded-2xl border border-line font-bold\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "<button type=\"submit\" class=\"h-12 w-full rounded-2xl border border-line font-bold\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var34 string
-					templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.regenerate"))
+					var templ_7745c5c3_Var36 string
+					templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.regenerate"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 127, Col: 121}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 134, Col: 121}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -662,36 +702,36 @@ func WeekPage(w Week) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			if !w.Approved && !w.Generating {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<details class=\"rounded-2xl bg-panel p-4\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<details class=\"rounded-2xl bg-panel p-4\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if len(w.Errors) > 0 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, " open")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, " open")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "><summary class=\"cursor-pointer font-bold\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "><summary class=\"cursor-pointer font-bold\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var35 string
-				templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.title"))
+				var templ_7745c5c3_Var37 string
+				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.title"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 135, Col: 82}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 142, Col: 82}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</summary><form method=\"post\" action=\"/week/context\" class=\"mt-3 flex flex-col gap-3\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "</summary><form method=\"post\" action=\"/week/context\" class=\"mt-3 flex flex-col gap-3\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -704,63 +744,27 @@ func WeekPage(w Week) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, d := range w.Context {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<fieldset class=\"flex flex-col gap-2 border-t border-line pt-3\"><legend class=\"font-display font-bold\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var36 string
-					templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 141, Col: 55}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "</legend><div class=\"flex flex-wrap gap-3\"><label class=\"flex min-h-11 items-center gap-2\"><input type=\"checkbox\" name=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var37 string
-					templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.ResolveAttributeValue(ctxField(d.Index, "home"))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 143, Col: 112}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var37)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					if d.Home {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, " checked")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, ">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "<fieldset class=\"flex flex-col gap-2 border-t border-line pt-3\"><legend class=\"font-display font-bold\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var38 string
-					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.home"))
+					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 143, Col: 170}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 148, Col: 55}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "</label> <label class=\"flex min-h-11 items-center gap-2\"><input type=\"checkbox\" name=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "</legend><div class=\"flex flex-wrap gap-3\"><label class=\"flex min-h-11 items-center gap-2\"><input type=\"checkbox\" name=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var39 string
-					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue(ctxField(d.Index, "busy"))
+					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue(ctxField(d.Index, "home"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 144, Col: 112}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 150, Col: 112}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var39)
 					if templ_7745c5c3_Err != nil {
@@ -770,7 +774,7 @@ func WeekPage(w Week) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if d.Busy {
+					if d.Home {
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, " checked")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -781,15 +785,51 @@ func WeekPage(w Week) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var40 string
-					templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.busy"))
+					templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.home"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 144, Col: 170}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 150, Col: 170}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</label></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</label> <label class=\"flex min-h-11 items-center gap-2\"><input type=\"checkbox\" name=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var41 string
+					templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.ResolveAttributeValue(ctxField(d.Index, "busy"))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 151, Col: 112}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var41)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					if d.Busy {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, " checked")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, ">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var42 string
+					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.busy"))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 151, Col: 170}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "</label></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -803,30 +843,30 @@ func WeekPage(w Week) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</fieldset>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "</fieldset>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "<button type=\"submit\" class=\"h-12 rounded-2xl border border-line font-bold\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button type=\"submit\" class=\"h-12 rounded-2xl border border-line font-bold\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var41 string
-				templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.save"))
+				var templ_7745c5c3_Var43 string
+				templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(ctx, "week.context.save"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 152, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/views/week.templ`, Line: 159, Col: 116}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "</button></form></details>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "</button></form></details>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "</main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "</main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

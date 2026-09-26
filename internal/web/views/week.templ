@@ -93,6 +93,13 @@ templ WeekPage(w Week) {
 								<span class="text-muted italic">{ i18n.T(ctx, "week.no_dinner") }</span>
 							} else if d.Title == "" {
 								<span class="text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</span>
+								if w.Configured && w.Plannable && w.HasEntries && !w.Approved && !w.Generating {
+									<form method="post" action="/week/swap" class="mt-1">
+										@weekFields(w.Year, w.Number)
+										<input type="hidden" name="day" value={ strconv.Itoa(d.Index) }/>
+										<button type="submit" class="min-h-11 rounded-full border border-line px-3 text-sm font-bold">{ i18n.T(ctx, "week.plan_day") }</button>
+									</form>
+								}
 							} else {
 								<a class="font-bold" href={ templ.URL(d.Href) }>{ d.Title }</a>
 								<span class="text-sm text-muted italic">{ d.Why }</span>
