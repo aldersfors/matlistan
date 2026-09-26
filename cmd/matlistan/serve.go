@@ -62,6 +62,10 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	} else {
 		log.Info().Str("model", cfg.Planner.Model).Msg("planning enabled")
 	}
+	var pl web.Planner // stays a nil interface when planning is off
+	if svc != nil {
+		pl = svc
+	}
 
 	key, err := auth.LoadKey(cfg.SessionKeyFile)
 	if err != nil {
@@ -88,7 +92,8 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	}
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
-		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Now: now,
+		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Planner: pl,
+			Now: now,
 			Log: log})}
 	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
 		Handler: web.Metrics()}

@@ -17,6 +17,7 @@ import (
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
 	"github.com/jalet/matlistan/internal/theme"
+	"github.com/jalet/matlistan/internal/weekplan"
 )
 
 //go:embed static
@@ -47,6 +48,15 @@ type Store interface {
 	CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, error)
 	UpdateRecipe(ctx context.Context, r recipes.Recipe) error
 	ArchiveRecipe(ctx context.Context, id int64) error
+	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
+	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error
+	ApprovePlan(ctx context.Context, k weekplan.Key, subject string) error
+}
+
+// Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
+type Planner interface {
+	Generate(ctx context.Context, k weekplan.Key) error
+	Swap(ctx context.Context, k weekplan.Key, day int) error
 }
 
 // Deps are the server's collaborators.
@@ -55,19 +65,32 @@ type Deps struct {
 	Theme   theme.Theme
 	Auth    Authenticator
 	Store   Store
+	Planner Planner
 	Now     func() time.Time // in the configured location
 	Log     zerolog.Logger
 }
 
-type server struct{ Deps }
+type server struct {
+	Deps
+	jobs *jobs
+}
+
+// jobTimeout bounds one background planning run.
+const jobTimeout = 10 * time.Minute
 
 // New builds the HTTP handler. Public: /healthz, /static/*, /auth/*.
 // Everything else requires a session.
-func New(d Deps) http.Handler {
+func New(d Deps) http.Handler { return buildServer(d).handler() }
+
+func buildServer(d Deps) *server {
 	if d.Catalog == nil || d.Auth == nil || d.Store == nil || d.Now == nil {
 		panic("invariant violated: web.New needs catalog, auth, store and clock")
 	}
-	s := &server{d}
+	return &server{Deps: d, jobs: newJobs(jobTimeout, d.Log)}
+}
+
+func (s *server) handler() http.Handler {
+	d := s.Deps
 	static, err := fs.Sub(_static, "static")
 	if err != nil {
 		panic("invariant violated: embedded static: " + err.Error())
@@ -89,6 +112,11 @@ func New(d Deps) http.Handler {
 		http.Redirect(w, r, "/week", http.StatusSeeOther)
 	})
 	app.HandleFunc("GET /week", s.week)
+	app.HandleFunc("GET /fragments/week-status", s.weekStatus)
+	app.HandleFunc("POST /week/context", s.saveWeekContext)
+	app.HandleFunc("POST /week/generate", s.generateWeek)
+	app.HandleFunc("POST /week/swap", s.swapDinner)
+	app.HandleFunc("POST /week/approve", s.approveWeek)
 	app.HandleFunc("GET /family", s.family)
 	app.HandleFunc("GET /family/new", s.newMember)
 	app.HandleFunc("POST /family", s.createMember)

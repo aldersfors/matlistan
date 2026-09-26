@@ -2,41 +2,155 @@ package views
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/validate"
 )
 
-// Day is one weekday row. Index is 1 (Monday) to 7 (Sunday) and picks the day colour.
-type Day struct {
-	Index      int
-	Name, Date string
+// WeekDay is one row of the week.
+type WeekDay struct {
+	Index                               int
+	Name, Date, Title, Why, Meta        string
+	SwapLabel                           string
+	RecipeID                            int64
+	Planned                             bool
+}
+
+// ContextDay is one row of the conditions form.
+type ContextDay struct {
+	Index        int
+	Name, Guests string
+	Home, Busy   bool
+	Away         []Option
 }
 
 // Week is the week screen.
 type Week struct {
-	Label, Range string
-	Days         []Day
+	Year, Number                                     int
+	Label, Range, Error                              string
+	PrevHref, NextHref, StatusHref                   string
+	Configured, Generating, Approved, HasEntries     bool
+	Days                                             []WeekDay
+	Context                                          []ContextDay
+	Errors                                           validate.Errors
+}
+
+func (w Week) hidden() templ.Component { return weekFields(w.Year, w.Number) }
+
+templ weekFields(year, number int) {
+	<input type="hidden" name="y" value={ strconv.Itoa(year) }/>
+	<input type="hidden" name="w" value={ strconv.Itoa(number) }/>
+}
+
+templ WeekStatus(href string) {
+	<div id="week-status" hx-get={ href } hx-trigger="every 2s" hx-swap="outerHTML" role="status" class="rounded-2xl bg-panel p-4 font-bold">{ i18n.T(ctx, "week.generating") }</div>
 }
 
 templ WeekPage(w Week) {
 	@Layout(w.Label, "week") {
-		<main class="mx-auto flex min-h-dvh max-w-md flex-col px-3 pb-8">
-			<header class="flex flex-col gap-1 px-2 pt-12 pb-4">
-				<span class="text-sm text-muted">{ w.Range }</span>
-				<h1 class="font-display text-5xl leading-none font-extrabold tracking-tight">{ w.Label }</h1>
-				<p class="mt-2 text-muted">{ i18n.T(ctx, "week.empty.body") }</p>
+		<main class="mx-auto flex min-h-dvh max-w-md flex-col gap-3 px-3">
+			<header class="flex flex-col gap-1 px-2 pt-12 pb-2">
+				<div class="flex items-center justify-between text-sm text-muted">
+					<a class="flex h-11 items-center" href={ templ.URL(w.PrevHref) } aria-label={ i18n.T(ctx, "week.prev") }>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+					</a>
+					<span>{ w.Range }</span>
+					<a class="flex h-11 items-center" href={ templ.URL(w.NextHref) } aria-label={ i18n.T(ctx, "week.next") }>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+					</a>
+				</div>
+				<div class="flex items-end justify-between gap-2">
+					<h1 class="font-display text-5xl leading-none font-extrabold tracking-tight">{ w.Label }</h1>
+					if w.Approved {
+						<span class="rounded-full bg-primary px-3 py-1 text-sm font-bold text-primary-ink">{ i18n.T(ctx, "week.status.approved") }</span>
+					} else if w.HasEntries {
+						<span class="rounded-full bg-attention px-3 py-1 text-sm font-bold text-attention-text">{ i18n.T(ctx, "week.status.draft") }</span>
+					}
+				</div>
 			</header>
+			if w.Generating {
+				@WeekStatus(w.StatusHref)
+			}
+			if w.Error != "" && !w.Generating {
+				<p role="alert" class="rounded-xl bg-attention p-3 font-bold text-attention-text">{ w.Error }</p>
+			}
+			if !w.Configured && !w.Approved {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "week.not_configured") }</p>
+			} else if !w.HasEntries && !w.Generating {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "week.empty.body") }</p>
+			}
 			<ol class="flex flex-col gap-1.5">
 				for _, d := range w.Days {
-					<li class="flex h-[78px] overflow-hidden rounded-2xl bg-panel">
+					<li class="flex min-h-[78px] overflow-hidden rounded-2xl bg-panel">
 						<div class={ "flex w-16 shrink-0 flex-col items-center justify-center", fmt.Sprintf("day-%d", d.Index) }>
 							<span class="font-display text-xl font-extrabold">{ d.Name }</span>
 							<span class="text-sm font-bold">{ d.Date }</span>
 						</div>
-						<div class="flex items-center px-3 text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</div>
+						<div class="flex min-w-0 flex-grow flex-col justify-center gap-0.5 px-3 py-2">
+							if !d.Planned {
+								<span class="text-muted italic">{ i18n.T(ctx, "week.no_dinner") }</span>
+							} else if d.Title == "" {
+								<span class="text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</span>
+							} else {
+								<a class="font-bold" href={ templ.URL(fmt.Sprintf("/recipes/%d", d.RecipeID)) }>{ d.Title }</a>
+								<span class="text-sm text-muted italic">{ d.Why }</span>
+								<span class="text-xs text-muted">{ d.Meta }</span>
+							}
+						</div>
+						if d.Planned && d.Title != "" && w.Configured && !w.Approved && !w.Generating {
+							<form method="post" action="/week/swap" class="flex">
+								@w.hidden()
+								<input type="hidden" name="day" value={ strconv.Itoa(d.Index) }/>
+								<button type="submit" class="w-12 text-muted" aria-label={ d.SwapLabel }>
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v14M7 4L3 8M7 4l4 4M17 20V6M17 20l-4-4M17 20l4-4"></path></svg>
+								</button>
+							</form>
+						}
 					</li>
 				}
 			</ol>
+			if w.Configured && !w.Approved && !w.Generating {
+				if w.HasEntries {
+					<form method="post" action="/week/approve">
+						@w.hidden()
+						@primaryButton(i18n.T(ctx, "week.approve"))
+					</form>
+				}
+				<form method="post" action="/week/generate">
+					@w.hidden()
+					if w.HasEntries {
+						<button type="submit" class="h-12 w-full rounded-2xl border border-line font-bold">{ i18n.T(ctx, "week.regenerate") }</button>
+					} else {
+						@primaryButton(i18n.T(ctx, "week.generate"))
+					}
+				</form>
+			}
+			if !w.Approved {
+				<details class="rounded-2xl bg-panel p-4" open?={ len(w.Errors) > 0 }>
+					<summary class="cursor-pointer font-bold">{ i18n.T(ctx, "week.context.title") }</summary>
+					<form method="post" action="/week/context" class="mt-3 flex flex-col gap-3">
+						@w.hidden()
+						@formSummary(w.Errors)
+						for _, d := range w.Context {
+							<fieldset class="flex flex-col gap-2 border-t border-line pt-3">
+								<legend class="font-display font-bold">{ d.Name }</legend>
+								<div class="flex flex-wrap gap-3">
+									<label class="flex min-h-11 items-center gap-2"><input type="checkbox" name={ ctxField(d.Index, "home") } checked?={ d.Home }/>{ i18n.T(ctx, "week.context.home") }</label>
+									<label class="flex min-h-11 items-center gap-2"><input type="checkbox" name={ ctxField(d.Index, "busy") } checked?={ d.Busy }/>{ i18n.T(ctx, "week.context.busy") }</label>
+								</div>
+								@numberField(i18n.T(ctx, "week.context.guests"), ctxField(d.Index, "guests"), d.Guests, w.Errors)
+								if len(d.Away) > 0 {
+									@checkboxes(i18n.T(ctx, "week.context.away"), ctxField(d.Index, "away"), d.Away, w.Errors)
+								}
+							</fieldset>
+						}
+						<button type="submit" class="h-12 rounded-2xl border border-line font-bold">{ i18n.T(ctx, "week.context.save") }</button>
+					</form>
+				</details>
+			}
 		</main>
 	}
 }
+
+func ctxField(i int, name string) string { return validate.Field("days", i, name) }

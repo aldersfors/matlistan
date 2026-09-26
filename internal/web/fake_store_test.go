@@ -1,11 +1,19 @@
 package web
 
 import (
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/rs/zerolog"
+
 	"context"
 	"maps"
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/jalet/matlistan/internal/weekplan"
 
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
@@ -22,11 +30,13 @@ type fakeStore struct {
 	settings household.Settings
 	staples  map[int64]household.Staple
 	recipes  map[int64]recipes.Recipe
+	plans    map[weekplan.Key]weekplan.Plan
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{members: map[int64]household.Member{}, staples: map[int64]household.Staple{},
-		recipes: map[int64]recipes.Recipe{}, settings: household.DefaultSettings()}
+		recipes: map[int64]recipes.Recipe{}, settings: household.DefaultSettings(),
+		plans: map[weekplan.Key]weekplan.Plan{}}
 }
 
 func (f *fakeStore) id() int64 { f.nextID++; return f.nextID }
@@ -203,4 +213,95 @@ func (f *fakeStore) ArchiveRecipe(_ context.Context, id int64) error {
 	}
 	delete(f.recipes, id)
 	return nil
+}
+
+func (f *fakeStore) GetPlan(_ context.Context, k weekplan.Key) (weekplan.Plan, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.plans[k]
+	if !ok {
+		return weekplan.Plan{}, store.ErrNotFound
+	}
+	return p, nil
+}
+
+func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Context) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.plans[k]
+	if ok && p.Status == weekplan.StatusApproved {
+		return store.ErrApproved
+	}
+	p.Key, p.Context = k, c
+	if p.Status == "" {
+		p.Status = weekplan.StatusDraft
+	}
+	f.plans[k] = p
+	return nil
+}
+
+func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.plans[k]
+	if !ok || p.Status != weekplan.StatusDraft || len(p.Entries) == 0 {
+		return store.ErrNotFound
+	}
+	p.Status, p.ApprovedBy = weekplan.StatusApproved, subject
+	f.plans[k] = p
+	return nil
+}
+
+type fakePlanner struct {
+	st      *fakeStore
+	err     error
+	gate    chan struct{} // when set, Generate waits for it (to observe "planning")
+	swapped []int
+}
+
+func (p *fakePlanner) Generate(_ context.Context, k weekplan.Key) error {
+	if p.gate != nil {
+		<-p.gate
+	}
+	if p.err != nil {
+		p.st.mu.Lock()
+		pl := p.st.plans[k]
+		pl.Key, pl.Status, pl.Error = k, weekplan.StatusDraft, "plan.error.invalid"
+		p.st.plans[k] = pl
+		p.st.mu.Unlock()
+		return p.err
+	}
+	p.st.mu.Lock()
+	defer p.st.mu.Unlock()
+	pl := p.st.plans[k]
+	pl.Key, pl.Status, pl.Error = k, weekplan.StatusDraft, ""
+	if pl.Context.Days[0].Away == nil {
+		pl.Context = weekplan.DefaultContext(7)
+	}
+	pl.Entries = []weekplan.Entry{{Day: 1, RecipeID: 1, Title: "Pumpasoppa", TotalMinutes: 30,
+		Servings: 4, Why: "Pumpan är i säsong."}, {Day: 2, RecipeID: 2, Title: "Köttbullar",
+		TotalMinutes: 40, Servings: 4, Why: "Alla fyra gav den fem av fem."}}
+	p.st.plans[k] = pl
+	return nil
+}
+
+func (p *fakePlanner) Swap(_ context.Context, _ weekplan.Key, day int) error {
+	p.swapped = append(p.swapped, day)
+	return nil
+}
+
+// newPlanningServer is newServer with a planner; the returned *server lets a test wait for
+// background jobs.
+func newPlanningServer(t *testing.T, l i18n.Locale, st *fakeStore, pl Planner) (http.Handler,
+	*server) {
+	t.Helper()
+	c, err := i18n.Load(l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sthlm, _ := time.LoadLocation("Europe/Stockholm")
+	s := buildServer(Deps{Catalog: c, Auth: fakeAuth{signedIn: true}, Store: st, Planner: pl,
+		Now: func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
+		Log: zerolog.Nop()})
+	return s.handler(), s
 }

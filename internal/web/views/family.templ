@@ -49,6 +49,7 @@ templ FamilyPage(f Family) {
 	@Layout(i18n.T(ctx, "family.title"), "family") {
 		<main class="mx-auto flex max-w-md flex-col gap-3 px-3">
 			@pageHeader(i18n.T(ctx, "family.title"))
+			<p class="px-2 text-sm text-muted">{ i18n.T(ctx, "family.planner_note") }</p>
 			if !f.Linked && len(f.Members) > 0 {
 				<p class="rounded-xl bg-attention p-3 text-attention-text">{ i18n.T(ctx, "family.link_hint") }</p>
 			}
