@@ -32,7 +32,7 @@ var _commands = map[string]func(ctx context.Context, e env) int{
 		return 0
 	},
 	"migrate": migrate,
-	"serve":   notYet("serve"),
+	"serve":   serve,
 }
 
 func migrate(ctx context.Context, e env) int {
@@ -79,11 +79,4 @@ func run(args []string, stdout, stderr io.Writer, getenv func(string) string) in
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return cmd(ctx, env{stdout: stdout, stderr: stderr, getenv: getenv})
-}
-
-func notYet(name string) func(context.Context, env) int {
-	return func(_ context.Context, e env) int {
-		_, _ = fmt.Fprintf(e.stderr, "%s: not implemented yet\n", name)
-		return 1
-	}
 }

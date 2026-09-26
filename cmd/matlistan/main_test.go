@@ -47,3 +47,15 @@ func TestMigrateWithoutDatabaseURL(t *testing.T) {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }
+
+func TestServeReportsConfigErrors(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"matlistan", "serve"}, &out, &errOut, noEnv); code != 1 {
+		t.Fatalf("exit %d, want 1", code)
+	}
+	for _, want := range []string{"MATLISTAN_BASE_URL is required", "MATLISTAN_OIDC_ISSUER is required"} {
+		if !strings.Contains(errOut.String(), want) {
+			t.Errorf("stderr lacks %q: %s", want, errOut.String())
+		}
+	}
+}
