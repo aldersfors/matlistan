@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"time"
 
@@ -247,11 +248,13 @@ func (s *Service) request(ctx context.Context, k weekplan.Key) (Request, weekpla
 		}
 	}
 	for _, r := range library {
-		if recent[r.ID] {
+		// Recently cooked dishes wait; dishes the family disliked (two or more low votes) rest.
+		if recent[r.ID] || (r.Rating.Count >= 2 && r.Rating.Average <= 2) {
 			continue
 		}
 		c := Candidate{ID: r.ID, Title: r.Title, TotalMinutes: r.TotalMinutes, Tags: r.Tags,
-			Diets: r.Diets, Allergens: r.Allergens}
+			Diets: r.Diets, Allergens: r.Allergens, Ratings: r.Rating.Count,
+			Rating: math.Round(r.Rating.Average*10) / 10}
 		if last, ok := lastCooked[r.ID]; ok {
 			c.WeeksSinceCooked = weeksBetween(last, k)
 		}

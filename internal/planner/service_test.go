@@ -222,3 +222,21 @@ func TestFailuresAreAlwaysRecorded(t *testing.T) {
 		}
 	}
 }
+
+// Review focus 3: a dish rests after two low ratings, not after one.
+func TestLowRatedDishesRest(t *testing.T) {
+	st := baseStore()
+	st.library[8] = recipes.Recipe{ID: 8, Title: "Leverbiff", TotalMinutes: 30, Lang: i18n.SV,
+		Rating: recipes.Rating{Average: 1, Count: 2}}
+	st.library[9] = recipes.Recipe{ID: 9, Title: "Fiskpinnar", TotalMinutes: 20, Lang: i18n.SV,
+		Rating: recipes.Rating{Average: 1, Count: 1}}
+	st.library[7] = recipes.Recipe{ID: 7, Title: "Ärtsoppa", TotalMinutes: 40, Lang: i18n.SV,
+		Rating: recipes.Rating{Average: 4.75, Count: 4}}
+	llm := &scripted{replies: []string{good}}
+	_ = newTestService(st, llm).Generate(context.Background(), _k)
+	p := llm.sent[0]
+	if strings.Contains(p, "Leverbiff") || !strings.Contains(p, "Fiskpinnar") ||
+		!strings.Contains(p, `"rating":4.8,"ratings":4`) {
+		t.Fatalf("prompt = %s", p)
+	}
+}

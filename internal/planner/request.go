@@ -32,6 +32,8 @@ type Candidate struct {
 	Diets            []string `json:"diets,omitempty"`
 	Allergens        []string `json:"allergens,omitempty"`
 	WeeksSinceCooked int      `json:"weeks_since_cooked,omitempty"`
+	Rating           float64  `json:"rating,omitempty"`
+	Ratings          int      `json:"ratings,omitempty"`
 }
 
 // Request is everything one planning call knows.

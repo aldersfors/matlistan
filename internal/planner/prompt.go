@@ -22,6 +22,8 @@ Rules. Every rule is checked by a program; an answer that breaks one is rejected
   "new_recipe" to null) or write a new recipe (set "library_recipe_id" to null).
 - Take about "library_share" percent of the dinners from the candidates. Prefer candidates with
   a high "weeks_since_cooked" or none.
+- "rating" is the family's average score from 1 to 5 over "ratings" votes. Prefer dinners the
+  family rated highly, and when that is why you chose one, say so in "why".
 - Never plan a dish listed in "recent", and never the same dish twice in one week.
 - No dinner may contain any allergen listed in "allergens". List every allergen a new recipe
   contains in its "allergens" field, using the allowed values.

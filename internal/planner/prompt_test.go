@@ -30,6 +30,9 @@ func TestSystemPromptPerLocale(t *testing.T) {
 		!strings.Contains(SystemPrompt(i18n.EN), "English") {
 		t.Fatal("system prompt does not name the output language")
 	}
+	if !strings.Contains(SystemPrompt(i18n.SV), `"rating"`) {
+		t.Fatal("system prompt does not explain ratings")
+	}
 	if first, again := SystemPrompt(i18n.SV), SystemPrompt(i18n.SV); first != again {
 		t.Fatal("system prompt is not stable (it must stay cacheable)")
 	}
