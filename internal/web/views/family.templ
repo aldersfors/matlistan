@@ -1,0 +1,111 @@
+package views
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/validate"
+)
+
+// MemberRow is one card on the family page.
+type MemberRow struct {
+	ID    int64
+	Name  string
+	Age   int
+	Chips []string
+	IsMe  bool
+}
+
+// Family is the family page.
+type Family struct {
+	Members []MemberRow
+	Linked  bool
+}
+
+// MemberForm is the add and edit form. ID 0 means a new member.
+type MemberForm struct {
+	ID                                int64
+	Name, BirthYear, Likes, Dislikes  string
+	Diets, Allergens                  []Option
+	Errors                            validate.Errors
+}
+
+func memberFormTitle(ctx context.Context, f MemberForm) string {
+	if f.ID == 0 {
+		return i18n.T(ctx, "family.new_title")
+	}
+	return i18n.T(ctx, "family.edit_title", "name", f.Name)
+}
+
+func memberAction(f MemberForm) string {
+	if f.ID == 0 {
+		return "/family"
+	}
+	return fmt.Sprintf("/family/%d", f.ID)
+}
+
+templ FamilyPage(f Family) {
+	@Layout(i18n.T(ctx, "family.title"), "family") {
+		<main class="mx-auto flex max-w-md flex-col gap-3 px-3">
+			@pageHeader(i18n.T(ctx, "family.title"))
+			if !f.Linked && len(f.Members) > 0 {
+				<p class="rounded-xl bg-attention p-3 text-attention-text">{ i18n.T(ctx, "family.link_hint") }</p>
+			}
+			if len(f.Members) == 0 {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "family.empty") }</p>
+			}
+			<ul class="flex flex-col gap-2">
+				for _, m := range f.Members {
+					<li class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+						<div class="flex items-baseline justify-between gap-2">
+							<span class="font-display text-xl font-bold">{ m.Name }</span>
+							<span class="text-sm text-muted">{ i18n.N(ctx, "family.age", m.Age) }</span>
+						</div>
+						if len(m.Chips) > 0 {
+							<div class="flex flex-wrap gap-1.5">
+								for _, c := range m.Chips {
+									<span class="rounded-full bg-page px-2.5 py-1 text-sm">{ c }</span>
+								}
+							</div>
+						}
+						<div class="flex flex-wrap items-center gap-2">
+							<a class="flex h-11 items-center rounded-full border border-line px-4" href={ templ.URL(fmt.Sprintf("/family/%d/edit", m.ID)) }>{ i18n.T(ctx, "family.edit") }</a>
+							if m.IsMe {
+								<span class="rounded-full bg-primary px-3 py-1 text-sm font-bold text-primary-ink">{ i18n.T(ctx, "family.you") }</span>
+							} else {
+								<form method="post" action={ templ.URL(fmt.Sprintf("/family/%d/me", m.ID)) }>
+									<button type="submit" class="h-11 rounded-full border border-line px-4">{ i18n.T(ctx, "family.this_is_me") }</button>
+								</form>
+							}
+						</div>
+					</li>
+				}
+			</ul>
+			<a class="flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink" href="/family/new">{ i18n.T(ctx, "family.add") }</a>
+		</main>
+	}
+}
+
+templ MemberFormPage(f MemberForm) {
+	@Layout(memberFormTitle(ctx, f), "family") {
+		<main class="mx-auto flex max-w-md flex-col gap-4 px-3">
+			@pageHeader(memberFormTitle(ctx, f))
+			<form method="post" action={ templ.URL(memberAction(f)) } class="flex flex-col gap-4">
+				@formSummary(f.Errors)
+				@textField(i18n.T(ctx, "member.name"), "name", f.Name, f.Errors)
+				@numberField(i18n.T(ctx, "member.birth_year"), "birth_year", f.BirthYear, f.Errors)
+				@checkboxes(i18n.T(ctx, "member.diets"), "diets", f.Diets, f.Errors)
+				@checkboxes(i18n.T(ctx, "member.allergens"), "allergens", f.Allergens, f.Errors)
+				@textArea(i18n.T(ctx, "member.likes"), "likes", f.Likes, f.Errors)
+				@textArea(i18n.T(ctx, "member.dislikes"), "dislikes", f.Dislikes, f.Errors)
+				@primaryButton(i18n.T(ctx, "form.save"))
+			</form>
+			if f.ID != 0 {
+				<form method="post" action={ templ.URL(fmt.Sprintf("/family/%d/archive", f.ID)) }>
+					<button type="submit" class="h-12 w-full rounded-2xl border border-line text-muted">{ i18n.T(ctx, "family.remove") }</button>
+				</form>
+			}
+		</main>
+	}
+}

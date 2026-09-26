@@ -89,6 +89,13 @@ func New(d Deps) http.Handler {
 		http.Redirect(w, r, "/week", http.StatusSeeOther)
 	})
 	app.HandleFunc("GET /week", s.week)
+	app.HandleFunc("GET /family", s.family)
+	app.HandleFunc("GET /family/new", s.newMember)
+	app.HandleFunc("POST /family", s.createMember)
+	app.HandleFunc("GET /family/{id}/edit", s.editMember)
+	app.HandleFunc("POST /family/{id}", s.updateMember)
+	app.HandleFunc("POST /family/{id}/archive", s.archiveMember)
+	app.HandleFunc("POST /family/{id}/me", s.linkMember)
 	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.

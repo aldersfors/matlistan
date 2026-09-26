@@ -79,5 +79,22 @@
   "section.other": "Other",
   "nav.label": "Main",
   "error.bad_request": "The form could not be read. Reload the page and try again.",
-  "error.internal": "Something went wrong on our side. Try again in a moment."
+  "error.internal": "Something went wrong on our side. Try again in a moment.",
+  "family.title": "Family",
+  "family.add": "Add family member",
+  "family.empty": "No family members yet. Add everyone who eats dinner at home.",
+  "family.age": {"one": "{n} year", "other": "{n} years"},
+  "family.you": "You",
+  "family.this_is_me": "This is me",
+  "family.link_hint": "Choose which family member you are, so your ratings count for you.",
+  "family.edit": "Edit",
+  "family.remove": "Remove from the family",
+  "family.new_title": "New family member",
+  "family.edit_title": "Edit {name}",
+  "member.name": "Name",
+  "member.birth_year": "Birth year",
+  "member.diets": "Diet",
+  "member.allergens": "Allergies",
+  "member.likes": "Likes",
+  "member.dislikes": "Dislikes"
 }

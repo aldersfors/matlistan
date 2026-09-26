@@ -79,5 +79,22 @@
   "section.other": "Övrigt",
   "nav.label": "Huvudmeny",
   "error.bad_request": "Formuläret kunde inte läsas. Ladda om sidan och försök igen.",
-  "error.internal": "Något gick fel hos oss. Försök igen om en stund."
+  "error.internal": "Något gick fel hos oss. Försök igen om en stund.",
+  "family.title": "Familjen",
+  "family.add": "Lägg till familjemedlem",
+  "family.empty": "Inga familjemedlemmar än. Lägg till alla som äter middag hemma.",
+  "family.age": {"one": "{n} år", "other": "{n} år"},
+  "family.you": "Du",
+  "family.this_is_me": "Det här är jag",
+  "family.link_hint": "Välj vilken familjemedlem du är, så att dina betyg räknas för dig.",
+  "family.edit": "Redigera",
+  "family.remove": "Ta bort ur familjen",
+  "family.new_title": "Ny familjemedlem",
+  "family.edit_title": "Redigera {name}",
+  "member.name": "Namn",
+  "member.birth_year": "Födelseår",
+  "member.diets": "Kost",
+  "member.allergens": "Allergier",
+  "member.likes": "Tycker om",
+  "member.dislikes": "Tycker inte om"
 }
