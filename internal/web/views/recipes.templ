@@ -1,0 +1,175 @@
+package views
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/validate"
+)
+
+// RecipeItem is one row in the library.
+type RecipeItem struct {
+	ID          int64
+	Title, Meta string
+}
+
+// RecipeList is the library page.
+type RecipeList struct {
+	Query string
+	Items []RecipeItem
+}
+
+// RecipeView is one recipe, formatted for reading.
+type RecipeView struct {
+	ID                        int64
+	Title, Description, Meta  string
+	Chips, Ingredients, Steps []string
+}
+
+// IngredientRow is one row of the ingredient editor. Index is its position in the form.
+type IngredientRow struct {
+	Index                          int
+	Name, Quantity, Unit, Section  string
+	Optional                       bool
+}
+
+// RecipeForm is the add and edit form; ID 0 means new.
+type RecipeForm struct {
+	ID                                                                     int64
+	Title, Description, Servings, TotalMinutes, ActiveMinutes, Tags, Steps string
+	Diets, Allergens, Units, Sections                                      []Option
+	Rows                                                                   []IngredientRow
+	Errors                                                                 validate.Errors
+}
+
+func recipeFormTitle(ctx context.Context, f RecipeForm) string {
+	if f.ID == 0 {
+		return i18n.T(ctx, "recipes.new_title")
+	}
+	return i18n.T(ctx, "recipes.edit_title", "title", f.Title)
+}
+
+func recipeAction(f RecipeForm) string {
+	if f.ID == 0 {
+		return "/recipes"
+	}
+	return fmt.Sprintf("/recipes/%d", f.ID)
+}
+
+func row(i int, name string) string { return validate.Field("ingredients", i, name) }
+
+templ RecipeListPage(v RecipeList) {
+	@Layout(i18n.T(ctx, "recipes.title"), "recipes") {
+		<main class="mx-auto flex max-w-md flex-col gap-3 px-3">
+			@pageHeader(i18n.T(ctx, "recipes.title"))
+			<form method="get" action="/recipes" role="search">
+				<label class="flex flex-col gap-1">
+					<span class="sr-only">{ i18n.T(ctx, "recipes.search") }</span>
+					<input class="h-12 rounded-xl border border-line bg-panel px-3" type="search" name="q" value={ v.Query } placeholder={ i18n.T(ctx, "recipes.search") }/>
+				</label>
+			</form>
+			if len(v.Items) == 0 && v.Query == "" {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "recipes.empty") }</p>
+			}
+			if len(v.Items) == 0 && v.Query != "" {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "recipes.no_match", "q", v.Query) }</p>
+			}
+			<ul class="flex flex-col gap-1.5">
+				for _, it := range v.Items {
+					<li>
+						<a class="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-panel px-4" href={ templ.URL(fmt.Sprintf("/recipes/%d", it.ID)) }>
+							<span class="font-bold">{ it.Title }</span>
+							<span class="text-sm text-muted">{ it.Meta }</span>
+						</a>
+					</li>
+				}
+			</ul>
+			<a class="flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink" href="/recipes/new">{ i18n.T(ctx, "recipes.add") }</a>
+		</main>
+	}
+}
+
+templ RecipePage(v RecipeView) {
+	@Layout(v.Title, "recipes") {
+		<main class="mx-auto flex max-w-md flex-col gap-5 px-3">
+			<header class="flex flex-col gap-2 px-2 pt-12">
+				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ v.Title }</h1>
+				<p class="text-muted">{ v.Meta }</p>
+				if v.Description != "" {
+					<p>{ v.Description }</p>
+				}
+				if len(v.Chips) > 0 {
+					<div class="flex flex-wrap gap-1.5">
+						for _, c := range v.Chips {
+							<span class="rounded-full bg-panel px-2.5 py-1 text-sm">{ c }</span>
+						}
+					</div>
+				}
+			</header>
+			<section class="flex flex-col gap-2 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "recipes.ingredients") }</h2>
+				<ul class="flex flex-col gap-1.5">
+					for _, in := range v.Ingredients {
+						<li>{ in }</li>
+					}
+				</ul>
+			</section>
+			<section class="flex flex-col gap-2 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "recipes.steps") }</h2>
+				<ol class="flex list-decimal flex-col gap-2 pl-5">
+					for _, st := range v.Steps {
+						<li>{ st }</li>
+					}
+				</ol>
+			</section>
+			<a class="flex h-14 items-center justify-center rounded-2xl border border-line font-bold" href={ templ.URL(fmt.Sprintf("/recipes/%d/edit", v.ID)) }>{ i18n.T(ctx, "recipes.edit") }</a>
+		</main>
+	}
+}
+
+templ RecipeFormPage(f RecipeForm) {
+	@Layout(recipeFormTitle(ctx, f), "recipes") {
+		<main class="mx-auto flex max-w-md flex-col gap-4 px-3">
+			@pageHeader(recipeFormTitle(ctx, f))
+			<form method="post" action={ templ.URL(recipeAction(f)) } class="flex flex-col gap-4">
+				@formSummary(f.Errors)
+				@textField(i18n.T(ctx, "recipe.title"), "title", f.Title, f.Errors)
+				@textArea(i18n.T(ctx, "recipe.description"), "description", f.Description, f.Errors)
+				<div class="grid grid-cols-3 gap-2">
+					@numberField(i18n.T(ctx, "recipe.servings"), "servings", f.Servings, f.Errors)
+					@numberField(i18n.T(ctx, "recipe.total_minutes"), "total_minutes", f.TotalMinutes, f.Errors)
+					@numberField(i18n.T(ctx, "recipe.active_minutes"), "active_minutes", f.ActiveMinutes, f.Errors)
+				</div>
+				<fieldset class="flex flex-col gap-3">
+					<legend class="text-sm font-bold">{ i18n.T(ctx, "recipes.ingredients") }</legend>
+					@errorText(f.Errors, "ingredients")
+					for _, r := range f.Rows {
+						<div class="flex flex-col gap-2 rounded-2xl bg-panel p-3">
+							@textField(i18n.T(ctx, "recipe.ingredient"), row(r.Index, "name"), r.Name, f.Errors)
+							<div class="grid grid-cols-2 gap-2">
+								@numberField(i18n.T(ctx, "recipe.quantity"), row(r.Index, "quantity"), r.Quantity, f.Errors)
+								@selectField(i18n.T(ctx, "recipe.unit"), row(r.Index, "unit"), r.Unit, f.Units, f.Errors)
+							</div>
+							@selectField(i18n.T(ctx, "recipe.section"), row(r.Index, "section"), r.Section, f.Sections, f.Errors)
+							<label class="flex min-h-11 items-center gap-2">
+								<input type="checkbox" name={ row(r.Index, "optional") } checked?={ r.Optional }/>
+								<span>{ i18n.T(ctx, "recipe.optional") }</span>
+							</label>
+						</div>
+					}
+				</fieldset>
+				@textArea(i18n.T(ctx, "recipe.steps"), "steps", f.Steps, f.Errors)
+				@textField(i18n.T(ctx, "recipe.tags"), "tags", f.Tags, f.Errors)
+				@checkboxes(i18n.T(ctx, "recipe.diets"), "diets", f.Diets, f.Errors)
+				@checkboxes(i18n.T(ctx, "recipe.allergens"), "allergens", f.Allergens, f.Errors)
+				@primaryButton(i18n.T(ctx, "form.save"))
+			</form>
+			if f.ID != 0 {
+				<form method="post" action={ templ.URL(fmt.Sprintf("/recipes/%d/archive", f.ID)) }>
+					<button type="submit" class="h-12 w-full rounded-2xl border border-line text-muted">{ i18n.T(ctx, "recipes.remove") }</button>
+				</form>
+			}
+		</main>
+	}
+}

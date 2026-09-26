@@ -100,6 +100,13 @@ func New(d Deps) http.Handler {
 	app.HandleFunc("POST /settings", s.saveSettings)
 	app.HandleFunc("POST /settings/staples", s.addStaple)
 	app.HandleFunc("POST /settings/staples/{id}/delete", s.removeStaple)
+	app.HandleFunc("GET /recipes", s.recipeList)
+	app.HandleFunc("GET /recipes/new", s.newRecipe)
+	app.HandleFunc("POST /recipes", s.createRecipe)
+	app.HandleFunc("GET /recipes/{id}", s.showRecipe)
+	app.HandleFunc("GET /recipes/{id}/edit", s.editRecipe)
+	app.HandleFunc("POST /recipes/{id}", s.updateRecipe)
+	app.HandleFunc("POST /recipes/{id}/archive", s.archiveRecipe)
 	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.
