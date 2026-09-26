@@ -86,3 +86,21 @@ func TestTokenNameIsRequired(t *testing.T) {
 		t.Fatalf("blank name: %d", rec.Code)
 	}
 }
+
+// A Shortcut key reads the list and nothing else: it never stands in for a session.
+func TestKeyDoesNotOpenTheApp(t *testing.T) {
+	st := newFakeStore()
+	signedIn := newServer(t, i18n.SV, true, st)
+	key := _tokenRE.FindString(post(t, signedIn, "/settings/tokens",
+		url.Values{"name": {"x"}}).Body.String())
+	anon := newServer(t, i18n.SV, false, st)
+	for _, p := range []string{"/shopping", "/settings", "/week"} {
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, p, nil)
+		req.Header.Set("Authorization", "Bearer "+key)
+		rec := httptest.NewRecorder()
+		anon.ServeHTTP(rec, req)
+		if rec.Code != http.StatusFound {
+			t.Errorf("%s with a key and no session: %d, want the login redirect", p, rec.Code)
+		}
+	}
+}
