@@ -10,6 +10,7 @@ import (
 
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/jalet/matlistan/internal/shopping"
 	"github.com/jalet/matlistan/internal/weekplan"
 )
 
@@ -141,18 +142,35 @@ func (s *Store) SetPlanError(ctx context.Context, k weekplan.Key, c weekplan.Con
 	return wrapPlanErr("set plan error", err)
 }
 
-// ApprovePlan fixes a draft that has at least one dinner.
-func (s *Store) ApprovePlan(ctx context.Context, k weekplan.Key, subject string) error {
-	tag, err := s.pool.Exec(ctx, `UPDATE week_plans SET status = 'approved',
-		approved_at = now(), approved_by = $3
-		WHERE iso_year = $1 AND iso_week = $2 AND status = 'draft'
-		AND EXISTS (SELECT 1 FROM plan_entries WHERE plan_id = week_plans.id)`,
-		k.Year, k.Week, subject)
+// ApprovePlan fixes a draft that has at least one dinner and saves its shopping list in
+// the same transaction.
+func (s *Store) ApprovePlan(ctx context.Context, k weekplan.Key, subject string,
+	items []shopping.Item, excluded int) error {
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		var planID int64
+		err := tx.QueryRow(ctx, `UPDATE week_plans SET status = 'approved',
+			approved_at = now(), approved_by = $3
+			WHERE iso_year = $1 AND iso_week = $2 AND status = 'draft'
+			AND EXISTS (SELECT 1 FROM plan_entries WHERE plan_id = week_plans.id)
+			RETURNING id`, k.Year, k.Week, subject).Scan(&planID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		var listID int64
+		if err := tx.QueryRow(ctx, `INSERT INTO shopping_lists (plan_id, excluded_staples)
+			VALUES ($1, $2) RETURNING id`, planID, excluded).Scan(&listID); err != nil {
+			return err
+		}
+		return insertItems(ctx, tx, listID, 0, items)
+	})
+	if errors.Is(err, ErrNotFound) {
+		return ErrNotFound
+	}
 	if err != nil {
 		return fmt.Errorf("approve plan: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
 	}
 	return nil
 }

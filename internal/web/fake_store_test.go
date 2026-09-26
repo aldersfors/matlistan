@@ -18,6 +18,7 @@ import (
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/jalet/matlistan/internal/shopping"
 	"github.com/jalet/matlistan/internal/store"
 )
 
@@ -248,7 +249,8 @@ func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Co
 	return nil
 }
 
-func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject string) error {
+func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject string,
+	_ []shopping.Item, _ int) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	p, ok := f.plans[k]

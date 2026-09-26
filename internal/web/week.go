@@ -268,7 +268,7 @@ func (s *server) approveWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	me, _ := auth.SessionFrom(r.Context())
-	if err := s.Store.ApprovePlan(r.Context(), k, me.Subject); err != nil {
+	if err := s.Store.ApprovePlan(r.Context(), k, me.Subject, nil, 0); err != nil {
 		s.fail(w, r, err)
 		return
 	}

@@ -59,7 +59,7 @@ func TestPlanLifecycle(t *testing.T) {
 		t.Fatalf("error kept entries? %+v", p)
 	}
 
-	if err := s.ApprovePlan(ctx, _w40, "sub-anna"); err != nil {
+	if err := s.ApprovePlan(ctx, _w40, "sub-anna", nil, 0); err != nil {
 		t.Fatal(err)
 	}
 	if p, _ = s.GetPlan(ctx, _w40); p.Status != weekplan.StatusApproved || p.ApprovedBy != "sub-anna" {
@@ -74,7 +74,7 @@ func TestPlanLifecycle(t *testing.T) {
 	if err := s.SetPlanError(ctx, _w40, c, "x"); !errors.Is(err, ErrApproved) {
 		t.Fatalf("error on approved: %v", err)
 	}
-	if err := s.ApprovePlan(ctx, _w40, "x"); !errors.Is(err, ErrNotFound) {
+	if err := s.ApprovePlan(ctx, _w40, "x", nil, 0); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("approve twice: %v", err)
 	}
 }
@@ -84,7 +84,7 @@ func TestApproveNeedsEntries(t *testing.T) {
 	if err := s.SaveContext(ctx, _w40, weekplan.DefaultContext(7)); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.ApprovePlan(ctx, _w40, "x"); !errors.Is(err, ErrNotFound) {
+	if err := s.ApprovePlan(ctx, _w40, "x", nil, 0); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("approve empty: %v", err)
 	}
 }
@@ -102,7 +102,7 @@ func TestCookedSinceAndCandidates(t *testing.T) {
 		}
 	}
 	for _, k := range []weekplan.Key{{Year: 2026, Week: 52}, {Year: 2026, Week: 53}} {
-		if err := s.ApprovePlan(ctx, k, "x"); err != nil {
+		if err := s.ApprovePlan(ctx, k, "x", nil, 0); err != nil {
 			t.Fatal(err)
 		}
 	}

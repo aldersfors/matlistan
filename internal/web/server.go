@@ -16,6 +16,7 @@ import (
 	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
 	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/jalet/matlistan/internal/shopping"
 	"github.com/jalet/matlistan/internal/theme"
 	"github.com/jalet/matlistan/internal/weekplan"
 )
@@ -50,7 +51,8 @@ type Store interface {
 	ArchiveRecipe(ctx context.Context, id int64) error
 	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
 	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error
-	ApprovePlan(ctx context.Context, k weekplan.Key, subject string) error
+	ApprovePlan(ctx context.Context, k weekplan.Key, subject string, items []shopping.Item,
+		excluded int) error
 }
 
 // Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
