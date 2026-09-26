@@ -1,0 +1,42 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/jalet/matlistan/internal/i18n"
+)
+
+// Day is one weekday row. Index is 1 (Monday) to 7 (Sunday) and picks the day colour.
+type Day struct {
+	Index      int
+	Name, Date string
+}
+
+// Week is the week screen.
+type Week struct {
+	Label, Range string
+	Days         []Day
+}
+
+templ WeekPage(w Week) {
+	@Layout(w.Label) {
+		<main class="mx-auto flex min-h-dvh max-w-md flex-col px-3 pb-8">
+			<header class="flex flex-col gap-1 px-2 pt-12 pb-4">
+				<span class="text-sm text-muted">{ w.Range }</span>
+				<h1 class="font-display text-5xl leading-none font-extrabold tracking-tight">{ w.Label }</h1>
+				<p class="mt-2 text-muted">{ i18n.T(ctx, "week.empty.body") }</p>
+			</header>
+			<ol class="flex flex-col gap-1.5">
+				for _, d := range w.Days {
+					<li class="flex h-[78px] overflow-hidden rounded-2xl bg-panel">
+						<div class={ "flex w-16 shrink-0 flex-col items-center justify-center", fmt.Sprintf("day-%d", d.Index) }>
+							<span class="font-display text-xl font-extrabold">{ d.Name }</span>
+							<span class="text-sm font-bold">{ d.Date }</span>
+						</div>
+						<div class="flex items-center px-3 text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</div>
+					</li>
+				}
+			</ol>
+		</main>
+	}
+}

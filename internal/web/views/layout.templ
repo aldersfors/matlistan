@@ -1,0 +1,21 @@
+package views
+
+import "github.com/jalet/matlistan/internal/i18n"
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang={ string(i18n.From(ctx).Locale()) }>
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="htmx-config" content='{"includeIndicatorStyles":false}'/>
+			<title>{ title } - { i18n.T(ctx, "app.name") }</title>
+			<link rel="stylesheet" href="/static/app.css"/>
+			<link rel="stylesheet" href="/static/theme.css"/>
+			<script src="/static/htmx.min.js" defer></script>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
