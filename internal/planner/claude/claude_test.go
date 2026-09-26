@@ -17,10 +17,11 @@ import (
 )
 
 type fakeAPI struct {
-	mu     sync.Mutex // the server goroutine writes bodies, the test reads them
-	bodies []map[string]any
-	texts  []string // one reply text per request
-	stop   string
+	mu       sync.Mutex // the server goroutine writes bodies, the test reads them
+	bodies   []map[string]any
+	texts    []string // one reply text per request
+	stop     string
+	fallback string // when set: this partial text, then a fallback block, then the reply
 }
 
 func (f *fakeAPI) body(i int) map[string]any {
@@ -44,14 +45,33 @@ func (f *fakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		stop = "end_turn"
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
-	for _, e := range [][2]string{
+	events := [][2]string{
 		{"message_start", `{"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-opus-5","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1,"cache_read_input_tokens":80,"cache_creation_input_tokens":0}}}`},
-		{"content_block_start", `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`},
-		{"content_block_delta", `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":` + string(quoted) + `}}`},
-		{"content_block_stop", `{"type":"content_block_stop","index":0}`},
 		{"message_delta", `{"type":"message_delta","delta":{"stop_reason":"` + stop + `","stop_sequence":null},"usage":{"output_tokens":42}}`},
 		{"message_stop", `{"type":"message_stop"}`},
-	} {
+	}
+	var blocks [][2]string
+	index := 0
+	textBlock := func(q []byte) {
+		i := fmt.Sprint(index)
+		blocks = append(blocks,
+			[2]string{"content_block_start", `{"type":"content_block_start","index":` + i + `,"content_block":{"type":"text","text":""}}`},
+			[2]string{"content_block_delta", `{"type":"content_block_delta","index":` + i + `,"delta":{"type":"text_delta","text":` + string(q) + `}}`},
+			[2]string{"content_block_stop", `{"type":"content_block_stop","index":` + i + `}`})
+		index++
+	}
+	if f.fallback != "" {
+		partial, _ := json.Marshal(f.fallback)
+		textBlock(partial)
+		i := fmt.Sprint(index)
+		blocks = append(blocks,
+			[2]string{"content_block_start", `{"type":"content_block_start","index":` + i + `,"content_block":{"type":"fallback","from":{"model":"claude-opus-5"},"to":{"model":"claude-opus-4-8"},"trigger":{"type":"refusal","category":"cyber"}}}`},
+			[2]string{"content_block_stop", `{"type":"content_block_stop","index":` + i + `}`})
+		index++
+	}
+	textBlock(quoted)
+	events = append(events[:1], append(blocks, events[1:]...)...)
+	for _, e := range events {
 		_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", e[0], e[1])
 	}
 }
@@ -125,5 +145,14 @@ func TestAPIErrorIsReturned(t *testing.T) {
 	if _, err := c.NewSession("S", nil).Send(context.Background(), "x"); err == nil ||
 		strings.Contains(err.Error(), "sk-test-secret-123") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// After a mid-answer fallback only the fallback model's text is the answer.
+func TestFallbackKeepsOnlyTheFinalAnswer(t *testing.T) {
+	f := &fakeAPI{texts: []string{`{"days":[]}`}, fallback: `{"days":[{"da`}
+	r, err := newTestClient(t, f, DefaultModel).NewSession("S", nil).Send(context.Background(), "x")
+	if err != nil || r.Text != `{"days":[]}` {
+		t.Fatalf("reply %q, %v", r.Text, err)
 	}
 }

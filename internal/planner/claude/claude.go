@@ -96,10 +96,15 @@ func (s *session) Send(ctx context.Context, text string) (planner.Reply, error) 
 	case anthropic.BetaStopReasonMaxTokens:
 		return planner.Reply{Usage: u}, planner.ErrTruncated
 	}
+	// Text before a fallback block is the declining model's partial answer: keep only the
+	// text after the last one.
 	var b strings.Builder
 	for _, block := range msg.Content {
-		if t, ok := block.AsAny().(anthropic.BetaTextBlock); ok {
-			b.WriteString(t.Text)
+		switch v := block.AsAny().(type) {
+		case anthropic.BetaFallbackBlock:
+			b.Reset()
+		case anthropic.BetaTextBlock:
+			b.WriteString(v.Text)
 		}
 	}
 	return planner.Reply{Text: b.String(), Usage: u}, nil
