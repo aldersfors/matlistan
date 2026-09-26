@@ -76,5 +76,8 @@
   "section.pantry": "Skafferi",
   "section.frozen": "Frys",
   "section.bakery": "Bröd",
-  "section.other": "Övrigt"
+  "section.other": "Övrigt",
+  "nav.label": "Huvudmeny",
+  "error.bad_request": "Formuläret kunde inte läsas. Ladda om sidan och försök igen.",
+  "error.internal": "Något gick fel hos oss. Försök igen om en stund."
 }

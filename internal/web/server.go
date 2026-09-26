@@ -13,7 +13,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
+	"github.com/jalet/matlistan/internal/household"
 	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/recipes"
 	"github.com/jalet/matlistan/internal/theme"
 )
 
@@ -26,9 +28,25 @@ type Authenticator interface {
 	Require(next http.Handler) http.Handler
 }
 
-// Pinger reports database health.
-type Pinger interface {
+// Store is what the web layer needs from persistence.
+type Store interface {
 	Ping(ctx context.Context) error
+	ListMembers(ctx context.Context) ([]household.Member, error)
+	GetMember(ctx context.Context, id int64) (household.Member, error)
+	CreateMember(ctx context.Context, m household.Member) (int64, error)
+	UpdateMember(ctx context.Context, m household.Member) error
+	ArchiveMember(ctx context.Context, id int64) error
+	LinkMember(ctx context.Context, id int64, subject string) error
+	GetSettings(ctx context.Context) (household.Settings, error)
+	UpdateSettings(ctx context.Context, s household.Settings) error
+	ListStaples(ctx context.Context) ([]household.Staple, error)
+	AddStaple(ctx context.Context, name string) error
+	RemoveStaple(ctx context.Context, id int64) error
+	ListRecipes(ctx context.Context, lang i18n.Locale, q string) ([]recipes.Summary, error)
+	GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error)
+	CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, error)
+	UpdateRecipe(ctx context.Context, r recipes.Recipe) error
+	ArchiveRecipe(ctx context.Context, id int64) error
 }
 
 // Deps are the server's collaborators.
@@ -36,7 +54,7 @@ type Deps struct {
 	Catalog *i18n.Catalog
 	Theme   theme.Theme
 	Auth    Authenticator
-	DB      Pinger
+	Store   Store
 	Now     func() time.Time // in the configured location
 	Log     zerolog.Logger
 }
@@ -46,8 +64,8 @@ type server struct{ Deps }
 // New builds the HTTP handler. Public: /healthz, /static/*, /auth/*.
 // Everything else requires a session.
 func New(d Deps) http.Handler {
-	if d.Catalog == nil || d.Auth == nil || d.DB == nil || d.Now == nil {
-		panic("invariant violated: web.New needs catalog, auth, db and clock")
+	if d.Catalog == nil || d.Auth == nil || d.Store == nil || d.Now == nil {
+		panic("invariant violated: web.New needs catalog, auth, store and clock")
 	}
 	s := &server{d}
 	static, err := fs.Sub(_static, "static")
@@ -71,9 +89,7 @@ func New(d Deps) http.Handler {
 		http.Redirect(w, r, "/week", http.StatusSeeOther)
 	})
 	app.HandleFunc("GET /week", s.week)
-	app.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, i18n.T(r.Context(), "error.not_found"), http.StatusNotFound)
-	})
+	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.
 	mux.Handle("/", http.NewCrossOriginProtection().Handler(d.Auth.Require(app)))
@@ -84,7 +100,7 @@ func New(d Deps) http.Handler {
 func (s *server) healthz(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
-	if err := s.DB.Ping(ctx); err != nil {
+	if err := s.Store.Ping(ctx); err != nil {
 		s.Log.Warn().Err(err).Msg("healthz: database")
 		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
 		return

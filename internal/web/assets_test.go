@@ -50,7 +50,13 @@ func TestViewsUseKnownKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	re := regexp.MustCompile(`i18n\.[TN]\(ctx, "([a-z0-9_.]+)"`)
+	// Any quoted dotted literal whose first segment is a catalog prefix counts, so keys passed
+	// to components as arguments are checked too.
+	re := regexp.MustCompile(`"([a-z_]+(?:\.[a-z0-9_]+)+\.?)"`)
+	prefixes := map[string]bool{}
+	for _, k := range en.Keys() {
+		prefixes[strings.SplitN(k, ".", 2)[0]] = true
+	}
 	files, _ := filepath.Glob("views/*.templ")
 	if len(files) == 0 {
 		t.Fatal("no templ files found")
@@ -58,8 +64,8 @@ func TestViewsUseKnownKeys(t *testing.T) {
 	for _, f := range files {
 		b, _ := os.ReadFile(f)
 		for _, m := range re.FindAllStringSubmatch(string(b), -1) {
-			if strings.HasSuffix(m[1], ".") {
-				continue // a prefix joined at runtime; TestFormatKeysExistInEveryLocale covers it
+			if strings.HasSuffix(m[1], ".") || !prefixes[strings.SplitN(m[1], ".", 2)[0]] {
+				continue
 			}
 			if _, ok := en.Message(m[1]); !ok {
 				t.Errorf("%s uses unknown key %q", f, m[1])

@@ -79,7 +79,8 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	}
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
-		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, DB: db, Now: now, Log: log})}
+		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Now: now,
+			Log: log})}
 	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
 		Handler: web.Metrics()}
 	errc := make(chan error, 2)

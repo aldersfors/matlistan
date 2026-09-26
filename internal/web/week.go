@@ -19,7 +19,5 @@ func (s *server) week(w http.ResponseWriter, r *http.Request) {
 		vm.Days = append(vm.Days, views.Day{Index: i + 1, Name: c.WeekdayShort(d.Weekday()),
 			Date: strconv.Itoa(d.Day())})
 	}
-	if err := views.WeekPage(vm).Render(r.Context(), w); err != nil {
-		s.Log.Error().Err(err).Msg("render week")
-	}
+	s.render(w, r, http.StatusOK, views.WeekPage(vm))
 }

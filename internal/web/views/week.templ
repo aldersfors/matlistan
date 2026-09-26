@@ -19,7 +19,7 @@ type Week struct {
 }
 
 templ WeekPage(w Week) {
-	@Layout(w.Label) {
+	@Layout(w.Label, "week") {
 		<main class="mx-auto flex min-h-dvh max-w-md flex-col px-3 pb-8">
 			<header class="flex flex-col gap-1 px-2 pt-12 pb-4">
 				<span class="text-sm text-muted">{ w.Range }</span>

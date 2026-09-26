@@ -2,7 +2,7 @@ package views
 
 import "github.com/jalet/matlistan/internal/i18n"
 
-templ Layout(title string) {
+templ Layout(title, active string) {
 	<!DOCTYPE html>
 	<html lang={ string(i18n.From(ctx).Locale()) }>
 		<head>
@@ -15,7 +15,31 @@ templ Layout(title string) {
 			<script src="/static/htmx.min.js" defer></script>
 		</head>
 		<body>
-			{ children... }
+			<div class="pb-24">
+				{ children... }
+			</div>
+			@nav(active)
 		</body>
 	</html>
+}
+
+templ nav(active string) {
+	<nav class="fixed inset-x-0 bottom-0 border-t border-line bg-panel" aria-label={ i18n.T(ctx, "nav.label") }>
+		<ul class="mx-auto flex max-w-md justify-around">
+			@navItem("/week", i18n.T(ctx, "nav.week"), active == "week")
+			@navItem("/recipes", i18n.T(ctx, "nav.recipes"), active == "recipes")
+			@navItem("/family", i18n.T(ctx, "nav.family"), active == "family")
+			@navItem("/settings", i18n.T(ctx, "nav.settings"), active == "settings")
+		</ul>
+	</nav>
+}
+
+templ navItem(href, label string, current bool) {
+	<li>
+		if current {
+			<a href={ templ.URL(href) } aria-current="page" class="block px-3 py-4 font-bold text-ink">{ label }</a>
+		} else {
+			<a href={ templ.URL(href) } class="block px-3 py-4 text-muted">{ label }</a>
+		}
+	</li>
 }
