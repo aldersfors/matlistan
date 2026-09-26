@@ -200,16 +200,18 @@ func (s *Store) CookedSince(ctx context.Context, from, until weekplan.Key) (
 
 // ListCandidates returns active recipes in lang for the planner, without ingredients.
 func (s *Store) ListCandidates(ctx context.Context, lang i18n.Locale) ([]recipes.Recipe, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id, title, total_minutes, tags, diets, allergens
-		FROM recipes WHERE archived_at IS NULL AND lang = $1 AND source <> 'generated'
-		ORDER BY title_key, id LIMIT $2`,
+	rows, err := s.pool.Query(ctx, `SELECT r.id, r.title, r.total_minutes, r.tags, r.diets,
+		r.allergens, coalesce(rt.average, 0), coalesce(rt.n, 0) FROM recipes r`+_ratingsJoin+`
+		WHERE r.archived_at IS NULL AND r.lang = $1 AND`+_keptGenerated+`
+		ORDER BY r.title_key, r.id LIMIT $2`,
 		string(lang), _candidatesMax)
 	if err != nil {
 		return nil, fmt.Errorf("list candidates: %w", err)
 	}
 	out, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (recipes.Recipe, error) {
 		r := recipes.Recipe{Lang: lang}
-		err := row.Scan(&r.ID, &r.Title, &r.TotalMinutes, &r.Tags, &r.Diets, &r.Allergens)
+		err := row.Scan(&r.ID, &r.Title, &r.TotalMinutes, &r.Tags, &r.Diets, &r.Allergens,
+			&r.Rating.Average, &r.Rating.Count)
 		return r, err
 	})
 	if err != nil {

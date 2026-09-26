@@ -47,6 +47,7 @@ type Recipe struct {
 	Tags, Steps, Diets, Allergens         []string
 	Source                                string
 	Ingredients                           []Ingredient
+	Rating                                Rating
 }
 
 // Summary is a recipe as the library list shows it.
@@ -55,6 +56,7 @@ type Summary struct {
 	Title        string
 	TotalMinutes int
 	Tags         []string
+	Rating       Rating
 }
 
 // Validate checks a recipe as entered or generated. Ingredient errors are keyed by index:
@@ -161,3 +163,19 @@ func SplitTags(s string) []string {
 // TitleKey is the search form of a title: trimmed and lower-cased with Unicode rules, so
 // "Ärtsoppa" is found by "ärt" whatever the database collation.
 func TitleKey(title string) string { return strings.ToLower(strings.TrimSpace(title)) }
+
+// Ratings a family member can give a dinner.
+const (
+	ScoreLoved    = 5
+	ScoreOkay     = 3
+	ScoreNotAgain = 1
+)
+
+// Scores lists the ratings in the order the rating screen shows them.
+var Scores = []int{ScoreLoved, ScoreOkay, ScoreNotAgain}
+
+// Rating is the family's average score for a recipe.
+type Rating struct {
+	Average float64
+	Count   int
+}

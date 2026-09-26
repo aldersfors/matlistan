@@ -86,11 +86,12 @@ func insertIngredients(ctx context.Context, tx pgx.Tx, id int64, ins []recipes.I
 func (s *Store) GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error) {
 	var r recipes.Recipe
 	var lang string
-	err := s.pool.QueryRow(ctx, `SELECT id, title, description, lang, servings,
-		active_minutes, total_minutes, tags, steps, diets, allergens, source
-		FROM recipes WHERE id = $1 AND archived_at IS NULL`, id).Scan(&r.ID, &r.Title,
-		&r.Description, &lang, &r.Servings, &r.ActiveMinutes, &r.TotalMinutes, &r.Tags, &r.Steps,
-		&r.Diets, &r.Allergens, &r.Source)
+	err := s.pool.QueryRow(ctx, `SELECT r.id, r.title, r.description, r.lang, r.servings,
+		r.active_minutes, r.total_minutes, r.tags, r.steps, r.diets, r.allergens, r.source,
+		coalesce(rt.average, 0), coalesce(rt.n, 0)
+		FROM recipes r`+_ratingsJoin+`WHERE r.id = $1 AND r.archived_at IS NULL`, id).Scan(&r.ID,
+		&r.Title, &r.Description, &lang, &r.Servings, &r.ActiveMinutes, &r.TotalMinutes, &r.Tags,
+		&r.Steps, &r.Diets, &r.Allergens, &r.Source, &r.Rating.Average, &r.Rating.Count)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return recipes.Recipe{}, ErrNotFound
 	}
@@ -113,14 +114,20 @@ func (s *Store) GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error)
 // ListRecipes returns active recipes in lang whose title contains query (any case).
 func (s *Store) ListRecipes(ctx context.Context, lang i18n.Locale, query string) (
 	[]recipes.Summary, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id, title, total_minutes, tags FROM recipes
-		WHERE archived_at IS NULL AND lang = $1 AND source <> 'generated'
-		AND strpos(title_key, $2) > 0
-		ORDER BY title_key, id LIMIT $3`, string(lang), recipes.TitleKey(query), _recipeListMax)
+	rows, err := s.pool.Query(ctx, `SELECT r.id, r.title, r.total_minutes, r.tags,
+		coalesce(rt.average, 0), coalesce(rt.n, 0) FROM recipes r`+_ratingsJoin+`
+		WHERE r.archived_at IS NULL AND r.lang = $1 AND`+_keptGenerated+`
+		AND strpos(r.title_key, $2) > 0
+		ORDER BY r.title_key, r.id LIMIT $3`, string(lang), recipes.TitleKey(query), _recipeListMax)
 	if err != nil {
 		return nil, fmt.Errorf("list recipes: %w", err)
 	}
-	out, err := pgx.CollectRows(rows, pgx.RowToStructByPos[recipes.Summary])
+	out, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (recipes.Summary, error) {
+		var sm recipes.Summary
+		err := row.Scan(&sm.ID, &sm.Title, &sm.TotalMinutes, &sm.Tags, &sm.Rating.Average,
+			&sm.Rating.Count)
+		return sm, err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list recipes: %w", err)
 	}

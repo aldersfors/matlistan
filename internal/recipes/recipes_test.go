@@ -111,3 +111,9 @@ func TestCatalogsNameEveryUnitAndSection(t *testing.T) {
 		}
 	}
 }
+
+func TestScores(t *testing.T) {
+	if len(Scores) != 3 || Scores[0] != ScoreLoved || Scores[2] != ScoreNotAgain {
+		t.Fatalf("scores = %v", Scores)
+	}
+}
