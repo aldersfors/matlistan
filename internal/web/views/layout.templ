@@ -27,6 +27,7 @@ templ nav(active string) {
 	<nav class="fixed inset-x-0 bottom-0 border-t border-line bg-panel" aria-label={ i18n.T(ctx, "nav.label") }>
 		<ul class="mx-auto flex max-w-md justify-around">
 			@navItem("/week", i18n.T(ctx, "nav.week"), active == "week")
+			@navItem("/shopping", i18n.T(ctx, "nav.shopping"), active == "shopping")
 			@navItem("/recipes", i18n.T(ctx, "nav.recipes"), active == "recipes")
 			@navItem("/family", i18n.T(ctx, "nav.family"), active == "family")
 			@navItem("/settings", i18n.T(ctx, "nav.settings"), active == "settings")

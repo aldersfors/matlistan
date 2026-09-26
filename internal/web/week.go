@@ -11,6 +11,7 @@ import (
 
 	"github.com/jalet/matlistan/internal/auth"
 	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/shopping"
 	"github.com/jalet/matlistan/internal/store"
 	"github.com/jalet/matlistan/internal/validate"
 	"github.com/jalet/matlistan/internal/web/views"
@@ -267,8 +268,19 @@ func (s *server) approveWeek(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	uses, err := s.Store.PlanIngredients(r.Context(), k)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	staples, err := s.Store.ListStaples(r.Context())
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	items, excluded := shopping.Build(uses, staples)
 	me, _ := auth.SessionFrom(r.Context())
-	if err := s.Store.ApprovePlan(r.Context(), k, me.Subject, nil, 0); err != nil {
+	if err := s.Store.ApprovePlan(r.Context(), k, me.Subject, items, excluded); err != nil {
 		s.fail(w, r, err)
 		return
 	}

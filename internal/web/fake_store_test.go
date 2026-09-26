@@ -24,20 +24,23 @@ import (
 
 // fakeStore is an in-memory Store with the same not-found and ordering rules as Postgres.
 type fakeStore struct {
-	mu       sync.Mutex
-	pingErr  error
-	nextID   int64
-	members  map[int64]household.Member
-	settings household.Settings
-	staples  map[int64]household.Staple
-	recipes  map[int64]recipes.Recipe
-	plans    map[weekplan.Key]weekplan.Plan
+	mu          sync.Mutex
+	pingErr     error
+	nextID      int64
+	members     map[int64]household.Member
+	settings    household.Settings
+	staples     map[int64]household.Staple
+	recipes     map[int64]recipes.Recipe
+	plans       map[weekplan.Key]weekplan.Plan
+	lists       map[weekplan.Key]shopping.List
+	ingredients map[weekplan.Key][]shopping.Use
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{members: map[int64]household.Member{}, staples: map[int64]household.Staple{},
 		recipes: map[int64]recipes.Recipe{}, settings: household.DefaultSettings(),
-		plans: map[weekplan.Key]weekplan.Plan{}}
+		plans: map[weekplan.Key]weekplan.Plan{}, lists: map[weekplan.Key]shopping.List{},
+		ingredients: map[weekplan.Key][]shopping.Use{}}
 }
 
 func (f *fakeStore) id() int64 { f.nextID++; return f.nextID }
@@ -250,7 +253,7 @@ func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Co
 }
 
 func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject string,
-	_ []shopping.Item, _ int) error {
+	items []shopping.Item, excluded int) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	p, ok := f.plans[k]
@@ -259,6 +262,109 @@ func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject strin
 	}
 	p.Status, p.ApprovedBy = weekplan.StatusApproved, subject
 	f.plans[k] = p
+	l := shopping.List{ID: f.id(), Key: k, Excluded: excluded}
+	for _, it := range items {
+		it.ID = f.id()
+		l.Items = append(l.Items, it)
+	}
+	f.lists[k] = l
+	return nil
+}
+
+func (f *fakeStore) PlanIngredients(_ context.Context, k weekplan.Key) ([]shopping.Use, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.ingredients[k], nil
+}
+
+func (f *fakeStore) GetShoppingList(_ context.Context, k weekplan.Key) (shopping.List, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	l, ok := f.lists[k]
+	if !ok {
+		return shopping.List{}, store.ErrNotFound
+	}
+	return l, nil
+}
+
+func (f *fakeStore) CurrentShoppingList(_ context.Context, upTo weekplan.Key) (shopping.List,
+	error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var best *shopping.List
+	for k, l := range f.lists {
+		if upTo.Less(k) {
+			continue
+		}
+		if best == nil || best.Key.Less(k) {
+			l := l
+			best = &l
+		}
+	}
+	if best == nil {
+		return shopping.List{}, store.ErrNotFound
+	}
+	return *best, nil
+}
+
+// item finds an item by id; the caller holds f.mu.
+func (f *fakeStore) item(id int64) (weekplan.Key, int, bool) {
+	for k, l := range f.lists {
+		for i, it := range l.Items {
+			if it.ID == id {
+				return k, i, true
+			}
+		}
+	}
+	return weekplan.Key{}, 0, false
+}
+
+func (f *fakeStore) ToggleItem(_ context.Context, id int64) (shopping.Item, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	k, i, ok := f.item(id)
+	if !ok {
+		return shopping.Item{}, store.ErrNotFound
+	}
+	l := f.lists[k]
+	l.Items[i].Checked = !l.Items[i].Checked
+	return l.Items[i], nil
+}
+
+func (f *fakeStore) AddManualItem(_ context.Context, listID int64, name string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for k, l := range f.lists {
+		if l.ID != listID {
+			continue
+		}
+		manual := 0
+		for _, it := range l.Items {
+			if it.Manual {
+				manual++
+			}
+		}
+		if manual >= 100 {
+			return store.ErrTooMany
+		}
+		l.Items = append(l.Items, shopping.Item{ID: f.id(), Name: name, Section: "other",
+			Manual: true})
+		f.lists[k] = l
+		return nil
+	}
+	return store.ErrNotFound
+}
+
+func (f *fakeStore) RemoveManualItem(_ context.Context, id int64) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	k, i, ok := f.item(id)
+	if !ok || !f.lists[k].Items[i].Manual {
+		return store.ErrNotFound
+	}
+	l := f.lists[k]
+	l.Items = append(l.Items[:i], l.Items[i+1:]...)
+	f.lists[k] = l
 	return nil
 }
 

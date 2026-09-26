@@ -164,5 +164,12 @@
   "shopping.none": "No approved week yet. Approve a week to get its shopping list.",
   "shopping.empty": "Everything this week is already at home.",
   "shopping.export.title": "Matlistan week {n}",
-  "shopping.export.none": "No approved week yet."
+  "shopping.export.none": "No approved week yet.",
+  "shopping.left": {"one": "{n} item left", "other": "{n} items left"},
+  "shopping.at_home": {"one": "{n} staple left out", "other": "{n} staples left out"},
+  "shopping.add": "Add",
+  "shopping.add_label": "Something else to buy",
+  "shopping.remove": "Remove {name}",
+  "shopping.toggle": "Mark {name} as bought",
+  "shopping.too_many": "The list already has 100 items of your own."
 }

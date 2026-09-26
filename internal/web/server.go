@@ -53,6 +53,12 @@ type Store interface {
 	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error
 	ApprovePlan(ctx context.Context, k weekplan.Key, subject string, items []shopping.Item,
 		excluded int) error
+	PlanIngredients(ctx context.Context, k weekplan.Key) ([]shopping.Use, error)
+	GetShoppingList(ctx context.Context, k weekplan.Key) (shopping.List, error)
+	CurrentShoppingList(ctx context.Context, upTo weekplan.Key) (shopping.List, error)
+	ToggleItem(ctx context.Context, id int64) (shopping.Item, error)
+	AddManualItem(ctx context.Context, listID int64, name string) error
+	RemoveManualItem(ctx context.Context, id int64) error
 }
 
 // Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
@@ -137,6 +143,10 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("GET /recipes/{id}/edit", s.editRecipe)
 	app.HandleFunc("POST /recipes/{id}", s.updateRecipe)
 	app.HandleFunc("POST /recipes/{id}/archive", s.archiveRecipe)
+	app.HandleFunc("GET /shopping", s.shoppingList)
+	app.HandleFunc("POST /fragments/shopping/items/{id}/toggle", s.toggleItem)
+	app.HandleFunc("POST /shopping/items", s.addItem)
+	app.HandleFunc("POST /shopping/items/{id}/delete", s.removeItem)
 	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.

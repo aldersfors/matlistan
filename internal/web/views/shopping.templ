@@ -1,0 +1,97 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/validate"
+)
+
+// ShoppingRow is one item on the list.
+type ShoppingRow struct {
+	ID                             int64
+	Line, ToggleLabel, RemoveLabel string
+	Days                           []int
+	Checked, Manual                bool
+}
+
+// ShoppingSection is one store section.
+type ShoppingSection struct {
+	Name  string
+	Items []ShoppingRow
+}
+
+// Shopping is the shopping page. HasList false shows the empty state.
+type Shopping struct {
+	ListID                    int64
+	Label, Range, Left, AtHome string
+	HasList                   bool
+	Sections                  []ShoppingSection
+	Errors                    validate.Errors
+}
+
+templ ShoppingRowView(r ShoppingRow) {
+	<li id={ fmt.Sprintf("item-%d", r.ID) } class="flex min-h-12 items-center gap-2">
+		<form method="post" action={ templ.URL(fmt.Sprintf("/fragments/shopping/items/%d/toggle", r.ID)) } hx-post={ fmt.Sprintf("/fragments/shopping/items/%d/toggle", r.ID) } hx-target={ fmt.Sprintf("#item-%d", r.ID) } hx-swap="outerHTML" class="flex flex-grow">
+			<button type="submit" class="flex min-h-12 flex-grow items-center gap-3 text-left" aria-pressed={ strconv.FormatBool(r.Checked) } aria-label={ r.ToggleLabel }>
+				<span class={ "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-ink", templ.KV("bg-ink text-page", r.Checked) }>
+					if r.Checked {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+					}
+				</span>
+				<span class={ "flex-grow", templ.KV("text-muted line-through", r.Checked) }>{ r.Line }</span>
+				<span class="flex gap-1" aria-hidden="true">
+					for _, d := range r.Days {
+						<span class={ "h-2 w-2 rounded-full", fmt.Sprintf("day-%d", d) }></span>
+					}
+				</span>
+			</button>
+		</form>
+		if r.Manual {
+			<form method="post" action={ templ.URL(fmt.Sprintf("/shopping/items/%d/delete", r.ID)) }>
+				<button type="submit" class="h-11 w-11 text-muted" aria-label={ r.RemoveLabel }>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+				</button>
+			</form>
+		}
+	</li>
+}
+
+templ ShoppingPage(v Shopping) {
+	@Layout(i18n.T(ctx, "shopping.title"), "shopping") {
+		<main class="mx-auto flex max-w-md flex-col gap-3 px-3">
+			<header class="flex flex-col gap-1 px-2 pt-12 pb-2">
+				if v.HasList {
+					<span class="text-sm text-muted">{ v.Label }, { v.Range }</span>
+				}
+				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ i18n.T(ctx, "shopping.title") }</h1>
+			</header>
+			if !v.HasList {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "shopping.none") }</p>
+			} else {
+				<p class="flex justify-between px-2 text-sm text-muted"><span>{ v.Left }</span><span>{ v.AtHome }</span></p>
+				if len(v.Sections) == 0 {
+					<p class="px-2 text-muted">{ i18n.T(ctx, "shopping.empty") }</p>
+				}
+				for _, sec := range v.Sections {
+					<section class="rounded-2xl bg-panel px-4 py-2">
+						<h2 class="py-2 font-display text-lg font-bold">{ sec.Name }</h2>
+						<ul class="flex flex-col">
+							for _, it := range sec.Items {
+								@ShoppingRowView(it)
+							}
+						</ul>
+					</section>
+				}
+				<form method="post" action="/shopping/items" class="flex items-end gap-2">
+					<input type="hidden" name="list" value={ strconv.FormatInt(v.ListID, 10) }/>
+					<div class="flex-grow">
+						@textField(i18n.T(ctx, "shopping.add_label"), "name", "", v.Errors)
+					</div>
+					<button type="submit" class="h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "shopping.add") }</button>
+				</form>
+			}
+		</main>
+	}
+}

@@ -164,5 +164,12 @@
   "shopping.none": "Ingen godkänd vecka än. Godkänn en vecka för att få dess inköpslista.",
   "shopping.empty": "Allt för veckan finns redan hemma.",
   "shopping.export.title": "Matlistan vecka {n}",
-  "shopping.export.none": "Ingen godkänd vecka än."
+  "shopping.export.none": "Ingen godkänd vecka än.",
+  "shopping.left": {"one": "{n} vara kvar", "other": "{n} varor kvar"},
+  "shopping.at_home": {"one": "{n} basvara utelämnad", "other": "{n} basvaror utelämnade"},
+  "shopping.add": "Lägg till",
+  "shopping.add_label": "Något mer att köpa",
+  "shopping.remove": "Ta bort {name}",
+  "shopping.toggle": "Markera {name} som köpt",
+  "shopping.too_many": "Listan har redan 100 egna varor."
 }
