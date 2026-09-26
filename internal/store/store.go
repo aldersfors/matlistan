@@ -175,3 +175,6 @@ func orEmpty(s []string) []string {
 	}
 	return s
 }
+
+// ErrApproved is returned when a write targets a week that is already approved.
+var ErrApproved = errors.New("week is approved")

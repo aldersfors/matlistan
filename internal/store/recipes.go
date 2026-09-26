@@ -17,20 +17,27 @@ const _recipeListMax = 200
 func (s *Store) CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, error) {
 	var id int64
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `INSERT INTO recipes (title, title_key, description, lang,
-			servings, active_minutes, total_minutes, tags, steps, diets, allergens, source)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-			r.Title, recipes.TitleKey(r.Title), r.Description, string(r.Lang), r.Servings,
-			r.ActiveMinutes, r.TotalMinutes, orEmpty(r.Tags), orEmpty(r.Steps), orEmpty(r.Diets),
-			orEmpty(r.Allergens), r.Source).Scan(&id); err != nil {
-			return err
-		}
-		return insertIngredients(ctx, tx, id, r.Ingredients)
+		var err error
+		id, err = createRecipeTx(ctx, tx, r)
+		return err
 	})
 	if err != nil {
 		return 0, fmt.Errorf("create recipe: %w", err)
 	}
 	return id, nil
+}
+
+func createRecipeTx(ctx context.Context, tx pgx.Tx, r recipes.Recipe) (int64, error) {
+	var id int64
+	if err := tx.QueryRow(ctx, `INSERT INTO recipes (title, title_key, description, lang,
+		servings, active_minutes, total_minutes, tags, steps, diets, allergens, source)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+		r.Title, recipes.TitleKey(r.Title), r.Description, string(r.Lang), r.Servings,
+		r.ActiveMinutes, r.TotalMinutes, orEmpty(r.Tags), orEmpty(r.Steps), orEmpty(r.Diets),
+		orEmpty(r.Allergens), r.Source).Scan(&id); err != nil {
+		return 0, err
+	}
+	return id, insertIngredients(ctx, tx, id, r.Ingredients)
 }
 
 // UpdateRecipe replaces an active recipe and its ingredients.
