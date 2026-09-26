@@ -60,7 +60,7 @@ func CookPage(v Cook) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main id=\"cook\" class=\"mx-auto flex max-w-md flex-col\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main id=\"cook\" class=\"mx-auto flex min-h-[calc(100dvh-6rem)] max-w-md flex-col\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -121,7 +121,7 @@ func CookPage(v Cook) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></p></header><section class=\"flex flex-col gap-4 rounded-t-3xl bg-panel px-5 pt-6 pb-6\"><details class=\"rounded-xl bg-page p-3\"><summary class=\"cursor-pointer font-bold\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></p></header><section class=\"flex flex-grow flex-col gap-4 rounded-t-3xl bg-panel px-5 pt-6 pb-6\"><details class=\"rounded-xl bg-page p-3\"><summary class=\"cursor-pointer font-bold\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -157,7 +157,7 @@ func CookPage(v Cook) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</ul></details><ol class=\"flex list-decimal flex-col gap-5 pl-6\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</ul></details><ol class=\"flex flex-col gap-5\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -229,7 +229,7 @@ func CookPage(v Cook) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</ol><div class=\"flex gap-2\"><button type=\"button\" id=\"cook-prev\" hidden class=\"h-14 w-32 rounded-2xl bg-page font-bold\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</ol><div class=\"mt-auto flex gap-2\"><button type=\"button\" id=\"cook-prev\" hidden class=\"h-14 w-32 rounded-2xl bg-page font-bold\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

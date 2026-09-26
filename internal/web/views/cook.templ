@@ -21,13 +21,13 @@ type Cook struct {
 
 templ CookPage(v Cook) {
 	@Layout(i18n.T(ctx, "cook.title", "title", v.Title), "recipes") {
-		<main id="cook" class="mx-auto flex max-w-md flex-col">
+		<main id="cook" class="mx-auto flex min-h-[calc(100dvh-6rem)] max-w-md flex-col">
 			<header class={ "flex flex-col gap-2 px-5 pt-12 pb-6", v.DayClass }>
 				<span class="text-sm font-bold">{ v.Meta }</span>
 				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ v.Title }</h1>
 				<p id="cook-progress" class="font-bold" hidden data-template={ v.Progress }></p>
 			</header>
-			<section class="flex flex-col gap-4 rounded-t-3xl bg-panel px-5 pt-6 pb-6">
+			<section class="flex flex-grow flex-col gap-4 rounded-t-3xl bg-panel px-5 pt-6 pb-6">
 				<details class="rounded-xl bg-page p-3">
 					<summary class="cursor-pointer font-bold">{ i18n.T(ctx, "recipes.ingredients") }</summary>
 					<ul class="mt-2 flex flex-col gap-1">
@@ -36,7 +36,7 @@ templ CookPage(v Cook) {
 						}
 					</ul>
 				</details>
-				<ol class="flex list-decimal flex-col gap-5 pl-6">
+				<ol class="flex flex-col gap-5">
 					for _, st := range v.Steps {
 						<li data-step class="flex flex-col gap-3">
 							<p class="text-2xl leading-snug font-bold">{ st.Text }</p>
@@ -46,7 +46,7 @@ templ CookPage(v Cook) {
 						</li>
 					}
 				</ol>
-				<div class="flex gap-2">
+				<div class="mt-auto flex gap-2">
 					<button type="button" id="cook-prev" hidden class="h-14 w-32 rounded-2xl bg-page font-bold">{ i18n.T(ctx, "cook.prev") }</button>
 					<button type="button" id="cook-next" hidden class="h-14 flex-grow rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink">{ i18n.T(ctx, "cook.next") }</button>
 				</div>

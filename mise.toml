@@ -73,3 +73,11 @@ run = "MATLISTAN_LIVE=1 go test -run TestLive -v ./internal/planner/claude/"
 [tasks.icons]
 description = "Draw the app icons into internal/web/static/icons"
 run = "go run ./hack/icons internal/web/static/icons"
+
+[tasks."dev:seed"]
+description = "Load the made-up household into the dev database"
+run = "podman exec -i matlistan-db psql -U matlistan -q < hack/seed.sql"
+
+[tasks.screenshots]
+description = "Screenshot every screen at phone size into .dev/screenshots"
+run = "bash hack/screenshots.sh"

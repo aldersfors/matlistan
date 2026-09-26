@@ -31,23 +31,29 @@ templ Layout(title, active string) {
 }
 
 templ nav(active string) {
-	<nav class="fixed inset-x-0 bottom-0 border-t border-line bg-panel" aria-label={ i18n.T(ctx, "nav.label") }>
-		<ul class="mx-auto flex max-w-md justify-around">
-			@navItem("/week", i18n.T(ctx, "nav.week"), active == "week")
-			@navItem("/shopping", i18n.T(ctx, "nav.shopping"), active == "shopping")
-			@navItem("/recipes", i18n.T(ctx, "nav.recipes"), active == "recipes")
-			@navItem("/family", i18n.T(ctx, "nav.family"), active == "family")
-			@navItem("/settings", i18n.T(ctx, "nav.settings"), active == "settings")
+	<nav class="fixed inset-x-0 bottom-0 border-t border-line bg-panel pb-[env(safe-area-inset-bottom)]" aria-label={ i18n.T(ctx, "nav.label") }>
+		<ul class="mx-auto grid max-w-md grid-cols-5">
+			@navItem("/week", i18n.T(ctx, "nav.week"), active == "week", "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4")
+			@navItem("/shopping", i18n.T(ctx, "nav.shopping"), active == "shopping", "M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2")
+			@navItem("/recipes", i18n.T(ctx, "nav.recipes"), active == "recipes", "M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11")
+			@navItem("/family", i18n.T(ctx, "nav.family"), active == "family", "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14a5 5 0 0 1 4 6")
+			@navItem("/settings", i18n.T(ctx, "nav.settings"), active == "settings", "M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4")
 		</ul>
 	</nav>
 }
 
-templ navItem(href, label string, current bool) {
+templ navItem(href, label string, current bool, icon string) {
 	<li>
-		if current {
-			<a href={ templ.URL(href) } aria-current="page" class="block px-3 py-4 font-bold text-ink">{ label }</a>
-		} else {
-			<a href={ templ.URL(href) } class="block px-3 py-4 text-muted">{ label }</a>
-		}
+		<a
+			href={ templ.URL(href) }
+			if current {
+				aria-current="page"
+			}
+			class={ "flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 text-xs",
+				templ.KV("text-ink", current), templ.KV("text-muted", !current) }
+		>
+			<svg class={ "size-6", templ.KV("stroke-[2.5]", current), templ.KV("stroke-[1.5]", !current) } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={ icon }></path></svg>
+			<span class="max-w-full truncate">{ label }</span>
+		</a>
 	</li>
 }

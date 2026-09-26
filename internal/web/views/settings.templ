@@ -66,10 +66,10 @@ templ SettingsPage(v Settings) {
 					}
 				</ul>
 				<form method="post" action="/settings/staples" class="flex items-end gap-2">
-					<div class="flex-grow">
+					<div class="min-w-0 flex-grow">
 						@textField(i18n.T(ctx, "staples.name"), "name", "", nil)
 					</div>
-					<button type="submit" class="h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "staples.add") }</button>
+					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "staples.add") }</button>
 				</form>
 				@errorText(v.Errors, "staple")
 			</section>
@@ -97,10 +97,10 @@ templ SettingsPage(v Settings) {
 					}
 				</ul>
 				<form method="post" action="/settings/tokens" class="flex items-end gap-2">
-					<div class="flex-grow">
+					<div class="min-w-0 flex-grow">
 						@textField(i18n.T(ctx, "tokens.name"), "name", "", nil)
 					</div>
-					<button type="submit" class="h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "tokens.create") }</button>
+					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "tokens.create") }</button>
 				</form>
 				@errorText(v.Errors, "token_name")
 			</section>

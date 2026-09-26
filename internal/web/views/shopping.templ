@@ -87,10 +87,10 @@ templ ShoppingPage(v Shopping) {
 				}
 				<form method="post" action="/shopping/items" class="flex items-end gap-2">
 					<input type="hidden" name="list" value={ strconv.FormatInt(v.ListID, 10) }/>
-					<div class="flex-grow">
+					<div class="min-w-0 flex-grow">
 						@textField(i18n.T(ctx, "shopping.add_label"), "name", "", v.Errors)
 					</div>
-					<button type="submit" class="h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "shopping.add") }</button>
+					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "shopping.add") }</button>
 				</form>
 			}
 		</main>
