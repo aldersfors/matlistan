@@ -8,6 +8,13 @@ templ Layout(title, active string) {
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="description" content={ i18n.T(ctx, "app.description") }/>
+			<meta name="theme-color" content="#eef2f6" media="(prefers-color-scheme: light)"/>
+			<meta name="theme-color" content="#0d1b2a" media="(prefers-color-scheme: dark)"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-title" content={ i18n.T(ctx, "app.name") }/>
+			<link rel="manifest" href="/manifest.webmanifest"/>
+			<link rel="apple-touch-icon" href="/static/icons/icon-180.png"/>
 			<meta name="htmx-config" content='{"includeIndicatorStyles":false}'/>
 			<title>{ title } - { i18n.T(ctx, "app.name") }</title>
 			<link rel="stylesheet" href="/static/app.css"/>

@@ -122,6 +122,7 @@ func (s *server) handler() http.Handler {
 		_, _ = w.Write(themeCSS)
 	})
 	mux.HandleFunc("GET /healthz", s.healthz)
+	mux.HandleFunc("GET /manifest.webmanifest", s.manifest)
 	// The Shortcut has no session: this route checks its own key.
 	mux.HandleFunc("GET /api/v1/shopping-list/current.txt", s.exportList)
 

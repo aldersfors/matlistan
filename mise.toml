@@ -69,3 +69,7 @@ go run ./cmd/matlistan serve
 [tasks."test:live"]
 description = "Call the real Claude API once (needs ANTHROPIC_API_KEY)"
 run = "MATLISTAN_LIVE=1 go test -run TestLive -v ./internal/planner/claude/"
+
+[tasks.icons]
+description = "Draw the app icons into internal/web/static/icons"
+run = "go run ./hack/icons internal/web/static/icons"

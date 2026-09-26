@@ -196,5 +196,6 @@
   "cook.next": "Next step",
   "cook.timer": {"one": "Start a {n} minute timer", "other": "Start a {n} minute timer"},
   "cook.timer_done": "Time is up",
-  "week.plan_day": "Plan this day"
+  "week.plan_day": "Plan this day",
+  "app.description": "Dinner plans and the shopping list for the week."
 }
