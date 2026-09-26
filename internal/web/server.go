@@ -57,7 +57,7 @@ type Store interface {
 	PlanIngredients(ctx context.Context, k weekplan.Key) ([]shopping.Use, error)
 	GetShoppingList(ctx context.Context, k weekplan.Key) (shopping.List, error)
 	CurrentShoppingList(ctx context.Context, upTo weekplan.Key) (shopping.List, error)
-	ToggleItem(ctx context.Context, id int64) (shopping.Item, error)
+	SetItemChecked(ctx context.Context, id int64, checked bool) (shopping.Item, error)
 	AddManualItem(ctx context.Context, listID int64, name string) error
 	RemoveManualItem(ctx context.Context, id int64) error
 	CreateAPIToken(ctx context.Context, subject, name string, hash []byte) error

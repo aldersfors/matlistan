@@ -11,7 +11,7 @@ import (
 // ShoppingRow is one item on the list.
 type ShoppingRow struct {
 	ID                             int64
-	Line, ToggleLabel, RemoveLabel string
+	Line, RemoveLabel string
 	Days                           []int
 	Checked, Manual                bool
 }
@@ -34,7 +34,8 @@ type Shopping struct {
 templ ShoppingRowView(r ShoppingRow) {
 	<li id={ fmt.Sprintf("item-%d", r.ID) } class="flex min-h-12 items-center gap-2">
 		<form method="post" action={ templ.URL(fmt.Sprintf("/fragments/shopping/items/%d/toggle", r.ID)) } hx-post={ fmt.Sprintf("/fragments/shopping/items/%d/toggle", r.ID) } hx-target={ fmt.Sprintf("#item-%d", r.ID) } hx-swap="outerHTML" class="flex flex-grow">
-			<button type="submit" class="flex min-h-12 flex-grow items-center gap-3 text-left" aria-pressed={ strconv.FormatBool(r.Checked) } aria-label={ r.ToggleLabel }>
+			<input type="hidden" name="checked" value={ checkedValue(!r.Checked) }/>
+			<button type="submit" class="flex min-h-12 flex-grow items-center gap-3 text-left" aria-pressed={ strconv.FormatBool(r.Checked) }>
 				<span class={ "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-ink", templ.KV("bg-ink text-page", r.Checked) }>
 					if r.Checked {
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
@@ -94,4 +95,12 @@ templ ShoppingPage(v Shopping) {
 			}
 		</main>
 	}
+}
+
+// checkedValue is the form value for the state a tap asks for.
+func checkedValue(checked bool) string {
+	if checked {
+		return "1"
+	}
+	return "0"
 }

@@ -65,12 +65,12 @@ func TestToggleAndManualItems(t *testing.T) {
 	h, st := approvedWeek(t)
 	l, _ := st.GetShoppingList(t.Context(), _w40)
 	id := itoa(l.Items[0].ID)
-	req := url.Values{}
+	req := url.Values{"checked": {"1"}}
 	rec := postHX(t, h, "/fragments/shopping/items/"+id+"/toggle", req)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "line-through") {
 		t.Fatalf("toggle: %d %s", rec.Code, rec.Body.String())
 	}
-	rec = postHX(t, h, "/fragments/shopping/items/"+id+"/toggle", req)
+	rec = postHX(t, h, "/fragments/shopping/items/"+id+"/toggle", url.Values{"checked": {"0"}})
 	if strings.Contains(rec.Body.String(), "line-through") {
 		t.Fatal("second toggle did not untick")
 	}
@@ -100,5 +100,25 @@ func TestNavHasShopping(t *testing.T) {
 	_, body := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/shopping")
 	if !strings.Contains(body, `href="/shopping" aria-current="page"`) {
 		t.Fatal("nav does not mark shopping")
+	}
+}
+
+// Two people ticking the same item leave it ticked; the button is named by what it shows.
+func TestTickingSetsTheState(t *testing.T) {
+	h, st := approvedWeek(t)
+	l, _ := st.GetShoppingList(t.Context(), _w40)
+	id := itoa(l.Items[0].ID)
+	for range 2 {
+		postHX(t, h, "/fragments/shopping/items/"+id+"/toggle", url.Values{"checked": {"1"}})
+	}
+	if l, _ := st.GetShoppingList(t.Context(), _w40); !l.Items[0].Checked {
+		t.Fatal("second tick unticked the item")
+	}
+	_, body := get(t, h, "/shopping")
+	if strings.Contains(body, "Markera pumpa som köpt") {
+		t.Error("aria-label hides the amount from screen readers")
+	}
+	if !strings.Contains(body, `name="checked" value="0"`) {
+		t.Error("a ticked row does not offer to untick")
 	}
 }

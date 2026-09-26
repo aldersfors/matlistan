@@ -65,7 +65,6 @@ func (s *server) shoppingRow(it shopping.Item) views.ShoppingRow {
 	c := s.Catalog
 	return views.ShoppingRow{ID: it.ID, Line: shopping.ItemLine(c, it), Days: it.Days,
 		Checked: it.Checked, Manual: it.Manual,
-		ToggleLabel: c.T("shopping.toggle", "name", it.Name),
 		RemoveLabel: c.T("shopping.remove", "name", it.Name)}
 }
 
@@ -75,7 +74,16 @@ func (s *server) toggleItem(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
-	it, err := s.Store.ToggleItem(r.Context(), id)
+	if !readForm(w, r) {
+		return
+	}
+	// The row posts the state it wants, so two people ticking at once agree.
+	checked := r.PostFormValue("checked")
+	if checked != "0" && checked != "1" {
+		s.badRequest(w, r)
+		return
+	}
+	it, err := s.Store.SetItemChecked(r.Context(), id, checked == "1")
 	if err != nil {
 		s.fail(w, r, err)
 		return

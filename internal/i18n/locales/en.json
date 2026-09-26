@@ -170,7 +170,6 @@
   "shopping.add": "Add",
   "shopping.add_label": "Something else to buy",
   "shopping.remove": "Remove {name}",
-  "shopping.toggle": "Mark {name} as bought",
   "shopping.too_many": "The list already has 100 items of your own.",
   "tokens.title": "Apple Notes shortcut",
   "tokens.hint": "Create a key for the iOS Shortcut that copies the shopping list into Notes. Each device gets its own key; it is shown only once.",
@@ -181,5 +180,6 @@
   "tokens.revoke": "Revoke {name}",
   "tokens.last_used": "Last used {date}",
   "tokens.never_used": "Never used",
-  "tokens.empty": "No keys yet."
+  "tokens.empty": "No keys yet.",
+  "shopping.all_bought": "Everything is bought."
 }

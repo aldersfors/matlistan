@@ -100,19 +100,21 @@ func (s *Store) CurrentShoppingList(ctx context.Context, upTo weekplan.Key) (sho
 	return s.listWhere(ctx, `(p.iso_year, p.iso_week) <= ($1, $2)`, upTo.Year, upTo.Week)
 }
 
-// ToggleItem ticks or unticks an item and returns it.
-func (s *Store) ToggleItem(ctx context.Context, id int64) (shopping.Item, error) {
-	rows, err := s.pool.Query(ctx, `UPDATE shopping_items SET checked = NOT checked
-		WHERE id = $1 RETURNING `+_itemCols, id)
+// SetItemChecked ticks or unticks an item and returns it. It sets the state rather than
+// flipping it, so two people ticking the same item both leave it ticked.
+func (s *Store) SetItemChecked(ctx context.Context, id int64, checked bool) (shopping.Item,
+	error) {
+	rows, err := s.pool.Query(ctx, `UPDATE shopping_items SET checked = $2
+		WHERE id = $1 RETURNING `+_itemCols, id, checked)
 	if err != nil {
-		return shopping.Item{}, fmt.Errorf("toggle item: %w", err)
+		return shopping.Item{}, fmt.Errorf("set item checked: %w", err)
 	}
 	it, err := pgx.CollectExactlyOneRow(rows, scanItem)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return shopping.Item{}, ErrNotFound
 	}
 	if err != nil {
-		return shopping.Item{}, fmt.Errorf("toggle item: %w", err)
+		return shopping.Item{}, fmt.Errorf("set item checked: %w", err)
 	}
 	return it, nil
 }

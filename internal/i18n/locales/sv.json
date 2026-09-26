@@ -170,7 +170,6 @@
   "shopping.add": "Lägg till",
   "shopping.add_label": "Något mer att köpa",
   "shopping.remove": "Ta bort {name}",
-  "shopping.toggle": "Markera {name} som köpt",
   "shopping.too_many": "Listan har redan 100 egna varor.",
   "tokens.title": "Genväg till Anteckningar",
   "tokens.hint": "Skapa en nyckel för iOS-genvägen som kopierar inköpslistan till Anteckningar. Varje enhet får en egen nyckel, och den visas bara en gång.",
@@ -181,5 +180,6 @@
   "tokens.revoke": "Återkalla {name}",
   "tokens.last_used": "Senast använd {date}",
   "tokens.never_used": "Aldrig använd",
-  "tokens.empty": "Inga nycklar än."
+  "tokens.empty": "Inga nycklar än.",
+  "shopping.all_bought": "Allt är köpt."
 }

@@ -322,7 +322,8 @@ func (f *fakeStore) item(id int64) (weekplan.Key, int, bool) {
 	return weekplan.Key{}, 0, false
 }
 
-func (f *fakeStore) ToggleItem(_ context.Context, id int64) (shopping.Item, error) {
+func (f *fakeStore) SetItemChecked(_ context.Context, id int64, checked bool) (shopping.Item,
+	error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	k, i, ok := f.item(id)
@@ -330,7 +331,7 @@ func (f *fakeStore) ToggleItem(_ context.Context, id int64) (shopping.Item, erro
 		return shopping.Item{}, store.ErrNotFound
 	}
 	l := f.lists[k]
-	l.Items[i].Checked = !l.Items[i].Checked
+	l.Items[i].Checked = checked
 	return l.Items[i], nil
 }
 

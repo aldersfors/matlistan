@@ -82,11 +82,14 @@ func TestItemsToggleAddRemove(t *testing.T) {
 	}
 	l, _ := s.GetShoppingList(ctx, _w40)
 	id := l.Items[0].ID
-	if it, err := s.ToggleItem(ctx, id); err != nil || !it.Checked {
-		t.Fatalf("toggle = %+v, %v", it, err)
+	// Two people ticking the same item both mean "bought": the state is set, not flipped.
+	for range 2 {
+		if it, err := s.SetItemChecked(ctx, id, true); err != nil || !it.Checked {
+			t.Fatalf("check = %+v, %v", it, err)
+		}
 	}
-	if it, _ := s.ToggleItem(ctx, id); it.Checked {
-		t.Fatal("second toggle")
+	if it, _ := s.SetItemChecked(ctx, id, false); it.Checked {
+		t.Fatal("uncheck")
 	}
 	if err := s.AddManualItem(ctx, l.ID, "tandkräm"); err != nil {
 		t.Fatal(err)
@@ -102,7 +105,7 @@ func TestItemsToggleAddRemove(t *testing.T) {
 	if err := s.RemoveManualItem(ctx, manual.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ToggleItem(ctx, manual.ID); !errors.Is(err, ErrNotFound) {
+	if _, err := s.SetItemChecked(ctx, manual.ID, true); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("toggle removed: %v", err)
 	}
 	if err := s.AddManualItem(ctx, 9999, "x"); !errors.Is(err, ErrNotFound) {
