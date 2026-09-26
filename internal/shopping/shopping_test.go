@@ -104,3 +104,13 @@ func TestBuildOptionalOnlyWhenAlwaysOptional(t *testing.T) {
 		t.Fatal("only optional uses")
 	}
 }
+
+// A required "to taste" use on another day is not swallowed by an optional amount.
+func TestToTasteUseKeepsItsDayAndNeed(t *testing.T) {
+	a := use(1, 4, 4, "koriander", 1, "pcs", "produce")
+	a.Ingredient.Optional = true
+	items, _ := Build([]Use{a, use(2, 4, 4, "koriander", 0, "", "produce")}, nil)
+	if len(items) != 1 || items[0].Optional || !slices.Equal(items[0].Days, []int{1, 2}) {
+		t.Fatalf("items = %+v", items)
+	}
+}

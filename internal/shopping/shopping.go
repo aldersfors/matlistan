@@ -107,6 +107,27 @@ func Build(uses []Use, staples []household.Staple) ([]Item, int) {
 		}
 		g.optional = g.optional && in.Optional
 	}
+	// A "to taste" use of an ingredient that also has an amount is dropped, but its days and
+	// its need (not optional) carry over to the amounts, so the list still says who needs it.
+	for _, key := range order {
+		g := groups[key]
+		name := household.StapleKey(g.name)
+		if g.dim != dimNone || !measured[name] {
+			continue
+		}
+		for _, other := range order {
+			o := groups[other]
+			if o.dim == dimNone || household.StapleKey(o.name) != name {
+				continue
+			}
+			for _, d := range g.days {
+				if !slices.Contains(o.days, d) {
+					o.days = append(o.days, d)
+				}
+			}
+			o.optional = o.optional && g.optional
+		}
+	}
 	var items []Item
 	for _, key := range order {
 		g := groups[key]
