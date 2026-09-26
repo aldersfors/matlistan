@@ -33,7 +33,10 @@ at the end if you want a reminder that the list is ready.
 
 ## If something goes wrong
 
-- `unauthorized`: the key is wrong or was revoked. Create a new one in Settings.
+- The note only says `unauthorized`: the key is wrong or was revoked. Shortcuts does not
+  stop on this error, so the word ends up in the note. Create a new key in Settings and
+  paste it into the shortcut.
+- The note says everything is bought: every item was ticked in Matlistan.
 - The note says there is no approved week: approve the week in Matlistan first.
 - A certificate error: the phone does not trust your CA, or it is not on the network or
   Tailscale.

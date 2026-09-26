@@ -56,3 +56,12 @@ func TestText(t *testing.T) {
 		t.Fatalf("empty list = %q", got)
 	}
 }
+
+func TestTextWhenEverythingIsBought(t *testing.T) {
+	sv := catalog(t, i18n.SV)
+	l := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{{Name: "pumpa",
+		Section: "produce", Quantity: 1, Unit: "kg", Checked: true}}}
+	if got := Text(sv, l); got != "Matlistan vecka 40\n\nAllt är köpt.\n" {
+		t.Fatalf("Text = %q", got)
+	}
+}

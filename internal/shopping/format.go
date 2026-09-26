@@ -45,7 +45,10 @@ func Text(c *i18n.Catalog, l *List) string {
 		}
 		b.WriteString("- " + ItemLine(c, it) + "\n")
 	}
-	if !wrote {
+	switch {
+	case !wrote && len(l.Items) > 0:
+		b.WriteString("\n" + c.T("shopping.all_bought") + "\n")
+	case !wrote:
 		b.WriteString("\n" + c.T("shopping.empty") + "\n")
 	}
 	return b.String()
