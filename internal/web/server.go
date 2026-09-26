@@ -74,7 +74,9 @@ func New(d Deps) http.Handler {
 	app.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, i18n.T(r.Context(), "error.not_found"), http.StatusNotFound)
 	})
-	mux.Handle("/", d.Auth.Require(app))
+	// Cross-origin protection covers every app request, so later POST handlers need no
+	// per-form token.
+	mux.Handle("/", http.NewCrossOriginProtection().Handler(d.Auth.Require(app)))
 
 	return withCatalog(d.Catalog, securityHeaders(mux))
 }

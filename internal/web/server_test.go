@@ -164,3 +164,15 @@ func TestStaticHasNoDirectoryListing(t *testing.T) {
 		}
 	}
 }
+
+// State-changing requests from another site are refused before they reach a handler.
+func TestCrossSitePostIsRejected(t *testing.T) {
+	h := newServer(t, i18n.EN, true, fakeDB{})
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/week", nil)
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status %d, want 403", rec.Code)
+	}
+}
