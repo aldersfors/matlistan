@@ -161,6 +161,7 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("POST /settings/tokens/{id}/delete", s.revokeToken)
 	app.HandleFunc("GET /week/rate", s.rateWeek)
 	app.HandleFunc("POST /fragments/ratings", s.rate)
+	app.HandleFunc("GET /recipes/{id}/cook", s.cook)
 	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.

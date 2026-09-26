@@ -46,17 +46,18 @@ func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := s.Catalog
+	servings, day := servingsParam(r, rec.Servings), dayParam(r)
 	v := views.RecipeView{ID: rec.ID, Title: rec.Title, Description: rec.Description,
 		Meta: c.T("recipes.minutes", "n", rec.TotalMinutes) + ", " +
-			c.N("recipes.servings", rec.Servings),
-		Steps: rec.Steps}
+			c.N("recipes.servings", servings),
+		Steps: rec.Steps, CookHref: cookHref(rec.ID, servings, day)}
 	for _, d := range rec.Diets {
 		v.Chips = append(v.Chips, c.Diet(d))
 	}
 	for _, a := range rec.Allergens {
 		v.Chips = append(v.Chips, c.Allergen(a))
 	}
-	for _, in := range rec.Ingredients {
+	for _, in := range rec.Scaled(servings) {
 		v.Ingredients = append(v.Ingredients, s.ingredientLine(in))
 	}
 	s.render(w, r, http.StatusOK, views.RecipePage(v))

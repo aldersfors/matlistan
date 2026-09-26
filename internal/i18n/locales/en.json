@@ -188,5 +188,12 @@
   "rate.okay": "Okay",
   "rate.not_again": "Not again",
   "rate.for": "{name}: {choice}",
-  "week.rate": "Rate the week"
+  "week.rate": "Rate the week",
+  "cook.start": "Start cooking",
+  "cook.title": "Cooking {title}",
+  "cook.progress": "Step {n} of {total}",
+  "cook.prev": "Previous",
+  "cook.next": "Next step",
+  "cook.timer": {"one": "Start a {n} minute timer", "other": "Start a {n} minute timer"},
+  "cook.timer_done": "Time is up"
 }

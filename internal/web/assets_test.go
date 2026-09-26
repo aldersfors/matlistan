@@ -129,3 +129,15 @@ func TestGoCodeUsesKnownKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestCookScriptIsSafe(t *testing.T) {
+	b, err := os.ReadFile("static/cook.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"eval(", "innerHTML", "new Function"} {
+		if strings.Contains(string(b), bad) {
+			t.Errorf("cook.js uses %s", bad)
+		}
+	}
+}

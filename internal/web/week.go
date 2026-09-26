@@ -105,6 +105,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 			Date: strconv.Itoa(day.Day()), Planned: !dc.Skip}
 		if en, ok := plan.Entry(i + 1); ok {
 			d.RecipeID, d.Title, d.Why = en.RecipeID, en.Title, en.Why
+			d.Href = fmt.Sprintf("/recipes/%d?servings=%d&day=%d", en.RecipeID, en.Servings, i+1)
 			d.Meta = c.T("recipes.minutes", "n", en.TotalMinutes) + ", " +
 				c.N("recipes.servings", en.Servings)
 		}

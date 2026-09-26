@@ -12,7 +12,7 @@ import (
 type WeekDay struct {
 	Index                               int
 	Name, Date, Title, Why, Meta        string
-	SwapLabel                           string
+	SwapLabel, Href                     string
 	RecipeID                            int64
 	Planned                             bool
 }
@@ -94,7 +94,7 @@ templ WeekPage(w Week) {
 							} else if d.Title == "" {
 								<span class="text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</span>
 							} else {
-								<a class="font-bold" href={ templ.URL(fmt.Sprintf("/recipes/%d", d.RecipeID)) }>{ d.Title }</a>
+								<a class="font-bold" href={ templ.URL(d.Href) }>{ d.Title }</a>
 								<span class="text-sm text-muted italic">{ d.Why }</span>
 								<span class="text-xs text-muted">{ d.Meta }</span>
 							}

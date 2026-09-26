@@ -22,9 +22,9 @@ type RecipeList struct {
 
 // RecipeView is one recipe, formatted for reading.
 type RecipeView struct {
-	ID                        int64
-	Title, Description, Meta  string
-	Chips, Ingredients, Steps []string
+	ID                                 int64
+	Title, Description, Meta, CookHref string
+	Chips, Ingredients, Steps          []string
 }
 
 // IngredientRow is one row of the ingredient editor. Index is its position in the form.
@@ -123,6 +123,7 @@ templ RecipePage(v RecipeView) {
 					}
 				</ol>
 			</section>
+			<a class="flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink" href={ templ.URL(v.CookHref) }>{ i18n.T(ctx, "cook.start") }</a>
 			<a class="flex h-14 items-center justify-center rounded-2xl border border-line font-bold" href={ templ.URL(fmt.Sprintf("/recipes/%d/edit", v.ID)) }>{ i18n.T(ctx, "recipes.edit") }</a>
 		</main>
 	}

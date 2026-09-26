@@ -1,0 +1,57 @@
+package views
+
+import (
+	"strconv"
+
+	"github.com/jalet/matlistan/internal/i18n"
+)
+
+// CookStep is one step; Minutes > 0 offers a timer.
+type CookStep struct {
+	Text, TimerLabel, DoneLabel string
+	Minutes                     int
+}
+
+// Cook is cook mode.
+type Cook struct {
+	Title, DayClass, Meta, Progress string
+	Ingredients                     []string
+	Steps                           []CookStep
+}
+
+templ CookPage(v Cook) {
+	@Layout(i18n.T(ctx, "cook.title", "title", v.Title), "recipes") {
+		<main id="cook" class="mx-auto flex max-w-md flex-col">
+			<header class={ "flex flex-col gap-2 px-5 pt-12 pb-6", v.DayClass }>
+				<span class="text-sm font-bold">{ v.Meta }</span>
+				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ v.Title }</h1>
+				<p id="cook-progress" class="font-bold" hidden data-template={ v.Progress }></p>
+			</header>
+			<section class="flex flex-col gap-4 rounded-t-3xl bg-panel px-5 pt-6 pb-6">
+				<details class="rounded-xl bg-page p-3">
+					<summary class="cursor-pointer font-bold">{ i18n.T(ctx, "recipes.ingredients") }</summary>
+					<ul class="mt-2 flex flex-col gap-1">
+						for _, in := range v.Ingredients {
+							<li>{ in }</li>
+						}
+					</ul>
+				</details>
+				<ol class="flex list-decimal flex-col gap-5 pl-6">
+					for _, st := range v.Steps {
+						<li data-step class="flex flex-col gap-3">
+							<p class="text-2xl leading-snug font-bold">{ st.Text }</p>
+							if st.Minutes > 0 {
+								<button type="button" data-minutes={ strconv.Itoa(st.Minutes) } hidden data-done={ st.DoneLabel } class="self-start rounded-full border-2 border-ink px-4 py-3 font-bold">{ st.TimerLabel }</button>
+							}
+						</li>
+					}
+				</ol>
+				<div class="flex gap-2">
+					<button type="button" id="cook-prev" hidden class="h-14 w-32 rounded-2xl bg-page font-bold">{ i18n.T(ctx, "cook.prev") }</button>
+					<button type="button" id="cook-next" hidden class="h-14 flex-grow rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink">{ i18n.T(ctx, "cook.next") }</button>
+				</div>
+			</section>
+			<script src="/static/cook.js" defer></script>
+		</main>
+	}
+}

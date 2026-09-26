@@ -188,5 +188,12 @@
   "rate.okay": "Okej",
   "rate.not_again": "Inte igen",
   "rate.for": "{name}: {choice}",
-  "week.rate": "Betygsätt veckan"
+  "week.rate": "Betygsätt veckan",
+  "cook.start": "Börja laga",
+  "cook.title": "Lagar {title}",
+  "cook.progress": "Steg {n} av {total}",
+  "cook.prev": "Föregående",
+  "cook.next": "Nästa steg",
+  "cook.timer": {"one": "Starta timer {n} minut", "other": "Starta timer {n} minuter"},
+  "cook.timer_done": "Tiden är ute"
 }
