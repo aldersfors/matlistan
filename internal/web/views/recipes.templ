@@ -10,8 +10,8 @@ import (
 
 // RecipeItem is one row in the library.
 type RecipeItem struct {
-	ID          int64
-	Title, Meta string
+	ID                  int64
+	Title, Meta, Rating string
 }
 
 // RecipeList is the library page.
@@ -79,8 +79,13 @@ templ RecipeListPage(v RecipeList) {
 				for _, it := range v.Items {
 					<li>
 						<a class="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-panel px-4" href={ templ.URL(fmt.Sprintf("/recipes/%d", it.ID)) }>
-							<span class="font-bold">{ it.Title }</span>
-							<span class="text-sm text-muted">{ it.Meta }</span>
+							<span class="flex min-w-0 flex-col py-2">
+								<span class="font-bold">{ it.Title }</span>
+								if it.Rating != "" {
+									<span class="text-sm text-muted">{ it.Rating }</span>
+								}
+							</span>
+							<span class="shrink-0 text-sm text-muted">{ it.Meta }</span>
 						</a>
 					</li>
 				}

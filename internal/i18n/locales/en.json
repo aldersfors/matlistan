@@ -117,6 +117,7 @@
   "recipes.no_match": "No recipes match \"{q}\".",
   "recipes.minutes": "{n} min",
   "recipes.servings": {"one": "{n} serving", "other": "{n} servings"},
+  "recipes.rating": {"one": "{avg} of 5 from 1 rating", "other": "{avg} of 5 from {n} ratings"},
   "recipes.ingredients": "Ingredients",
   "recipes.steps": "Steps",
   "recipes.edit": "Edit",

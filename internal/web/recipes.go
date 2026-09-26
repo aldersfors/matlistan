@@ -1,6 +1,7 @@
 package web
 
 import (
+	"math"
 	"net/http"
 	"strings"
 
@@ -29,7 +30,8 @@ func (s *server) recipeList(w http.ResponseWriter, r *http.Request) {
 	v := views.RecipeList{Query: string(q)}
 	for _, it := range list {
 		v.Items = append(v.Items, views.RecipeItem{ID: it.ID, Title: it.Title,
-			Meta: s.Catalog.T("recipes.minutes", "n", it.TotalMinutes)})
+			Meta:   s.Catalog.T("recipes.minutes", "n", it.TotalMinutes),
+			Rating: s.ratingText(it.Rating)})
 	}
 	s.render(w, r, http.StatusOK, views.RecipeListPage(v))
 }
@@ -51,6 +53,9 @@ func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
 		Meta: c.T("recipes.minutes", "n", rec.TotalMinutes) + ", " +
 			c.N("recipes.servings", servings),
 		Steps: rec.Steps, CookHref: cookHref(rec.ID, servings, day)}
+	if rt := s.ratingText(rec.Rating); rt != "" {
+		v.Meta += ", " + rt
+	}
 	for _, d := range rec.Diets {
 		v.Chips = append(v.Chips, c.Diet(d))
 	}
@@ -61,6 +66,15 @@ func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
 		v.Ingredients = append(v.Ingredients, s.ingredientLine(in))
 	}
 	s.render(w, r, http.StatusOK, views.RecipePage(v))
+}
+
+// ratingText is "3,7 av 5, 3 betyg", or "" for an unrated recipe.
+func (s *server) ratingText(r recipes.Rating) string {
+	if r.Count == 0 {
+		return ""
+	}
+	avg := s.Catalog.Quantity(math.Round(r.Average*10) / 10)
+	return s.Catalog.N("recipes.rating", r.Count, "avg", avg)
 }
 
 // ingredientLine is "1,5 dl vispgrädde", or "salt, to taste (optional)".

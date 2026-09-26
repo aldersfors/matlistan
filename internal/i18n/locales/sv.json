@@ -117,6 +117,7 @@
   "recipes.no_match": "Inga recept matchar \"{q}\".",
   "recipes.minutes": "{n} min",
   "recipes.servings": {"one": "{n} portion", "other": "{n} portioner"},
+  "recipes.rating": {"one": "{avg} av 5, 1 betyg", "other": "{avg} av 5, {n} betyg"},
   "recipes.ingredients": "Ingredienser",
   "recipes.steps": "Gör så här",
   "recipes.edit": "Redigera",

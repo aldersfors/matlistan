@@ -179,7 +179,7 @@ func (f *fakeStore) ListRecipes(_ context.Context, lang i18n.Locale, q string) (
 		if r.Lang == lang && r.Source != "generated" &&
 			strings.Contains(recipes.TitleKey(r.Title), recipes.TitleKey(q)) {
 			out = append(out, recipes.Summary{ID: r.ID, Title: r.Title,
-				TotalMinutes: r.TotalMinutes, Tags: r.Tags})
+				TotalMinutes: r.TotalMinutes, Tags: r.Tags, Rating: r.Rating})
 		}
 	}
 	slices.SortFunc(out, func(a, b recipes.Summary) int {

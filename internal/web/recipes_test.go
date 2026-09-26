@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -145,5 +146,31 @@ func TestQuantityFieldAllowsDecimals(t *testing.T) {
 	}
 	if !strings.Contains(body, `inputmode="numeric" name="servings"`) {
 		t.Error("servings field lost inputmode=numeric")
+	}
+}
+
+// Ratings show on the library and the recipe, in the locale's number format; unrated
+// recipes show nothing.
+func TestRecipesShowTheirRating(t *testing.T) {
+	st := newFakeStore()
+	h := newServer(t, i18n.SV, true, st)
+	rated, _ := st.CreateRecipe(t.Context(), recipes.Recipe{Title: "Ärtsoppa", Lang: i18n.SV,
+		Servings: 4, TotalMinutes: 40, Source: "manual"})
+	_, _ = st.CreateRecipe(t.Context(), recipes.Recipe{Title: "Pannkakor", Lang: i18n.SV,
+		Servings: 4, TotalMinutes: 30, Source: "manual"})
+	r := st.recipes[rated]
+	r.Rating = recipes.Rating{Average: 11.0 / 3, Count: 3}
+	st.recipes[rated] = r
+
+	_, list := get(t, h, "/recipes")
+	if !strings.Contains(list, "3,7 av 5, 3 betyg") {
+		t.Errorf("library lacks the rating: %s", list)
+	}
+	if strings.Count(list, "av 5") != 1 {
+		t.Error("an unrated recipe shows a rating")
+	}
+	if _, page := get(t, h, fmt.Sprintf("/recipes/%d", rated)); !strings.Contains(page,
+		"3,7 av 5, 3 betyg") {
+		t.Error("recipe page lacks the rating")
 	}
 }
