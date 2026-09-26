@@ -66,16 +66,16 @@ func NewService(st Store, llm LLM, l i18n.Locale, loc *time.Location, log zerolo
 func (s *Service) Generate(ctx context.Context, k weekplan.Key) error {
 	req, plan, err := s.request(ctx, k)
 	if err != nil {
-		return err
+		return s.record(ctx, k, plan.Context, err)
 	}
-	return s.run(ctx, "week", req, plan, true)
+	return s.record(ctx, k, plan.Context, s.run(ctx, "week", req, plan, true))
 }
 
 // Swap plans day again, keeping the other days.
 func (s *Service) Swap(ctx context.Context, k weekplan.Key, day int) error {
 	req, plan, err := s.request(ctx, k)
 	if err != nil {
-		return err
+		return s.record(ctx, k, plan.Context, err)
 	}
 	if day < 1 || day > 7 || !req.Days[day-1].Planned {
 		return ErrNotPlanned
@@ -86,7 +86,32 @@ func (s *Service) Swap(ctx context.Context, k weekplan.Key, day int) error {
 			req.Keep = append(req.Keep, e.Title)
 		}
 	}
-	return s.run(ctx, "swap", req, plan, false)
+	return s.record(ctx, k, plan.Context, s.run(ctx, "swap", req, plan, false))
+}
+
+// _recordTimeout bounds writing a failure after the job's own context may have ended.
+const _recordTimeout = 10 * time.Second
+
+// record stores why a run failed, so the week page can say so. It uses a context detached
+// from ctx, because the most common failure is ctx's own deadline.
+func (s *Service) record(ctx context.Context, k weekplan.Key, c weekplan.Context,
+	err error) error {
+	if err == nil {
+		return nil
+	}
+	key := ErrorKeyUnavailable
+	if errors.Is(err, ErrInvalid) {
+		key = ErrorKeyInvalid
+	}
+	if c.Days[0].Away == nil { // the week could not be read: a new row gets the default
+		c = weekplan.DefaultContext(7)
+	}
+	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), _recordTimeout)
+	defer cancel()
+	if rerr := s.st.SetPlanError(rctx, k, c, key); rerr != nil {
+		s.log.Error().Err(rerr).Str("week", k.String()).Msg("record plan error")
+	}
+	return err
 }
 
 func (s *Service) run(ctx context.Context, kind string, req Request, plan weekplan.Plan,
@@ -97,12 +122,11 @@ func (s *Service) run(ctx context.Context, kind string, req Request, plan weekpl
 	switch {
 	case errors.Is(err, ErrInvalid):
 		_runs.WithLabelValues(kind, "invalid").Inc()
-		return errors.Join(err, s.st.SetPlanError(ctx, req.Key, plan.Context, ErrorKeyInvalid))
+		return err
 	case err != nil:
 		_runs.WithLabelValues(kind, "unavailable").Inc()
 		s.log.Warn().Err(err).Str("week", req.Key.String()).Msg("planner unavailable")
-		return errors.Join(ErrUnavailable,
-			s.st.SetPlanError(ctx, req.Key, plan.Context, ErrorKeyUnavailable))
+		return errors.Join(ErrUnavailable, err)
 	}
 	if err := s.st.SavePicks(ctx, req.Key, plan.Context, picks, replaceAll); err != nil {
 		return fmt.Errorf("save plan: %w", err)

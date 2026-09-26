@@ -25,9 +25,13 @@ type memStore struct {
 	saved    []weekplan.Pick
 	replaced bool
 	errKey   string
+	saveErr  error
+	listErr  error
 }
 
-func (m *memStore) ListMembers(context.Context) ([]household.Member, error) { return m.members, nil }
+func (m *memStore) ListMembers(context.Context) ([]household.Member, error) {
+	return m.members, m.listErr
+}
 func (m *memStore) GetSettings(context.Context) (household.Settings, error) {
 	s := household.DefaultSettings()
 	s.DinnersPerWeek = 2
@@ -58,10 +62,18 @@ func (m *memStore) GetRecipe(_ context.Context, id int64) (recipes.Recipe, error
 }
 func (m *memStore) SavePicks(_ context.Context, _ weekplan.Key, _ weekplan.Context,
 	p []weekplan.Pick, all bool) error {
+	if m.saveErr != nil {
+		return m.saveErr
+	}
 	m.saved, m.replaced, m.errKey = p, all, ""
 	return nil
 }
-func (m *memStore) SetPlanError(_ context.Context, _ weekplan.Key, _ weekplan.Context, k string) error {
+
+// SetPlanError fails on an ended context, as a database call would.
+func (m *memStore) SetPlanError(ctx context.Context, _ weekplan.Key, _ weekplan.Context, k string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	m.errKey = k
 	return nil
 }
@@ -177,5 +189,36 @@ func TestSwapReplacesOneDay(t *testing.T) {
 	}
 	if err := newTestService(st, llm).Swap(context.Background(), _k, 5); !errors.Is(err, ErrNotPlanned) {
 		t.Fatalf("swap skipped day: %v", err)
+	}
+}
+
+// Every failure leaves a message on the week, even when the job's own deadline has passed.
+func TestFailuresAreAlwaysRecorded(t *testing.T) {
+	cases := map[string]func(*memStore, *scripted) context.Context{
+		"save fails": func(st *memStore, llm *scripted) context.Context {
+			llm.replies = []string{good}
+			st.saveErr = errors.New("db down")
+			return context.Background()
+		},
+		"reading the week fails": func(st *memStore, llm *scripted) context.Context {
+			st.listErr = errors.New("db down")
+			return context.Background()
+		},
+		"deadline passed": func(_ *memStore, llm *scripted) context.Context {
+			llm.err = context.DeadlineExceeded
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			return ctx
+		},
+	}
+	for name, setup := range cases {
+		st, llm := baseStore(), &scripted{}
+		ctx := setup(st, llm)
+		if err := newTestService(st, llm).Generate(ctx, _k); err == nil {
+			t.Errorf("%s: no error", name)
+		}
+		if st.errKey != ErrorKeyUnavailable {
+			t.Errorf("%s: error key %q, want %q", name, st.errKey, ErrorKeyUnavailable)
+		}
 	}
 }
