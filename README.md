@@ -16,6 +16,7 @@ Tools come from `mise install`. Tests need Docker or Podman (testcontainers).
     mise run dev       # http://localhost:8080
 
 `mise run test`, `mise run lint`, `mise run templ` and `mise run css` cover the rest.
+See [docs/shortcut.md](docs/shortcut.md) for putting the shopping list in Apple Notes.
 English is the default; set `MATLISTAN_LOCALE=sv` and `MATLISTAN_TIMEZONE=Europe/Stockholm`
 for the homelab setup.
 
