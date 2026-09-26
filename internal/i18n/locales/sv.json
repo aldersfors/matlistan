@@ -96,5 +96,18 @@
   "member.diets": "Kost",
   "member.allergens": "Allergier",
   "member.likes": "Tycker om",
-  "member.dislikes": "Tycker inte om"
+  "member.dislikes": "Tycker inte om",
+  "settings.title": "Inställningar",
+  "settings.planning": "Planering",
+  "settings.dinners_per_week": "Middagar per vecka",
+  "settings.weeknight_minutes": "Minuter att laga mat en vardagskväll",
+  "settings.repeat_window_weeks": "Veckor innan en rätt får upprepas",
+  "settings.library_share": "Andel middagar från receptbanken (%)",
+  "settings.saved": "Inställningarna sparades.",
+  "staples.title": "Finns alltid hemma",
+  "staples.hint": "De här kommer aldrig med på inköpslistan.",
+  "staples.name": "Vara",
+  "staples.add": "Lägg till",
+  "staples.remove": "Ta bort {name}",
+  "staples.empty": "Inget än. Salt, olja och mjöl är en bra början."
 }

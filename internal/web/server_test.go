@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -200,10 +201,11 @@ func TestNavigationMarksTheCurrentPage(t *testing.T) {
 
 // Review focus 5: an oversized form is refused with 400.
 func TestOversizedFormIsRejected(t *testing.T) {
-	t.Skip("settings route in Task 9")
 	h := newServer(t, i18n.EN, true, newFakeStore())
 	rec := post(t, h, "/settings", url.Values{"x": {strings.Repeat("a", 70<<10)}})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status %d, want 400", rec.Code)
 	}
 }
+
+func itoa(id int64) string { return strconv.FormatInt(id, 10) }

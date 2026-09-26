@@ -1,0 +1,81 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/jalet/matlistan/internal/validate"
+)
+
+// StapleRow is one "always at home" item.
+type StapleRow struct {
+	ID   int64
+	Name string
+}
+
+// Settings is the settings page; values are strings so invalid input can be shown again.
+type Settings struct {
+	DinnersPerWeek, WeeknightMinutes, RepeatWindowWeeks, LibraryShare string
+	Staples                                                           []StapleRow
+	Errors                                                            validate.Errors
+	Saved                                                             bool
+}
+
+templ SettingsPage(v Settings) {
+	@Layout(i18n.T(ctx, "settings.title"), "settings") {
+		<main class="mx-auto flex max-w-md flex-col gap-6 px-3">
+			@pageHeader(i18n.T(ctx, "settings.title"))
+			if v.Saved {
+				<p role="status" class="rounded-xl bg-panel p-3 font-bold">{ i18n.T(ctx, "settings.saved") }</p>
+			}
+			<section class="flex flex-col gap-4 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "settings.planning") }</h2>
+				<form method="post" action="/settings" class="flex flex-col gap-4">
+					@formSummary(settingsErrors(v.Errors))
+					@numberField(i18n.T(ctx, "settings.dinners_per_week"), "dinners_per_week", v.DinnersPerWeek, v.Errors)
+					@numberField(i18n.T(ctx, "settings.weeknight_minutes"), "weeknight_minutes", v.WeeknightMinutes, v.Errors)
+					@numberField(i18n.T(ctx, "settings.repeat_window_weeks"), "repeat_window_weeks", v.RepeatWindowWeeks, v.Errors)
+					@numberField(i18n.T(ctx, "settings.library_share"), "library_share", v.LibraryShare, v.Errors)
+					@primaryButton(i18n.T(ctx, "form.save"))
+				</form>
+			</section>
+			<section class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "staples.title") }</h2>
+				<p class="text-muted">{ i18n.T(ctx, "staples.hint") }</p>
+				if len(v.Staples) == 0 {
+					<p class="text-muted italic">{ i18n.T(ctx, "staples.empty") }</p>
+				}
+				<ul class="flex flex-wrap gap-2">
+					for _, sp := range v.Staples {
+						<li class="flex items-center gap-1 rounded-full bg-page py-1 pr-1 pl-3">
+							<span>{ sp.Name }</span>
+							<form method="post" action={ templ.URL(fmt.Sprintf("/settings/staples/%d/delete", sp.ID)) }>
+								<button type="submit" class="h-9 w-9 rounded-full text-muted" aria-label={ i18n.T(ctx, "staples.remove", "name", sp.Name) }>
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+								</button>
+							</form>
+						</li>
+					}
+				</ul>
+				<form method="post" action="/settings/staples" class="flex items-end gap-2">
+					<div class="flex-grow">
+						@textField(i18n.T(ctx, "staples.name"), "name", "", nil)
+					</div>
+					<button type="submit" class="h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "staples.add") }</button>
+				</form>
+				@errorText(v.Errors, "staple")
+			</section>
+		</main>
+	}
+}
+
+// settingsErrors hides the staple error from the planning form's summary.
+func settingsErrors(e validate.Errors) validate.Errors {
+	out := validate.Errors{}
+	for k, v := range e {
+		if k != "staple" {
+			out[k] = v
+		}
+	}
+	return out
+}

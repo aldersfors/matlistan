@@ -96,5 +96,18 @@
   "member.diets": "Diet",
   "member.allergens": "Allergies",
   "member.likes": "Likes",
-  "member.dislikes": "Dislikes"
+  "member.dislikes": "Dislikes",
+  "settings.title": "Settings",
+  "settings.planning": "Planning",
+  "settings.dinners_per_week": "Dinners per week",
+  "settings.weeknight_minutes": "Minutes to cook on a weeknight",
+  "settings.repeat_window_weeks": "Weeks before a dish may repeat",
+  "settings.library_share": "Share of dinners from the recipe library (%)",
+  "settings.saved": "Settings saved.",
+  "staples.title": "Always at home",
+  "staples.hint": "These never go on the shopping list.",
+  "staples.name": "Item",
+  "staples.add": "Add",
+  "staples.remove": "Remove {name}",
+  "staples.empty": "Nothing yet. Salt, oil and flour are good starts."
 }
