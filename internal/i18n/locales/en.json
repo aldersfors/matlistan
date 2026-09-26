@@ -158,5 +158,6 @@
   "week.context.save": "Save conditions",
   "plan.error.invalid": "The planner could not find a week that follows all your rules. Try again, or loosen this week's conditions.",
   "plan.error.unavailable": "The planner could not be reached. Try again in a while.",
-  "family.planner_note": "When a week is planned, each member's age, diet, allergies, likes and dislikes are sent to Claude (Anthropic). Names are not."
+  "family.planner_note": "When a week is planned, each member's age, diet, allergies, likes and dislikes are sent to Claude (Anthropic). Names are not.",
+  "week.busy": "Two other weeks are being planned right now. Try again in a minute."
 }

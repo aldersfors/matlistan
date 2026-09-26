@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -183,4 +184,39 @@ func TestFarWeekDoesNotClaimPlanningIsOff(t *testing.T) {
 	if _, body := get(t, h, "/week?y=2027&w=10"); strings.Contains(body, "inte inställd") {
 		t.Fatal("configured planner reported as not set up")
 	}
+}
+
+// Conditions cannot change under a running plan; the form is hidden and a post is refused.
+func TestConditionsAreLockedWhilePlanning(t *testing.T) {
+	st := newFakeStore()
+	pl := &fakePlanner{st: st, gate: make(chan struct{})}
+	h, s := newPlanningServer(t, i18n.SV, st, pl)
+	post(t, h, "/week/generate", weekForm(nil))
+	if _, body := get(t, h, "/week?y=2026&w=40"); strings.Contains(body, "Spara förutsättningar") {
+		t.Error("conditions form shown while planning")
+	}
+	if rec := post(t, h, "/week/context", weekForm(url.Values{"days.0.home": {"on"}})); rec.Code != http.StatusConflict {
+		t.Errorf("context while planning: %d, want 409", rec.Code)
+	}
+	close(pl.gate)
+	s.jobs.wait()
+}
+
+// When the planner is busy with other weeks, the page says so instead of doing nothing.
+func TestBusyPlannerSaysSo(t *testing.T) {
+	st := newFakeStore()
+	h, s := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	release := make(chan struct{})
+	for _, w := range []int{41, 42} {
+		s.jobs.start(weekplan.Key{Year: 2026, Week: w}, func(context.Context) error {
+			<-release
+			return nil
+		})
+	}
+	rec := post(t, h, "/week/generate", weekForm(nil))
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "planeras just nu") {
+		t.Errorf("busy: %d", rec.Code)
+	}
+	close(release)
+	s.jobs.wait()
 }

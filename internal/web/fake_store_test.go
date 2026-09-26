@@ -166,7 +166,8 @@ func (f *fakeStore) ListRecipes(_ context.Context, lang i18n.Locale, q string) (
 	defer f.mu.Unlock()
 	var out []recipes.Summary
 	for _, r := range f.recipes {
-		if r.Lang == lang && strings.Contains(recipes.TitleKey(r.Title), recipes.TitleKey(q)) {
+		if r.Lang == lang && r.Source != "generated" &&
+			strings.Contains(recipes.TitleKey(r.Title), recipes.TitleKey(q)) {
 			out = append(out, recipes.Summary{ID: r.ID, Title: r.Title,
 				TotalMinutes: r.TotalMinutes, Tags: r.Tags})
 		}
@@ -236,6 +237,13 @@ func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Co
 	if p.Status == "" {
 		p.Status = weekplan.StatusDraft
 	}
+	kept := p.Entries[:0:0]
+	for _, e := range p.Entries {
+		if !c.Days[e.Day-1].Skip {
+			kept = append(kept, e)
+		}
+	}
+	p.Entries = kept
 	f.plans[k] = p
 	return nil
 }

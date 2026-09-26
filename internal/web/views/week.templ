@@ -127,7 +127,7 @@ templ WeekPage(w Week) {
 					}
 				</form>
 			}
-			if !w.Approved {
+			if !w.Approved && !w.Generating {
 				<details class="rounded-2xl bg-panel p-4" open?={ len(w.Errors) > 0 }>
 					<summary class="cursor-pointer font-bold">{ i18n.T(ctx, "week.context.title") }</summary>
 					<form method="post" action="/week/context" class="mt-3 flex flex-col gap-3">

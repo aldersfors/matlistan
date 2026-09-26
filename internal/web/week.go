@@ -163,6 +163,10 @@ func (s *server) saveWeekContext(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if s.jobs.running(k) { // the running plan would ignore, then overwrite, the change
+		http.Error(w, i18n.T(r.Context(), "week.generating"), http.StatusConflict)
+		return
+	}
 	members, err := s.Store.ListMembers(r.Context())
 	if err != nil {
 		s.fail(w, r, err)
@@ -226,7 +230,11 @@ func (s *server) generateWeek(w http.ResponseWriter, r *http.Request) {
 	}
 	// The job must outlive this request, so it gets its own bounded context, not r.Context().
 	//nolint:contextcheck // detached on purpose, see above
-	s.jobs.start(k, func(ctx context.Context) error { return s.Planner.Generate(ctx, k) })
+	started := s.jobs.start(k, func(ctx context.Context) error { return s.Planner.Generate(ctx, k) })
+	if !started && !s.jobs.running(k) {
+		s.plannerBusy(w, r, k)
+		return
+	}
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
 }
 
@@ -246,7 +254,11 @@ func (s *server) swapDinner(w http.ResponseWriter, r *http.Request) {
 	}
 	// The job must outlive this request, so it gets its own bounded context, not r.Context().
 	//nolint:contextcheck // detached on purpose, see above
-	s.jobs.start(k, func(ctx context.Context) error { return s.Planner.Swap(ctx, k, day) })
+	started := s.jobs.start(k, func(ctx context.Context) error { return s.Planner.Swap(ctx, k, day) })
+	if !started && !s.jobs.running(k) {
+		s.plannerBusy(w, r, k)
+		return
+	}
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
 }
 
@@ -261,4 +273,14 @@ func (s *server) approveWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
+}
+
+// plannerBusy answers 503 with the week page and a message: other weeks use every job slot.
+func (s *server) plannerBusy(w http.ResponseWriter, r *http.Request, k weekplan.Key) {
+	v, ok := s.weekView(w, r, k, nil)
+	if !ok {
+		return
+	}
+	v.Error = s.Catalog.T("week.busy")
+	s.render(w, r, http.StatusServiceUnavailable, views.WeekPage(v))
 }

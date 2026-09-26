@@ -158,5 +158,6 @@
   "week.context.save": "Spara förutsättningar",
   "plan.error.invalid": "Planeraren hittade ingen vecka som följer alla era regler. Försök igen, eller lätta på veckans förutsättningar.",
   "plan.error.unavailable": "Planeraren gick inte att nå. Försök igen om en stund.",
-  "family.planner_note": "När en vecka planeras skickas varje medlems ålder, kost, allergier och vad man tycker om och inte till Claude (Anthropic). Namn skickas inte."
+  "family.planner_note": "När en vecka planeras skickas varje medlems ålder, kost, allergier och vad man tycker om och inte till Claude (Anthropic). Namn skickas inte.",
+  "week.busy": "Två andra veckor planeras just nu. Försök igen om en minut."
 }
