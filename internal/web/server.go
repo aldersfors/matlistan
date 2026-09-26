@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,7 +43,7 @@ type Deps struct {
 
 type server struct{ Deps }
 
-// New builds the HTTP handler. Public: /healthz, /metrics, /static/*, /auth/*.
+// New builds the HTTP handler. Public: /healthz, /static/*, /auth/*.
 // Everything else requires a session.
 func New(d Deps) http.Handler {
 	if d.Catalog == nil || d.Auth == nil || d.DB == nil || d.Now == nil {
@@ -57,14 +58,13 @@ func New(d Deps) http.Handler {
 
 	mux := http.NewServeMux()
 	d.Auth.Routes(mux)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", noListing(http.FileServerFS(static))))
 	mux.HandleFunc("GET /static/theme.css", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(themeCSS)
 	})
 	mux.HandleFunc("GET /healthz", s.healthz)
-	mux.Handle("GET /metrics", promhttp.Handler())
 
 	app := http.NewServeMux()
 	app.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
@@ -88,4 +88,23 @@ func (s *server) healthz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = io.WriteString(w, "ok\n")
+}
+
+// Metrics serves Prometheus metrics. It runs on its own internal listener, never on the
+// public handler, so the HTTPRoute cannot expose it.
+func Metrics() http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", promhttp.Handler())
+	return mux
+}
+
+// noListing answers 404 for directory paths, so the file server never lists the tree.
+func noListing(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "" || strings.HasSuffix(r.URL.Path, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

@@ -28,7 +28,7 @@ func TestParseDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Addr != ":8080" || c.Locale != i18n.EN || c.Location.String() != "UTC" ||
+	if c.Addr != ":8080" || c.MetricsAddr != ":9091" || c.Locale != i18n.EN || c.Location.String() != "UTC" ||
 		c.OIDC.Claim != "groups" {
 		t.Errorf("defaults = %+v", c)
 	}

@@ -22,11 +22,11 @@ type Database struct{ URL, CAFile string }
 
 // Config is everything serve needs.
 type Config struct {
-	Addr, BaseURL, ThemeFile, SessionKeyFile string
-	Database                                 Database
-	Locale                                   i18n.Locale
-	Location                                 *time.Location
-	OIDC                                     OIDC
+	Addr, MetricsAddr, BaseURL, ThemeFile, SessionKeyFile string
+	Database                                              Database
+	Locale                                                i18n.Locale
+	Location                                              *time.Location
+	OIDC                                                  OIDC
 }
 
 // RedirectURL is the OIDC callback under BaseURL.
@@ -56,8 +56,9 @@ func Parse(getenv func(string) string) (Config, error) {
 		return v
 	}
 	c := Config{
-		Addr:    or(get("MATLISTAN_ADDR"), ":8080"),
-		BaseURL: req("MATLISTAN_BASE_URL"),
+		Addr:        or(get("MATLISTAN_ADDR"), ":8080"),
+		MetricsAddr: or(get("MATLISTAN_METRICS_ADDR"), ":9091"),
+		BaseURL:     req("MATLISTAN_BASE_URL"),
 		Database: Database{
 			URL:    req("MATLISTAN_DATABASE_URL"),
 			CAFile: get("MATLISTAN_DATABASE_CA_FILE"),

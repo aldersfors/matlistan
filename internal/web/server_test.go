@@ -97,7 +97,7 @@ func TestAppPagesRequireSignIn(t *testing.T) {
 			t.Errorf("%s: status %d location %q", p, res.StatusCode, res.Header.Get("Location"))
 		}
 	}
-	for _, p := range []string{"/healthz", "/metrics", "/static/app.css", "/static/theme.css",
+	for _, p := range []string{"/healthz", "/static/app.css", "/static/theme.css",
 		"/auth/login"} {
 		if res, _ := get(t, h, p); res.StatusCode >= 300 {
 			t.Errorf("%s: status %d, want public", p, res.StatusCode)
@@ -139,5 +139,28 @@ func TestThemeCSSServed(t *testing.T) {
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/css") ||
 		!strings.Contains(body, "--ml-page: #ffffff") {
 		t.Fatalf("type %q body %q", res.Header.Get("Content-Type"), body)
+	}
+}
+
+// Metrics go to a separate internal listener, so the public route never serves them.
+func TestMetricsAreNotOnThePublicHandler(t *testing.T) {
+	res, _ := get(t, newServer(t, i18n.EN, false, fakeDB{}), "/metrics")
+	if res.StatusCode == http.StatusOK {
+		t.Fatal("/metrics served on the public handler")
+	}
+	rec := httptest.NewRecorder()
+	Metrics().ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet,
+		"/metrics", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "go_goroutines") {
+		t.Fatalf("metrics handler: %d", rec.Code)
+	}
+}
+
+func TestStaticHasNoDirectoryListing(t *testing.T) {
+	h := newServer(t, i18n.EN, false, fakeDB{})
+	for _, p := range []string{"/static/", "/static/fonts/"} {
+		if res, body := get(t, h, p); res.StatusCode != http.StatusNotFound {
+			t.Errorf("%s: status %d body %.60q", p, res.StatusCode, body)
+		}
 	}
 }

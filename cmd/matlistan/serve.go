@@ -79,8 +79,11 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
 		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, DB: db, Now: now, Log: log})}
-	errc := make(chan error, 1)
+	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
+		Handler: web.Metrics()}
+	errc := make(chan error, 2)
 	go func() { errc <- srv.ListenAndServe() }()
+	go func() { errc <- metrics.ListenAndServe() }()
 	log.Info().Str("addr", cfg.Addr).Str("locale", string(cfg.Locale)).Msg("listening")
 	select {
 	case err := <-errc:
@@ -89,6 +92,7 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 		// ctx is already cancelled; keep its values but give in-flight requests 15s to finish.
 		shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
 		defer cancel()
+		_ = metrics.Shutdown(shutdown) // best effort; scrapes are not in-flight user work
 		if err := srv.Shutdown(shutdown); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
