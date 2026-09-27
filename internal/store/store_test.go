@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 
 func runTests(m *testing.M) int {
 	ctx := context.Background()
-	ctr, err := postgres.Run(ctx, "postgres:17-alpine",
+	ctr, err := postgres.Run(ctx, "postgres:18-alpine",
 		postgres.WithDatabase("matlistan"),
 		postgres.WithUsername("matlistan"),
 		postgres.WithPassword("matlistan"),

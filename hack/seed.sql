@@ -1,5 +1,10 @@
--- Made-up household for local development and screenshots. Safe to run again: it wipes the
--- app's tables first. Never run it against a real database.
+-- Made-up household for local development and screenshots. It wipes the app's tables
+-- first, so it refuses to run unless psql is given -v seed_dev=1 (mise run dev:seed does).
+\if :{?seed_dev}
+\else
+  \echo 'hack/seed.sql: refusing to run without -v seed_dev=1; it truncates every table'
+  \quit
+\endif
 TRUNCATE ratings, shopping_items, shopping_lists, plan_entries, week_plans,
     recipe_ingredients, recipes, staples, members, api_tokens RESTART IDENTITY CASCADE;
 
