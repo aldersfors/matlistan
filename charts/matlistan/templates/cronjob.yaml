@@ -1,0 +1,53 @@
+{{- if .Values.generate.enabled }}
+{{- $v := .Values }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "matlistan.fullname" . }}-generate
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  schedule: {{ $v.generate.schedule | quote }}
+  timeZone: {{ $v.timezone | quote }}
+  # generate does nothing when the week is already planned, so a missed or repeated run is
+  # harmless; Forbid keeps two from racing.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # The planner's own timeout is 10 minutes.
+      activeDeadlineSeconds: 900
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "matlistan.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: generate
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "matlistan.fullname" . }}
+          {{- include "matlistan.podSecurity" . | nindent 10 }}
+          containers:
+            - name: generate
+              image: "{{ $v.image.repository }}:{{ $v.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ $v.image.pullPolicy }}
+              args: ["generate"]
+              env:
+                {{- include "matlistan.env" . | nindent 16 }}
+              resources:
+                {{- toYaml $v.resources | nindent 16 }}
+              {{- include "matlistan.containerSecurity" . | nindent 14 }}
+              volumeMounts:
+                - name: secrets
+                  mountPath: /etc/matlistan/secrets
+                  readOnly: true
+                {{- if $v.database.caSecret.name }}
+                - name: db-ca
+                  mountPath: /etc/matlistan/db-ca
+                  readOnly: true
+                {{- end }}
+          volumes:
+            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true) | nindent 12 }}
+{{- end }}

@@ -272,3 +272,62 @@ func TestLint(t *testing.T) {
 		t.Fatalf("helm lint: %v\n%s", err, out)
 	}
 }
+
+func cronPod(t *testing.T, objs []obj) any {
+	t.Helper()
+	return path(one(t, objs, "CronJob"), "spec", "jobTemplate", "spec", "template", "spec")
+}
+
+func TestCronJobSchedule(t *testing.T) {
+	cj := one(t, render(t, "--set", "timezone=Europe/Stockholm"), "CronJob")
+	for k, want := range map[string]any{"schedule": "0 7 * * 0",
+		"timeZone": "Europe/Stockholm", "concurrencyPolicy": "Forbid"} {
+		if got := path(cj, "spec", k); got != want {
+			t.Errorf("spec.%s = %v, want %v", k, got, want)
+		}
+	}
+	job := path(cj, "spec", "jobTemplate", "spec")
+	if path(job, "activeDeadlineSeconds") != 900.0 || path(job, "backoffLimit") != 1.0 {
+		t.Errorf("job spec = %v", job)
+	}
+	c := container(t, cronPod(t, render(t)))
+	if path(c, "args", "0") != "generate" || path(c, "args", "1") != nil {
+		t.Errorf("args = %v", c["args"])
+	}
+}
+
+// Review focus 2: the job has what generate needs, and no web secrets.
+func TestCronJobEnvSatisfiesGenerate(t *testing.T) {
+	spec := cronPod(t, render(t, "--set", "database.caSecret.name=matlistan-db-ca"))
+	env := envOf(container(t, spec))
+	if _, err := config.ParseGenerate(func(k string) string { return env[k] }); err != nil {
+		t.Fatalf("generate config from chart env: %v", err)
+	}
+	if env["MATLISTAN_DATABASE_CA_FILE"] == "" {
+		t.Error("job does not verify the database")
+	}
+	raw, _ := json.Marshal(spec)
+	for _, secret := range []string{"matlistan-session", "matlistan-oidc"} {
+		if strings.Contains(string(raw), secret) {
+			t.Errorf("job mounts %s", secret)
+		}
+	}
+	if path(spec, "restartPolicy") != "Never" || path(spec, "automountServiceAccountToken") != false {
+		t.Errorf("job pod = %v", spec)
+	}
+}
+
+func TestCronJobOptional(t *testing.T) {
+	if got := find(render(t, "--set", "generate.enabled=false"), "CronJob"); len(got) != 0 {
+		t.Error("CronJob rendered when disabled")
+	}
+}
+
+func TestSelectorsKeepWebAndJobApart(t *testing.T) {
+	objs := render(t)
+	sel := path(one(t, objs, "Deployment"), "spec", "selector", "matchLabels", "app.kubernetes.io/component")
+	svc := path(one(t, objs, "Service"), "spec", "selector", "app.kubernetes.io/component")
+	if sel != "web" || svc != "web" {
+		t.Errorf("deployment selector %v, service selector %v", sel, svc)
+	}
+}

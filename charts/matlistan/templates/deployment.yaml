@@ -18,6 +18,7 @@ spec:
   selector:
     matchLabels:
       {{- include "matlistan.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
   template:
     metadata:
       {{- if include "matlistan.theme" . }}
@@ -26,6 +27,7 @@ spec:
       {{- end }}
       labels:
         {{- include "matlistan.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: web
     spec:
       serviceAccountName: {{ include "matlistan.fullname" . }}
       {{- include "matlistan.podSecurity" . | nindent 6 }}
