@@ -3,7 +3,7 @@
 A weekly meal planner for the household. Every Sunday it drafts next week's
 dinners from the family's preferences, ages, allergies and history, lets you
 swap and approve meals, and produces a shopping list that an iOS Shortcut
-pulls into Apple Notes.
+pulls into Apple Notes. Recipes can be typed in or imported from a link to a recipe page.
 
 Status: in use at home; see [docs/deploy.md](docs/deploy.md) to run it.
 

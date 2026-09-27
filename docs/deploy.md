@@ -176,7 +176,9 @@ name already contains `matlistan`.
 The chart's NetworkPolicy (on by default) admits traffic from the Gateway and the metrics
 scraper only; set `networkPolicy.gateway` and `networkPolicy.metricsScraper` to their
 selectors. Egress is limited to DNS, the database and port 443 (the OIDC provider and the model
-provider), plus `networkPolicy.llm` when set. Metrics are served on port 9091, which the HTTPRoute does not expose.
+provider), plus `networkPolicy.llm` when set. Importing a recipe fetches the page you paste, over
+https and from public addresses only, through the same 443 egress; internal and cluster
+addresses are refused. Metrics are served on port 9091, which the HTTPRoute does not expose.
 
 ## Personal data
 
