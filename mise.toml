@@ -33,6 +33,23 @@ helm lint --strict charts/matlistan -f test/chart/testdata/minimal.yaml
 go test ./test/chart/...
 '''
 
+[tasks."image:publish"]
+description = "Build and push the image to ghcr.io; VERSION=<tag> is required"
+run = '''
+: "${VERSION:?set VERSION, for example VERSION=0.1.0-dev.1}"
+KO_DOCKER_REPO=ghcr.io/jalet/matlistan ko build --bare --tags "$VERSION" ./cmd/matlistan
+'''
+
+[tasks."chart:publish"]
+description = "Package the chart at VERSION (chart version and appVersion) and push it to ghcr.io"
+run = '''
+: "${VERSION:?set VERSION, for example VERSION=0.1.0-dev.1}"
+out="$(mktemp -d)"
+trap 'rm -rf "$out"' EXIT
+helm package charts/matlistan --version "$VERSION" --app-version "$VERSION" -d "$out"
+helm push "$out/matlistan-$VERSION.tgz" oci://ghcr.io/jalet/helm-charts
+'''
+
 [tasks.vuln]
 run = "govulncheck ./..."
 
