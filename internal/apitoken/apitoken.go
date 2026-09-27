@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const (
@@ -40,10 +41,16 @@ func Hash(plain string) []byte {
 	return h[:]
 }
 
-// FromHeader reads "Bearer mlt_..." and checks the key's shape before any lookup.
+// FromHeader reads "Bearer mlt_..." and checks the key's shape before any lookup. Any
+// whitespace separates the two parts, including the non-breaking spaces and line breaks
+// that Shortcuts and phone keyboards slip in; the key itself must be exact.
 func FromHeader(h string) (string, bool) {
-	scheme, tok, ok := strings.Cut(h, " ")
-	if !ok || !strings.EqualFold(scheme, "Bearer") || !strings.HasPrefix(tok, _prefix) ||
+	parts := strings.FieldsFunc(h, unicode.IsSpace)
+	if len(parts) != 2 {
+		return "", false
+	}
+	scheme, tok := parts[0], parts[1]
+	if !strings.EqualFold(scheme, "Bearer") || !strings.HasPrefix(tok, _prefix) ||
 		len(tok) != len(_prefix)+_encodedLen {
 		return "", false
 	}
