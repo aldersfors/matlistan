@@ -1,0 +1,274 @@
+// Package chart tests the Helm chart by rendering it with helm template.
+package chart
+
+import (
+	"bytes"
+	"encoding/json"
+	"os/exec"
+	"strings"
+	"testing"
+
+	"sigs.k8s.io/yaml"
+
+	"github.com/jalet/matlistan/internal/config"
+)
+
+const _chart = "../../charts/matlistan"
+
+type obj = map[string]any
+
+func helmTemplate(t *testing.T, extra ...string) (string, error) {
+	t.Helper()
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not on PATH")
+	}
+	args := append([]string{"template", "ml", _chart, "-n", "matlistan", "-f",
+		"testdata/minimal.yaml"}, extra...)
+	var out bytes.Buffer
+	cmd := exec.CommandContext(t.Context(), "helm", args...)
+	cmd.Stdout, cmd.Stderr = &out, &out
+	err := cmd.Run()
+	return out.String(), err
+}
+
+func render(t *testing.T, extra ...string) []obj {
+	t.Helper()
+	out, err := helmTemplate(t, extra...)
+	if err != nil {
+		t.Fatalf("helm template: %v\n%s", err, out)
+	}
+	var objs []obj
+	for _, doc := range strings.Split(out, "\n---") {
+		j, err := yaml.YAMLToJSON([]byte(doc))
+		if err != nil {
+			t.Fatalf("parse: %v\n%s", err, doc)
+		}
+		var o obj
+		if err := json.Unmarshal(j, &o); err != nil || o == nil {
+			continue
+		}
+		objs = append(objs, o)
+	}
+	return objs
+}
+
+func find(objs []obj, kind string) []obj {
+	var out []obj
+	for _, o := range objs {
+		if o["kind"] == kind {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+func one(t *testing.T, objs []obj, kind string) obj {
+	t.Helper()
+	got := find(objs, kind)
+	if len(got) != 1 {
+		t.Fatalf("%d %s objects, want 1", len(got), kind)
+	}
+	return got[0]
+}
+
+// path walks maps by key and lists by index ("0").
+func path(v any, keys ...string) any {
+	for _, k := range keys {
+		switch c := v.(type) {
+		case map[string]any:
+			v = c[k]
+		case []any:
+			i := 0
+			for _, r := range k {
+				i = i*10 + int(r-'0')
+			}
+			if i >= len(c) {
+				return nil
+			}
+			v = c[i]
+		default:
+			return nil
+		}
+	}
+	return v
+}
+
+func container(t *testing.T, pod any) obj {
+	t.Helper()
+	c, ok := path(pod, "containers", "0").(obj)
+	if !ok {
+		t.Fatal("no container")
+	}
+	return c
+}
+
+func podSpec(t *testing.T, objs []obj) any {
+	t.Helper()
+	return path(one(t, objs, "Deployment"), "spec", "template", "spec")
+}
+
+// envOf returns the container env as name -> value; secretKeyRef values become "set".
+func envOf(c obj) map[string]string {
+	env := map[string]string{}
+	list, _ := c["env"].([]any)
+	for _, e := range list {
+		m := e.(obj)
+		v, _ := m["value"].(string)
+		if m["valueFrom"] != nil {
+			v = "postgres://set"
+		}
+		env[m["name"].(string)] = v
+	}
+	return env
+}
+
+func TestPodHardening(t *testing.T) {
+	spec := podSpec(t, render(t))
+	if path(spec, "automountServiceAccountToken") != false {
+		t.Error("service account token mounted")
+	}
+	for k, want := range map[string]any{"runAsNonRoot": true, "runAsUser": 65532.0,
+		"fsGroup": 65532.0} {
+		if got := path(spec, "securityContext", k); got != want {
+			t.Errorf("pod securityContext.%s = %v", k, got)
+		}
+	}
+	if path(spec, "securityContext", "seccompProfile", "type") != "RuntimeDefault" {
+		t.Error("seccomp")
+	}
+	c := container(t, spec)
+	if path(c, "securityContext", "readOnlyRootFilesystem") != true ||
+		path(c, "securityContext", "allowPrivilegeEscalation") != false ||
+		path(c, "securityContext", "capabilities", "drop", "0") != "ALL" {
+		t.Errorf("container securityContext = %v", c["securityContext"])
+	}
+	if !strings.HasPrefix(c["image"].(string), "ghcr.io/jalet/matlistan:") {
+		t.Errorf("image %v", c["image"])
+	}
+}
+
+func TestOneReplicaRollingUpdate(t *testing.T) {
+	d := one(t, render(t), "Deployment")
+	if path(d, "spec", "replicas") != 1.0 ||
+		path(d, "spec", "strategy", "rollingUpdate", "maxUnavailable") != 0.0 {
+		t.Errorf("spec = %v", d["spec"])
+	}
+}
+
+// Review focus 4: a database failover must not restart the pod.
+func TestProbes(t *testing.T) {
+	c := container(t, podSpec(t, render(t)))
+	if path(c, "livenessProbe", "tcpSocket", "port") != "http" {
+		t.Errorf("liveness = %v", c["livenessProbe"])
+	}
+	for _, p := range []string{"readinessProbe", "startupProbe"} {
+		if path(c, p, "httpGet", "path") != "/healthz" {
+			t.Errorf("%s = %v", p, c[p])
+		}
+	}
+}
+
+// Review focus 1: whatever the chart sets is exactly what the app needs to start.
+func TestChartEnvSatisfiesConfig(t *testing.T) {
+	env := envOf(container(t, podSpec(t, render(t))))
+	if _, err := config.Parse(func(k string) string { return env[k] }); err != nil {
+		t.Fatalf("serve config from chart env: %v", err)
+	}
+	for k := range env {
+		if !strings.HasPrefix(k, "MATLISTAN_") {
+			t.Errorf("unexpected env %s", k)
+		}
+	}
+	for k, want := range map[string]string{"MATLISTAN_BASE_URL": "https://matlistan.example",
+		"MATLISTAN_OIDC_ALLOWED": "Matlistan", "MATLISTAN_LOCALE": "en",
+		"MATLISTAN_TIMEZONE": "UTC", "MATLISTAN_METRICS_ADDR": ":9091"} {
+		if env[k] != want {
+			t.Errorf("%s = %q, want %q", k, env[k], want)
+		}
+	}
+}
+
+func TestLocaleAndTimezone(t *testing.T) {
+	env := envOf(container(t, podSpec(t, render(t, "--set", "locale=sv",
+		"--set", "timezone=Europe/Stockholm"))))
+	if env["MATLISTAN_LOCALE"] != "sv" || env["MATLISTAN_TIMEZONE"] != "Europe/Stockholm" {
+		t.Errorf("env = %v", env)
+	}
+}
+
+func TestSecretsAsFiles(t *testing.T) {
+	spec := podSpec(t, render(t))
+	env := envOf(container(t, spec))
+	for k, want := range map[string]string{
+		"MATLISTAN_SESSION_KEY_FILE":        "/etc/matlistan/secrets/session-key",
+		"MATLISTAN_OIDC_CLIENT_SECRET_FILE": "/etc/matlistan/secrets/client-secret",
+		"MATLISTAN_ANTHROPIC_API_KEY_FILE":  "/etc/matlistan/secrets/anthropic-api-key",
+	} {
+		if env[k] != want {
+			t.Errorf("%s = %q", k, env[k])
+		}
+	}
+	raw, _ := json.Marshal(spec)
+	for _, secret := range []string{"matlistan-session", "matlistan-oidc", "matlistan-anthropic"} {
+		if !strings.Contains(string(raw), `"name":"`+secret+`"`) {
+			t.Errorf("secret %s not mounted", secret)
+		}
+	}
+}
+
+// Review focus 3: uid 65532 must be able to read the mounted secrets, nobody else.
+func TestSecretFilesReadableByTheApp(t *testing.T) {
+	vols, _ := path(podSpec(t, render(t)), "volumes").([]any)
+	for _, v := range vols {
+		if path(v, "name") == "secrets" {
+			if mode := path(v, "projected", "defaultMode"); mode != 288.0 { // 0440
+				t.Errorf("secrets defaultMode = %v, want 0440", mode)
+			}
+			return
+		}
+	}
+	t.Fatal("no secrets volume")
+}
+
+func TestDatabaseCAIsVerified(t *testing.T) {
+	spec := podSpec(t, render(t, "--set", "database.caSecret.name=matlistan-db-ca"))
+	if env := envOf(container(t, spec)); env["MATLISTAN_DATABASE_CA_FILE"] !=
+		"/etc/matlistan/db-ca/ca.crt" {
+		t.Errorf("CA file env = %q", env["MATLISTAN_DATABASE_CA_FILE"])
+	}
+	if env := envOf(container(t, podSpec(t, render(t)))); env["MATLISTAN_DATABASE_CA_FILE"] != "" {
+		t.Error("CA env set without a CA secret")
+	}
+}
+
+func TestRequiredValues(t *testing.T) {
+	for _, v := range []string{"baseURL=", "database.urlSecret.name=", "oidc.issuer=",
+		"oidc.clientSecret.name=", "session.keySecret.name=", "anthropic.apiKeySecret.name=",
+		"auth.allowed=null"} {
+		if out, err := helmTemplate(t, "--set", v); err == nil {
+			t.Errorf("rendered without %s:\n%.200s", v, out)
+		}
+	}
+}
+
+func TestServicePorts(t *testing.T) {
+	ports, _ := path(one(t, render(t), "Service"), "spec", "ports").([]any)
+	got := map[string]any{}
+	for _, p := range ports {
+		got[path(p, "name").(string)] = path(p, "port")
+	}
+	if got["http"] != 8080.0 || got["metrics"] != 9091.0 {
+		t.Errorf("ports = %v", got)
+	}
+}
+
+func TestLint(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not on PATH")
+	}
+	out, err := exec.CommandContext(t.Context(), "helm", "lint", "--strict", _chart, "-f",
+		"testdata/minimal.yaml").CombinedOutput()
+	if err != nil {
+		t.Fatalf("helm lint: %v\n%s", err, out)
+	}
+}

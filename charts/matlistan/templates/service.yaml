@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "matlistan.fullname" . }}
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "matlistan.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: metrics
+      port: 9091
+      targetPort: metrics

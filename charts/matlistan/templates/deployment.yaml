@@ -1,0 +1,128 @@
+{{- include "matlistan.validate" . }}
+{{- $v := .Values }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "matlistan.fullname" . }}
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  # One replica by design: generation and swap jobs run in-process. Migrations and a week's
+  # generation are idempotent, so the brief overlap of a rolling update is safe.
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "matlistan.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- if include "matlistan.theme" . }}
+      annotations:
+        checksum/theme: {{ toYaml $v.theme | sha256sum }}
+      {{- end }}
+      labels:
+        {{- include "matlistan.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "matlistan.fullname" . }}
+      {{- include "matlistan.podSecurity" . | nindent 6 }}
+      containers:
+        - name: matlistan
+          image: "{{ $v.image.repository }}:{{ $v.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          args: ["serve"]
+          env:
+            {{- include "matlistan.env" . | nindent 12 }}
+            - name: MATLISTAN_ADDR
+              value: ":8080"
+            - name: MATLISTAN_METRICS_ADDR
+              value: ":9091"
+            - name: MATLISTAN_BASE_URL
+              value: {{ $v.baseURL | quote }}
+            - name: MATLISTAN_SESSION_KEY_FILE
+              value: /etc/matlistan/secrets/session-key
+            - name: MATLISTAN_OIDC_ISSUER
+              value: {{ $v.oidc.issuer | quote }}
+            - name: MATLISTAN_OIDC_CLIENT_ID
+              value: {{ $v.oidc.clientID | quote }}
+            - name: MATLISTAN_OIDC_CLIENT_SECRET_FILE
+              value: /etc/matlistan/secrets/client-secret
+            {{- if $v.oidc.caConfigMap.name }}
+            - name: MATLISTAN_OIDC_CA_FILE
+              value: /etc/matlistan/oidc-ca/ca.crt
+            {{- end }}
+            - name: MATLISTAN_OIDC_CLAIM
+              value: {{ $v.auth.claim | quote }}
+            - name: MATLISTAN_OIDC_ALLOWED
+              value: {{ join "," $v.auth.allowed | quote }}
+            {{- if include "matlistan.theme" . }}
+            - name: MATLISTAN_THEME_FILE
+              value: /etc/matlistan/theme/theme.yaml
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9091
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            failureThreshold: 150
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          # TCP, not /healthz: /healthz pings the database, and a failover must not
+          # restart the pod.
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          {{- include "matlistan.containerSecurity" . | nindent 10 }}
+          volumeMounts:
+            - name: secrets
+              mountPath: /etc/matlistan/secrets
+              readOnly: true
+            {{- if $v.database.caSecret.name }}
+            - name: db-ca
+              mountPath: /etc/matlistan/db-ca
+              readOnly: true
+            {{- end }}
+            {{- if $v.oidc.caConfigMap.name }}
+            - name: oidc-ca
+              mountPath: /etc/matlistan/oidc-ca
+              readOnly: true
+            {{- end }}
+            {{- if include "matlistan.theme" . }}
+            - name: theme
+              mountPath: /etc/matlistan/theme
+              readOnly: true
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" false) | nindent 8 }}
+        {{- if $v.oidc.caConfigMap.name }}
+        - name: oidc-ca
+          configMap:
+            name: {{ $v.oidc.caConfigMap.name }}
+            items:
+              - key: {{ $v.oidc.caConfigMap.key }}
+                path: ca.crt
+        {{- end }}
+        {{- if include "matlistan.theme" . }}
+        - name: theme
+          configMap:
+            name: {{ include "matlistan.fullname" . }}-theme
+        {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi

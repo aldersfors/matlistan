@@ -26,6 +26,13 @@ run = "go test -race -shuffle=on ./..."
 description = "Test the browser scripts with node --test"
 run = "node --test 'web/js/*.test.mjs'"
 
+[tasks."chart:test"]
+description = "Lint and render-test the Helm chart"
+run = '''
+helm lint --strict charts/matlistan -f test/chart/testdata/minimal.yaml
+go test ./test/chart/...
+'''
+
 [tasks.vuln]
 run = "govulncheck ./..."
 

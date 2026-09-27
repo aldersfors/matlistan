@@ -1,0 +1,18 @@
+baseURL: https://matlistan.example
+database:
+  urlSecret:
+    name: matlistan-db-app
+oidc:
+  issuer: https://idp.example/realms/home
+  clientID: matlistan
+  clientSecret:
+    name: matlistan-oidc
+auth:
+  allowed:
+    - Matlistan
+session:
+  keySecret:
+    name: matlistan-session
+anthropic:
+  apiKeySecret:
+    name: matlistan-anthropic

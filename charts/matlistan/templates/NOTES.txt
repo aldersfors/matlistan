@@ -1,0 +1,5 @@
+Matlistan is at {{ .Values.baseURL }}.
+{{- if .Values.generate.enabled }}
+The Sunday draft runs on "{{ .Values.generate.schedule }}" ({{ .Values.timezone }}).
+Run it now: kubectl create job -n {{ .Release.Namespace }} --from=cronjob/{{ include "matlistan.fullname" . }}-generate generate-now
+{{- end }}
