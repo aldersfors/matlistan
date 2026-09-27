@@ -5,6 +5,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/i18n"
@@ -123,5 +126,24 @@ func TestThisIsMeAndRemove(t *testing.T) {
 	}
 	if res, _ := get(t, h, "/family"); res.StatusCode != http.StatusOK {
 		t.Fatalf("family after removal: %d", res.StatusCode)
+	}
+}
+
+func TestFamilyNoteNamesTheProvider(t *testing.T) {
+	for _, c := range []struct {
+		p    Provider
+		want string
+	}{
+		{Provider{Name: "anthropic"}, "till Claude (Anthropic)"},
+		{Provider{Name: "openai"}, "till OpenAI"},
+		{Provider{Name: "openai", Host: "ollama.ml.svc"}, "till modellen på ollama.ml.svc"},
+	} {
+		sthlm, _ := time.LoadLocation("Europe/Stockholm")
+		h := New(Deps{Catalog: mustCatalog(t, i18n.SV), Auth: fakeAuth{signedIn: true},
+			Store: newFakeStore(), Now: func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
+			BaseURL: "https://matlistan.example.lan", Log: zerolog.Nop(), Provider: c.p})
+		if _, body := get(t, h, "/family"); !strings.Contains(body, c.want) {
+			t.Errorf("%+v: family page lacks %q", c.p, c.want)
+		}
 	}
 }

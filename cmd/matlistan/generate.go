@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -15,7 +16,9 @@ import (
 	"github.com/aldersfors/matlistan/internal/i18n"
 	"github.com/aldersfors/matlistan/internal/planner"
 	"github.com/aldersfors/matlistan/internal/planner/claude"
+	"github.com/aldersfors/matlistan/internal/planner/openai"
 	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/web"
 	"github.com/aldersfors/matlistan/internal/week"
 	"github.com/aldersfors/matlistan/internal/weekplan"
 )
@@ -79,18 +82,41 @@ func parseWeekFlag(s string) (weekplan.Key, error) {
 	return k, nil
 }
 
-// newPlanner builds the planning service; nil when no API key file is configured.
+// newPlanner builds the planning service; nil when planning is not configured.
 func newPlanner(cfg config.Planner, db *store.Store, l i18n.Locale, loc *time.Location,
 	log zerolog.Logger) (*planner.Service, error) {
 	if !cfg.Enabled() {
 		return nil, nil //nolint:nilnil // nil service means planning is off
 	}
-	key, err := os.ReadFile(cfg.APIKeyFile) //nolint:gosec // operator configuration
-	if err != nil {
-		return nil, fmt.Errorf("anthropic api key: %w", err)
+	var key string
+	if cfg.APIKeyFile != "" {
+		b, err := os.ReadFile(cfg.APIKeyFile) //nolint:gosec // operator configuration
+		if err != nil {
+			return nil, fmt.Errorf("api key: %w", err)
+		}
+		key = strings.TrimSpace(string(b))
 	}
-	llm := claude.New(claude.Config{APIKey: strings.TrimSpace(string(key)), Model: cfg.Model,
-		Timeout: 10 * time.Minute})
-	return planner.NewService(db, llm, l, loc, log,
+	return planner.NewService(db, newLLM(cfg, key), l, loc, log,
 		func(err error) bool { return errors.Is(err, store.ErrNotFound) }), nil
+}
+
+// newLLM builds the client for the configured provider.
+func newLLM(cfg config.Planner, key string) planner.LLM {
+	if cfg.Provider == config.ProviderOpenAI {
+		return openai.New(openai.Config{APIKey: key, Model: cfg.Model,
+			BaseURL: cfg.OpenAIBaseURL(), Timeout: 10 * time.Minute})
+	}
+	return claude.New(claude.Config{APIKey: key, Model: cfg.Model, Timeout: 10 * time.Minute})
+}
+
+// webProvider names the provider for the Family page; Host only for a server other than
+// api.openai.com.
+func webProvider(cfg config.Planner) web.Provider {
+	p := web.Provider{Name: cfg.Provider}
+	if cfg.Provider == config.ProviderOpenAI && cfg.BaseURL != "" {
+		if u, err := url.Parse(cfg.BaseURL); err == nil && u.Hostname() != "api.openai.com" {
+			p.Host = u.Hostname()
+		}
+	}
+	return p
 }

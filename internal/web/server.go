@@ -87,7 +87,13 @@ type Deps struct {
 	Now     func() time.Time // in the configured location
 	Log     zerolog.Logger
 	Build   release.Info // the running build for the footer; zero means release.Get()
+	// Provider is who planning data goes to, for the Family page.
+	Provider Provider
 }
+
+// Provider is the model provider as the Family page names it: Name is "anthropic" or
+// "openai", and Host is set for an OpenAI-compatible server other than api.openai.com.
+type Provider struct{ Name, Host string }
 
 type server struct {
 	Deps

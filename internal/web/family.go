@@ -32,6 +32,7 @@ func (s *server) family(w http.ResponseWriter, r *http.Request) {
 		page.Linked = page.Linked || row.IsMe
 		page.Members = append(page.Members, row)
 	}
+	page.PlannerNote = s.Catalog.T("family.planner_note", "provider", s.providerName())
 	s.render(w, r, http.StatusOK, views.FamilyPage(page))
 }
 
@@ -148,4 +149,16 @@ func options(all, checked []string, label func(string) string) []views.Option {
 		out[i] = views.Option{Value: v, Label: label(v), Checked: slices.Contains(checked, v)}
 	}
 	return out
+}
+
+// providerName is the provider as the Family page names it.
+func (s *server) providerName() string {
+	switch {
+	case s.Provider.Host != "":
+		return s.Catalog.T("provider.other", "host", s.Provider.Host)
+	case s.Provider.Name == "openai":
+		return s.Catalog.T("provider.openai")
+	default:
+		return s.Catalog.T("provider.anthropic")
+	}
 }

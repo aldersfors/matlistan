@@ -58,9 +58,10 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 		return err
 	}
 	if svc == nil {
-		log.Info().Msg("planning disabled: MATLISTAN_ANTHROPIC_API_KEY_FILE is not set")
+		log.Info().Msg("planning disabled: MATLISTAN_API_KEY_FILE is not set")
 	} else {
-		log.Info().Str("model", cfg.Planner.Model).Msg("planning enabled")
+		log.Info().Str("provider", cfg.Planner.Provider).Str("model", cfg.Planner.Model).
+			Msg("planning enabled")
 	}
 	var pl web.Planner // stays a nil interface when planning is off
 	if svc != nil {
@@ -93,9 +94,10 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
 		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Planner: pl,
-			BaseURL: cfg.BaseURL,
-			Now:     now,
-			Log:     log})}
+			Provider: webProvider(cfg.Planner),
+			BaseURL:  cfg.BaseURL,
+			Now:      now,
+			Log:      log})}
 	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
 		Handler: web.Metrics()}
 	errc := make(chan error, 2)
