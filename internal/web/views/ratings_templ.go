@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 // RateChoice is one of the three rating buttons.

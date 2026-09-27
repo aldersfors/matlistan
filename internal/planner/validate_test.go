@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/recipes"
 )
 
 func ptr(v int64) *int64 { return &v }

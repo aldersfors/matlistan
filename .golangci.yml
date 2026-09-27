@@ -34,4 +34,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/jalet/matlistan
+        - github.com/aldersfors/matlistan

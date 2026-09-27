@@ -12,12 +12,12 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/auth"
-	"github.com/jalet/matlistan/internal/config"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/theme"
-	"github.com/jalet/matlistan/internal/web"
+	"github.com/aldersfors/matlistan/internal/auth"
+	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/web"
 )
 
 func serve(ctx context.Context, e env, _ []string) int {

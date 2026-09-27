@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jalet/matlistan/internal/planner"
+	"github.com/aldersfors/matlistan/internal/planner"
 )
 
 type fakeAPI struct {

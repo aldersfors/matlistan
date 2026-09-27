@@ -7,9 +7,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // Use is one ingredient of one planned dinner.

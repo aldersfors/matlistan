@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // Member is a household member as the model sees it: no name.

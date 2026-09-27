@@ -1,4 +1,4 @@
-module github.com/jalet/matlistan
+module github.com/aldersfors/matlistan
 
 go 1.26.7
 

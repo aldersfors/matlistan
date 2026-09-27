@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 // _allergenWords are ingredient-name hints per allergen. Words of four letters or fewer must

@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 func TestJobsAreSingleFlightPerWeek(t *testing.T) {

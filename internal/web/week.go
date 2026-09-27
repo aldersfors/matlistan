@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jalet/matlistan/internal/auth"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/validate"
-	"github.com/jalet/matlistan/internal/web/views"
-	"github.com/jalet/matlistan/internal/week"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/auth"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/week"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // weekKey reads y and w (query or form); none means the upcoming week.

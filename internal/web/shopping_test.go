@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/shopping"
 )
 
 // approvedWeek plans and approves week 40 through the web, with a salt staple.

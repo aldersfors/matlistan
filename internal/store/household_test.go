@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/household"
 )
 
 func TestMembers(t *testing.T) {

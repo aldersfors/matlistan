@@ -7,7 +7,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // jobsMax bounds planning runs across all weeks; each run costs model tokens.

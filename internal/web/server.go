@@ -13,13 +13,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/apitoken"
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/theme"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 //go:embed static

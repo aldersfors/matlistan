@@ -4,9 +4,9 @@ description: Weekly meal planner that drafts next week's dinners and a shopping 
 type: application
 version: 0.1.0
 appVersion: 0.1.0
-home: https://github.com/jalet/matlistan
+home: https://github.com/aldersfors/matlistan
 sources:
-  - https://github.com/jalet/matlistan
+  - https://github.com/aldersfors/matlistan
 keywords:
   - meal-planner
   - shopping-list

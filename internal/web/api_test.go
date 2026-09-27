@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 var _tokenRE = regexp.MustCompile(`mlt_[A-Za-z0-9_-]{43}`)

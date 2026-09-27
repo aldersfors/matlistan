@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/recipes"
 )
 
 func meatballs() url.Values {

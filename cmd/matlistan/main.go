@@ -15,9 +15,9 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/config"
-	"github.com/jalet/matlistan/internal/release"
-	"github.com/jalet/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/release"
+	"github.com/aldersfors/matlistan/internal/store"
 )
 
 // env is what every subcommand receives.

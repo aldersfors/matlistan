@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // _ratingsJoin adds each recipe's rating as columns average and n (0 when unrated).

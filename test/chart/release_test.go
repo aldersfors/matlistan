@@ -2,7 +2,9 @@ package chart
 
 import (
 	"encoding/json"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -42,9 +44,9 @@ func TestReleaseSignsImageAndChart(t *testing.T) {
 		t.Fatal(err)
 	}
 	wf := string(raw)
-	for _, want := range []string{"KO_DOCKER_REPO: ghcr.io/jalet/matlistan", "--sbom spdx",
-		"cosign sign --yes \"$ref\"", "oci://ghcr.io/jalet/helm-charts",
-		"ghcr.io/jalet/helm-charts/matlistan@", "id-token: write", "persist-credentials: false"} {
+	for _, want := range []string{"KO_DOCKER_REPO: ghcr.io/aldersfors/matlistan", "--sbom spdx",
+		"cosign sign --yes \"$ref\"", "oci://ghcr.io/aldersfors/helm-charts",
+		"ghcr.io/aldersfors/helm-charts/matlistan@", "id-token: write", "persist-credentials: false"} {
 		if !strings.Contains(wf, want) {
 			t.Errorf("release workflow lacks %q", want)
 		}
@@ -58,7 +60,7 @@ func TestDeployDocsNameEverySecret(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := string(raw)
-	for _, want := range []string{"oci://ghcr.io/jalet/helm-charts/matlistan",
+	for _, want := range []string{"oci://ghcr.io/aldersfors/helm-charts/matlistan",
 		"database.urlSecret", "oidc.clientSecret", "session.keySecret",
 		"anthropic.apiKeySecret", "/auth/callback", "kubectl create job", "database.cnpg",
 		"storageClass"} {
@@ -68,5 +70,49 @@ func TestDeployDocsNameEverySecret(t *testing.T) {
 	}
 	if strings.ContainsRune(doc, '\u2014') {
 		t.Error("em-dash in docs/deploy.md")
+	}
+}
+
+// The project lives at github.com/aldersfors/matlistan; nothing may still publish to or
+// import from the old personal namespace.
+func TestNoOldOwnerNames(t *testing.T) {
+	old := []string{"ghcr.io/" + "jalet", "github.com/" + "jalet/matlistan"}
+	err := filepath.WalkDir("../..", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			switch d.Name() {
+			case ".git", ".dev", ".superpowers", "node_modules":
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		for _, o := range old {
+			if strings.Contains(string(b), o) {
+				t.Errorf("%s still names %s", p, o)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Review M6: the documented cosign check pins the exact release workflow identity.
+func TestDocsVerifyTheReleaseIdentity(t *testing.T) {
+	raw, err := os.ReadFile("../../docs/deploy.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := "--certificate-identity https://github.com/aldersfors/matlistan/.github/workflows/" +
+		"release-please.yml@refs/heads/main"
+	if strings.Count(string(raw), id) != 2 {
+		t.Errorf("docs/deploy.md should verify image and chart with %q", id)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 func valid() map[string]string {

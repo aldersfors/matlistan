@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/jalet/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/web/views"
 )
 
 var _minutes = regexp.MustCompile(`(?i)\b(\d{1,3})\s*(?:minuter|minutes|min)\b`)

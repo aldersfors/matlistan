@@ -13,8 +13,8 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/jalet/matlistan/internal/config"
-	"github.com/jalet/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/theme"
 )
 
 const _chart = "../../charts/matlistan"
@@ -164,7 +164,7 @@ func TestPodHardening(t *testing.T) {
 		path(c, "securityContext", "capabilities", "drop", "0") != "ALL" {
 		t.Errorf("container securityContext = %v", c["securityContext"])
 	}
-	if !strings.HasPrefix(c["image"].(string), "ghcr.io/jalet/matlistan:") {
+	if !strings.HasPrefix(c["image"].(string), "ghcr.io/aldersfors/matlistan:") {
 		t.Errorf("image %v", c["image"])
 	}
 }

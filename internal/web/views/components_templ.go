@@ -9,8 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/validate"
 )
 
 // Option is one checkbox or select choice.

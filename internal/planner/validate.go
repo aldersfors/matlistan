@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 const _whyRunesMax = 300

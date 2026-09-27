@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 func TestManifest(t *testing.T) {

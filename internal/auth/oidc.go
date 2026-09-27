@@ -24,8 +24,8 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/store"
 )
 
 const (

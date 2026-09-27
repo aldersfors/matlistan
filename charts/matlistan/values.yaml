@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/jalet/matlistan
+  repository: ghcr.io/aldersfors/matlistan
   # Defaults to .Chart.AppVersion.
   tag: ""
   pullPolicy: IfNotPresent

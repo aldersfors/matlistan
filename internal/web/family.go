@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jalet/matlistan/internal/auth"
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/validate"
-	"github.com/jalet/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/auth"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/web/views"
 )
 
 func (s *server) family(w http.ResponseWriter, r *http.Request) {

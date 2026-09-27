@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 // OIDC configures sign-in.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/jalet/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/household"
 )
 
 const _memberCols = `id, name, birth_year, coalesce(oidc_subject, ''), diets, allergens, likes,

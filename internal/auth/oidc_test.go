@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/auth/oidctest"
-	"github.com/jalet/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/auth/oidctest"
+	"github.com/aldersfors/matlistan/internal/store"
 )
 
 type memRecorder struct {

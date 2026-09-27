@@ -3,7 +3,7 @@ package shopping
 import (
 	"strings"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 // Line is "1,5 dl vispgrädde", "salt, efter smak" or "1 st koriander (valfri)".

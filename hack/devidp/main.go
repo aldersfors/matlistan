@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jalet/matlistan/internal/auth/oidctest"
+	"github.com/aldersfors/matlistan/internal/auth/oidctest"
 )
 
 func main() {

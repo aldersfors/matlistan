@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jalet/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/validate"
 )
 
 // Allergens are the 14 EU labelling allergens (Regulation (EU) No 1169/2011, Annex II).

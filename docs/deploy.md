@@ -1,7 +1,7 @@
 # Deploying Matlistan
 
-Matlistan ships as a container image, `ghcr.io/jalet/matlistan`, and a Helm chart,
-`oci://ghcr.io/jalet/helm-charts/matlistan`. Both are signed with cosign (keyless, from
+Matlistan ships as a container image, `ghcr.io/aldersfors/matlistan`, and a Helm chart,
+`oci://ghcr.io/aldersfors/helm-charts/matlistan`. Both are signed with cosign (keyless, from
 this repository's release workflow).
 
 ## What you need
@@ -102,18 +102,22 @@ httpRoute:
 ```
 
 ```sh
-helm install matlistan oci://ghcr.io/jalet/helm-charts/matlistan --version X.Y.Z \
+helm install matlistan oci://ghcr.io/aldersfors/helm-charts/matlistan --version X.Y.Z \
   -n matlistan --create-namespace -f values.yaml
 ```
 
 The app applies its database migrations at startup. It runs as one replica by design:
 planning and swapping run in the web process.
 
-To check a release's signature before installing:
+To check a release's signatures before installing (both are signed by this repository's
+release workflow on `main`):
 
 ```sh
-cosign verify ghcr.io/jalet/matlistan:X.Y.Z \
-  --certificate-identity-regexp 'https://github.com/jalet/matlistan/' \
+cosign verify ghcr.io/aldersfors/matlistan:X.Y.Z \
+  --certificate-identity https://github.com/aldersfors/matlistan/.github/workflows/release-please.yml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+cosign verify ghcr.io/aldersfors/helm-charts/matlistan:X.Y.Z \
+  --certificate-identity https://github.com/aldersfors/matlistan/.github/workflows/release-please.yml@refs/heads/main \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 

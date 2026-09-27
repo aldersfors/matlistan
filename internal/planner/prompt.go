@@ -3,7 +3,7 @@ package planner
 import (
 	"encoding/json"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 var _languages = map[i18n.Locale]string{i18n.EN: "English", i18n.SV: "Swedish"}

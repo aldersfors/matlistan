@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/recipes"
 )
 
 func use(day, servings, base int, name string, q float64, unit, section string) Use {

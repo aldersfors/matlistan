@@ -12,6 +12,6 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X github.com/jalet/matlistan/internal/release.version={{.Env.VERSION}}
-      - -X github.com/jalet/matlistan/internal/release.commit={{.Git.FullCommit}}
-      - -X github.com/jalet/matlistan/internal/release.commitTime={{.Git.CommitDate}}
+      - -X github.com/aldersfors/matlistan/internal/release.version={{.Env.VERSION}}
+      - -X github.com/aldersfors/matlistan/internal/release.commit={{.Git.FullCommit}}
+      - -X github.com/aldersfors/matlistan/internal/release.commitTime={{.Git.CommitDate}}

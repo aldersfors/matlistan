@@ -3,8 +3,8 @@ package shopping
 import (
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 func catalog(t *testing.T, l i18n.Locale) *i18n.Catalog {

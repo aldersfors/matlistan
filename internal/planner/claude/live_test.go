@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jalet/matlistan/internal/planner"
+	"github.com/aldersfors/matlistan/internal/planner"
 )
 
 // TestLive calls the real API; it runs only with MATLISTAN_LIVE=1 and ANTHROPIC_API_KEY set.

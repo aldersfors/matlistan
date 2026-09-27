@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/web/views"
 )
 
 const _queryRunesMax = 100

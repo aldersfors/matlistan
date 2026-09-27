@@ -11,13 +11,13 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/config"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/planner"
-	"github.com/jalet/matlistan/internal/planner/claude"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/week"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/planner"
+	"github.com/aldersfors/matlistan/internal/planner/claude"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/week"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // generate drafts one week, by default the upcoming one. It does nothing when that week

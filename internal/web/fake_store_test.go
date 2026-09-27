@@ -15,14 +15,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 
-	"github.com/jalet/matlistan/internal/apitoken"
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/store"
 )
 
 // fakeStore is an in-memory Store with the same not-found and ordering rules as Postgres.

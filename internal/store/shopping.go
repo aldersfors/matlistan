@@ -7,9 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/jalet/matlistan/internal/apitoken"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 const _manualItemsMax = 100

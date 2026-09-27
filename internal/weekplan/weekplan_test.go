@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jalet/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/household"
 )
 
 func TestKeys(t *testing.T) {

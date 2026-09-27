@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/theme"
 )
 
 func inputCSS(t *testing.T) (tokens, rest string) {

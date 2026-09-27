@@ -11,7 +11,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/anthropics/anthropic-sdk-go/shared/constant"
 
-	"github.com/jalet/matlistan/internal/planner"
+	"github.com/aldersfors/matlistan/internal/planner"
 )
 
 // DefaultModel is used unless MATLISTAN_MODEL says otherwise.

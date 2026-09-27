@@ -5,11 +5,11 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/jalet/matlistan/internal/apitoken"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/week"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/week"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 // exportList serves the current list as text for the iOS Shortcut. It needs a valid key and

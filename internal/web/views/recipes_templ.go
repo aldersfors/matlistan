@@ -12,8 +12,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/validate"
 )
 
 // RecipeItem is one row in the library.

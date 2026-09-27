@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/validate"
 )
 
 // ShoppingRow is one item on the list.

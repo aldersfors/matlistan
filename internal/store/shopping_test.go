@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jalet/matlistan/internal/apitoken"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 func plannedWeek(t *testing.T, s *Store, k weekplan.Key) int64 {

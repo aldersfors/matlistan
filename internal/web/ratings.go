@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/recipes"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/web/views"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 var _scoreKeys = map[int]string{recipes.ScoreLoved: "rate.loved", recipes.ScoreOkay: "rate.okay",

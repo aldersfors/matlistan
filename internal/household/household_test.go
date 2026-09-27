@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 var _now = time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)

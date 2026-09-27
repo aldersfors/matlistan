@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/jalet/matlistan/internal/household"
-	"github.com/jalet/matlistan/internal/shopping"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/validate"
-	"github.com/jalet/matlistan/internal/web/views"
-	"github.com/jalet/matlistan/internal/week"
-	"github.com/jalet/matlistan/internal/weekplan"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/validate"
+	"github.com/aldersfors/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/week"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 func (s *server) shoppingList(w http.ResponseWriter, r *http.Request) {

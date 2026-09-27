@@ -10,8 +10,8 @@ import (
 
 	"github.com/a-h/templ"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/store"
 )
 
 // formBytesMax bounds a form post; the largest form (a full recipe) is well under it.
