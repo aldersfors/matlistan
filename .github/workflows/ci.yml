@@ -23,7 +23,9 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       # mise-action caches the tools; this caches Go's own work: downloaded modules, compiled
       # packages and golangci-lint's analysis. The key follows mise.lock
-      # (the Go and tool versions) and go.sum; a partial hit still reuses most of it.
+      # (the Go and tool versions) and go.sum; a partial hit still reuses most of it. The last
+      # fallback survives a lockfile change: modules do not depend on the Go version, and Go
+      # keys its build cache by toolchain, so nothing stale is reused.
       - name: Go cache paths
         id: go-paths
         run: |
@@ -40,6 +42,7 @@ jobs:
           key: go-${{ runner.os }}-${{ hashFiles('mise.lock') }}-${{ hashFiles('go.sum') }}
           restore-keys: |
             go-${{ runner.os }}-${{ hashFiles('mise.lock') }}-
+            go-${{ runner.os }}-
       - name: Templ is up to date
         run: mise run templ:check
       - name: CSS is up to date
