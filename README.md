@@ -5,7 +5,7 @@ dinners from the family's preferences, ages, allergies and history, lets you
 swap and approve meals, and produces a shopping list that an iOS Shortcut
 pulls into Apple Notes.
 
-Status: design phase.
+Status: in use at home; see [docs/deploy.md](docs/deploy.md) to run it.
 
 ## Development
 
@@ -17,6 +17,12 @@ Tools come from `mise install`. Tests need Docker or Podman (testcontainers).
 
 `mise run test`, `mise run lint`, `mise run templ` and `mise run css` cover the rest.
 See [docs/shortcut.md](docs/shortcut.md) for putting the shopping list in Apple Notes.
+
+## Deploy
+
+The Helm chart is in `charts/matlistan` and published to
+`oci://ghcr.io/jalet/helm-charts/matlistan`; [docs/deploy.md](docs/deploy.md) walks through
+the Secrets, the OIDC client and an install. `mise run chart:test` renders and checks it.
 English is the default; set `MATLISTAN_LOCALE=sv` and `MATLISTAN_TIMEZONE=Europe/Stockholm`
 for the homelab setup.
 

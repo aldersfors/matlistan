@@ -50,3 +50,22 @@ func TestReleaseSignsImageAndChart(t *testing.T) {
 		}
 	}
 }
+
+// The docs name the published chart and every Secret the chart needs.
+func TestDeployDocsNameEverySecret(t *testing.T) {
+	raw, err := os.ReadFile("../../docs/deploy.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := string(raw)
+	for _, want := range []string{"oci://ghcr.io/jalet/helm-charts/matlistan",
+		"database.urlSecret", "oidc.clientSecret", "session.keySecret",
+		"anthropic.apiKeySecret", "/auth/callback", "kubectl create job"} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("docs/deploy.md lacks %q", want)
+		}
+	}
+	if strings.ContainsRune(doc, '\u2014') {
+		t.Error("em-dash in docs/deploy.md")
+	}
+}
