@@ -241,3 +241,22 @@ func postHX(t *testing.T, h http.Handler, path string, form url.Values) *httptes
 	h.ServeHTTP(rec, req)
 	return rec
 }
+
+// Browsers fetch /favicon.ico on their own, before and after sign-in.
+func TestFavicon(t *testing.T) {
+	out := newServer(t, i18n.SV, false, newFakeStore())
+	res, body := get(t, out, "/favicon.ico")
+	if res.StatusCode != http.StatusOK || !strings.HasPrefix(body, "\x00\x00\x01\x00") {
+		t.Fatalf("favicon: status %d, %d bytes", res.StatusCode, len(body))
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "image/x-icon" {
+		t.Errorf("content type %q", ct)
+	}
+	if res.Header.Get("Cache-Control") == "" {
+		t.Error("favicon has no cache header")
+	}
+	if _, page := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/week"); !strings.Contains(page,
+		`<link rel="icon" href="/favicon.ico" sizes="any">`) {
+		t.Error("layout does not link the favicon")
+	}
+}

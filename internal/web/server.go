@@ -138,6 +138,16 @@ func (s *server) handler() http.Handler {
 	})
 	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("GET /manifest.webmanifest", s.manifest)
+	favicon, err := fs.ReadFile(static, "favicon.ico")
+	if err != nil {
+		panic("invariant violated: embedded favicon: " + err.Error())
+	}
+	// Browsers ask for /favicon.ico on their own, also before sign-in.
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/x-icon")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(favicon)
+	})
 	// The Shortcut has no session: this route checks its own key.
 	mux.HandleFunc("GET /api/v1/shopping-list/current.txt", s.exportList)
 
