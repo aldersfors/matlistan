@@ -132,6 +132,7 @@
   "import.error.not_allowed": "That address may not be fetched.",
   "import.error.unreachable": "The page could not be fetched. Try again later.",
   "import.error.too_large": "The page is too large.",
+  "import.error.timeout": "Reading the page took too long. Try again.",
   "import.error.not_html": "The link is not a web page.",
   "import.error.no_recipe": "No recipe was found on the page.",
   "import.error.model_unavailable": "The model is not answering right now. Try again later.",

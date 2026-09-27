@@ -197,3 +197,29 @@ func TestSavingAnImportTwiceOpensTheFirst(t *testing.T) {
 		t.Fatalf("%d recipes stored", len(st.recipes))
 	}
 }
+
+type slowImporter struct{}
+
+func (slowImporter) Import(ctx context.Context, _ string) (recipes.Recipe, []string, error) {
+	<-ctx.Done()
+	return recipes.Recipe{}, nil, ctx.Err()
+}
+
+// Review: a slow page or model gives a clear message before the server's write timeout.
+func TestImportHasADeadline(t *testing.T) {
+	old := _importTimeout
+	_importTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { _importTimeout = old })
+	start := time.Now()
+	rec := post(t, importServer(t, newFakeStore(), slowImporter{}), "/recipes/import",
+		url.Values{"url": {"https://www.ica.se/recept/x"}})
+	if time.Since(start) > 2*time.Second {
+		t.Fatal("import ignored its deadline")
+	}
+	if !strings.Contains(rec.Body.String(), "tog för lång tid") {
+		t.Fatalf("no timeout message: %d %.200s", rec.Code, rec.Body.String())
+	}
+	if _importTimeout >= 60*time.Second || old >= 60*time.Second {
+		t.Errorf("import timeout %v must stay under the server's 60 s write timeout", old)
+	}
+}

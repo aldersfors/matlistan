@@ -132,6 +132,7 @@
   "import.error.not_allowed": "Den adressen får inte hämtas.",
   "import.error.unreachable": "Sidan gick inte att hämta. Försök igen senare.",
   "import.error.too_large": "Sidan är för stor.",
+  "import.error.timeout": "Det tog för lång tid att läsa sidan. Försök igen.",
   "import.error.not_html": "Länken går inte till en webbsida.",
   "import.error.no_recipe": "Vi hittade inget recept på sidan.",
   "import.error.model_unavailable": "Modellen svarar inte just nu. Försök igen senare.",

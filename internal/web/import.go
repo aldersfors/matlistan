@@ -1,10 +1,12 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aldersfors/matlistan/internal/recipes"
 	"github.com/aldersfors/matlistan/internal/recipes/importer"
@@ -12,10 +14,15 @@ import (
 	"github.com/aldersfors/matlistan/internal/web/views"
 )
 
+// _importTimeout bounds an import, model calls included, below the server's 60 s write
+// timeout, so the user always gets an answer.
+var _importTimeout = 45 * time.Second
+
 var _importErrors = []struct {
 	err error
 	key string
 }{
+	{context.DeadlineExceeded, "import.error.timeout"},
 	{importer.ErrInvalidURL, "import.error.invalid_url"},
 	{importer.ErrNotHTTPS, "import.error.not_https"},
 	{importer.ErrNotAllowed, "import.error.not_allowed"},
@@ -50,7 +57,9 @@ func (s *server) importRecipe(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	rec, notes, err := s.Importer.Import(r.Context(), norm)
+	ctx, cancel := context.WithTimeout(r.Context(), _importTimeout)
+	defer cancel()
+	rec, notes, err := s.Importer.Import(ctx, norm)
 	if err != nil {
 		key := "import.error.unreachable"
 		for _, e := range _importErrors {
