@@ -12,6 +12,7 @@ import (
 
 	"github.com/aldersfors/matlistan/internal/i18n"
 	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/web/views"
 )
 
 // formBytesMax bounds a form post; the largest form (a full recipe) is well under it.
@@ -50,7 +51,8 @@ func pathID(r *http.Request) (int64, bool) {
 func (s *server) render(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if err := c.Render(r.Context(), w); err != nil {
+	ctx := views.WithChrome(r.Context(), views.Chrome{Viewer: s.viewer(r), Build: s.footer})
+	if err := c.Render(ctx, w); err != nil {
 		s.Log.Error().Err(err).Str("path", r.URL.Path).Msg("render")
 	}
 }

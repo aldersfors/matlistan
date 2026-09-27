@@ -32,7 +32,7 @@ func (f fakeAuth) Require(next http.Handler) http.Handler {
 			http.Redirect(w, r, "/auth/login", http.StatusFound)
 			return
 		}
-		ctx := auth.WithSession(r.Context(), auth.Session{Subject: "sub-anna", Name: "Anna"})
+		ctx := auth.WithSession(r.Context(), auth.Session{Subject: "sub-anna", Name: "Anna", Email: "anna@example.org"})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -21,9 +21,13 @@ templ Layout(title, active string) {
 			<link rel="stylesheet" href="/static/theme.css"/>
 			<script src="/static/htmx.min.js" defer></script>
 		</head>
-		<body>
+		<body class="relative">
+			if v := chromeFrom(ctx).Viewer; v != nil {
+				<a href="/settings#account" aria-label={ i18n.T(ctx, "account.open", "name", v.Name) } class="absolute top-3 right-3 z-10 flex size-11 items-center justify-center rounded-full border border-line bg-panel font-display text-lg font-extrabold">{ v.Initial }</a>
+			}
 			<div class="pb-24">
 				{ children... }
+				@footer(chromeFrom(ctx).Build)
 			</div>
 			@nav(active)
 		</body>
@@ -56,4 +60,30 @@ templ navItem(href, label string, current bool, icon string) {
 			<span class="max-w-full truncate">{ label }</span>
 		</a>
 	</li>
+}
+
+// footer is the running build: version, commit (linked when it is a clean release commit),
+// and when it was committed and built.
+templ footer(b Build) {
+	if b.Version != "" {
+		<footer class="mx-auto max-w-md px-5 pt-8 pb-4 text-center text-xs text-muted">
+			<span>{ b.Version }</span>
+			if b.Short != "" {
+				{ " · " }
+				if b.URL != "" {
+					<a class="underline-offset-2 hover:underline" href={ templ.SafeURL(b.URL) }><code>{ b.Short }</code></a>
+				} else if b.Dirty {
+					<code>{ b.Short }-dirty</code>
+				} else {
+					<code>{ b.Short }</code>
+				}
+			}
+			if b.Committed != "" {
+				{ " · " + i18n.T(ctx, "footer.committed") + " " }<time datetime={ b.CommittedISO }>{ b.Committed }</time>
+			}
+			if b.Built != "" {
+				{ " · " + i18n.T(ctx, "footer.built") + " " }<time datetime={ b.BuiltISO }>{ b.Built }</time>
+			}
+		</footer>
+	}
 }

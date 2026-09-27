@@ -17,8 +17,10 @@ import (
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/i18n"
 	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/release"
 	"github.com/aldersfors/matlistan/internal/shopping"
 	"github.com/aldersfors/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/web/views"
 	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
@@ -84,11 +86,13 @@ type Deps struct {
 	BaseURL string           // public address, shown for the Shortcut
 	Now     func() time.Time // in the configured location
 	Log     zerolog.Logger
+	Build   release.Info // the running build for the footer; zero means release.Get()
 }
 
 type server struct {
 	Deps
-	jobs *jobs
+	jobs   *jobs
+	footer views.Build
 }
 
 // jobTimeout bounds one background planning run.
@@ -102,7 +106,12 @@ func buildServer(d Deps) *server {
 	if d.Catalog == nil || d.Auth == nil || d.Store == nil || d.Now == nil {
 		panic("invariant violated: web.New needs catalog, auth, store and clock")
 	}
-	return &server{Deps: d, jobs: newJobs(jobTimeout, d.Log)}
+	if d.Build.Version == "" {
+		d.Build = release.Get()
+	}
+	s := &server{Deps: d, jobs: newJobs(jobTimeout, d.Log)}
+	s.footer = s.footerBuild(d.Build)
+	return s
 }
 
 func (s *server) handler() http.Handler {

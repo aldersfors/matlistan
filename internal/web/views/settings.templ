@@ -33,6 +33,20 @@ templ SettingsPage(v Settings) {
 	@Layout(i18n.T(ctx, "settings.title"), "settings") {
 		<main class="mx-auto flex max-w-md flex-col gap-6 px-3">
 			@pageHeader(i18n.T(ctx, "settings.title"))
+			if me := chromeFrom(ctx).Viewer; me != nil {
+				<section id="account" class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+					<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "account.title") }</h2>
+					<div>
+						<p class="font-bold">{ i18n.T(ctx, "account.signed_in_as", "name", me.Name) }</p>
+						if me.Email != "" {
+							<p class="text-sm text-muted">{ me.Email }</p>
+						}
+					</div>
+					<form method="post" action="/auth/logout">
+						<button type="submit" class="h-12 w-full rounded-2xl border border-line font-bold">{ i18n.T(ctx, "account.sign_out") }</button>
+					</form>
+				</section>
+			}
 			if v.Saved {
 				<p role="status" class="rounded-xl bg-panel p-3 font-bold">{ i18n.T(ctx, "settings.saved") }</p>
 			}
