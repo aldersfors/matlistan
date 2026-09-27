@@ -189,3 +189,17 @@ func TestTruncatedReplyStaysInTheHistory(t *testing.T) {
 		t.Fatalf("roles = %v", roles)
 	}
 }
+
+func TestMaxTokensIsConfigurable(t *testing.T) {
+	f := &fakeAPI{replies: []string{reply("{}", "stop", "")}}
+	srv := httptest.NewServer(f)
+	t.Cleanup(srv.Close)
+	c := New(Config{APIKey: _key, Model: "m", BaseURL: srv.URL + "/v1", Timeout: 5 * time.Second,
+		MaxTokens: 16000})
+	if _, err := c.NewSession("s", nil).Send(context.Background(), "p"); err != nil {
+		t.Fatal(err)
+	}
+	if f.bodies[0]["max_completion_tokens"] != 16000.0 {
+		t.Errorf("max_completion_tokens = %v", f.bodies[0]["max_completion_tokens"])
+	}
+}

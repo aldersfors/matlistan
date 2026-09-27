@@ -202,3 +202,25 @@ func TestParseGenerateNeedsTheKey(t *testing.T) {
 		t.Fatalf("keyless local server: %v", err)
 	}
 }
+
+// Review: smaller models and servers cap output below 64000 tokens and reject the request.
+func TestMaxOutputTokens(t *testing.T) {
+	m := valid()
+	m["MATLISTAN_PROVIDER"] = "openai"
+	m["MATLISTAN_MODEL"] = "gpt-4.1-mini"
+	m["MATLISTAN_API_KEY_FILE"] = "/k"
+	c, err := Parse(getenv(m))
+	if err != nil || c.Planner.MaxOutputTokens != 64000 {
+		t.Fatalf("default = %d, %v", c.Planner.MaxOutputTokens, err)
+	}
+	m["MATLISTAN_MAX_OUTPUT_TOKENS"] = "16000"
+	if c, err := Parse(getenv(m)); err != nil || c.Planner.MaxOutputTokens != 16000 {
+		t.Fatalf("custom = %d, %v", c.Planner.MaxOutputTokens, err)
+	}
+	for _, bad := range []string{"abc", "0", "-5", "500"} {
+		m["MATLISTAN_MAX_OUTPUT_TOKENS"] = bad
+		if _, err := Parse(getenv(m)); err == nil || !strings.Contains(err.Error(), "MATLISTAN_MAX_OUTPUT_TOKENS") {
+			t.Errorf("%q: err = %v", bad, err)
+		}
+	}
+}

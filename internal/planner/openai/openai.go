@@ -15,28 +15,34 @@ import (
 	"github.com/aldersfors/matlistan/internal/planner"
 )
 
-// maxTokens matches the Claude client: room for reasoning plus seven full recipes.
-const maxTokens = 64000
+// defaultMaxTokens matches the Claude client: room for reasoning plus seven full recipes.
+const defaultMaxTokens = 64000
 
 // Config configures the client. BaseURL is required; APIKey may be empty for a local
 // server, and then no Authorization header is sent.
 type Config struct {
 	APIKey, Model, BaseURL string
 	Timeout                time.Duration
+	MaxTokens              int64 // 0 means defaultMaxTokens
 }
 
 // Client starts planning sessions.
 type Client struct {
-	api   oai.Client
-	model string
+	api       oai.Client
+	model     string
+	maxTokens int64
 }
 
 // New builds a client. The base URL and key are always passed explicitly: they override
 // the OPENAI_* environment the SDK would otherwise read.
 func New(c Config) *Client {
-	return &Client{model: c.Model, api: oai.NewClient(option.WithBaseURL(c.BaseURL),
-		option.WithAPIKey(c.APIKey), option.WithRequestTimeout(c.Timeout),
-		option.WithMaxRetries(2))}
+	if c.MaxTokens == 0 {
+		c.MaxTokens = defaultMaxTokens
+	}
+	return &Client{model: c.Model, maxTokens: c.MaxTokens,
+		api: oai.NewClient(option.WithBaseURL(c.BaseURL),
+			option.WithAPIKey(c.APIKey), option.WithRequestTimeout(c.Timeout),
+			option.WithMaxRetries(2))}
 }
 
 // NewSession implements planner.LLM.
@@ -57,7 +63,7 @@ func (s *session) Send(ctx context.Context, text string) (planner.Reply, error) 
 	resp, err := s.c.api.Chat.Completions.New(ctx, oai.ChatCompletionNewParams{
 		Model:               shared.ChatModel(s.c.model),
 		Messages:            s.history,
-		MaxCompletionTokens: oai.Int(maxTokens),
+		MaxCompletionTokens: oai.Int(s.c.maxTokens),
 		ResponseFormat: oai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
 				JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{

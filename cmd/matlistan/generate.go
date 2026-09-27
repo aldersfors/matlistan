@@ -104,7 +104,7 @@ func newPlanner(cfg config.Planner, db *store.Store, l i18n.Locale, loc *time.Lo
 func newLLM(cfg config.Planner, key string) planner.LLM {
 	if cfg.Provider == config.ProviderOpenAI {
 		return openai.New(openai.Config{APIKey: key, Model: cfg.Model,
-			BaseURL: cfg.OpenAIBaseURL(), Timeout: 10 * time.Minute})
+			BaseURL: cfg.OpenAIBaseURL(), Timeout: 10 * time.Minute, MaxTokens: cfg.MaxOutputTokens})
 	}
 	return claude.New(claude.Config{APIKey: key, Model: cfg.Model, Timeout: 10 * time.Minute})
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -129,6 +130,9 @@ type Planner struct {
 	Model      string
 	BaseURL    string // openai only; "" means DefaultOpenAIBaseURL
 	APIKeyFile string
+	// MaxOutputTokens caps an OpenAI answer; smaller models and servers need less than the
+	// default.
+	MaxOutputTokens int64
 }
 
 // Model providers.
@@ -164,6 +168,14 @@ func parsePlanner(get func(string) string, errs *[]error) Planner {
 				"MATLISTAN_ANTHROPIC_API_KEY_FILE: set only MATLISTAN_API_KEY_FILE"))
 		}
 		p.APIKeyFile = or(p.APIKeyFile, old)
+	}
+	p.MaxOutputTokens = 64000
+	if raw := get("MATLISTAN_MAX_OUTPUT_TOKENS"); raw != "" {
+		n, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || n < 1024 {
+			*errs = append(*errs, errors.New("MATLISTAN_MAX_OUTPUT_TOKENS: a whole number, at least 1024"))
+		}
+		p.MaxOutputTokens = n
 	}
 	switch p.Provider {
 	case ProviderAnthropic:
