@@ -59,7 +59,8 @@ func (s *server) importRecipe(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), _importTimeout)
 	defer cancel()
-	rec, notes, err := s.Importer.Import(ctx, norm)
+	fetchURL, _, _ := strings.Cut(raw, "#") // as pasted; norm is only for comparing
+	rec, notes, err := s.Importer.Import(ctx, fetchURL)
 	if err != nil {
 		key := "import.error.unreachable"
 		for _, e := range _importErrors {

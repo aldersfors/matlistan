@@ -22,10 +22,12 @@ type fakeImporter struct {
 	notes  []string
 	err    error
 	calls  int
+	url    string
 }
 
-func (f *fakeImporter) Import(context.Context, string) (recipes.Recipe, []string, error) {
+func (f *fakeImporter) Import(_ context.Context, u string) (recipes.Recipe, []string, error) {
 	f.calls++
+	f.url = u
 	return f.recipe, f.notes, f.err
 }
 
@@ -221,5 +223,16 @@ func TestImportHasADeadline(t *testing.T) {
 	}
 	if _importTimeout >= 60*time.Second || old >= 60*time.Second {
 		t.Errorf("import timeout %v must stay under the server's 60 s write timeout", old)
+	}
+}
+
+// Review: the page is fetched as pasted (minus the fragment); stripping the trailing slash
+// costs a redirect and 404s on strict sites. Normalising is for comparing only.
+func TestImportFetchesThePastedURL(t *testing.T) {
+	im := &fakeImporter{recipe: imported()}
+	post(t, importServer(t, newFakeStore(), im), "/recipes/import",
+		url.Values{"url": {"https://www.ica.se/recept/kottbullar/?portioner=4#steg"}})
+	if im.url != "https://www.ica.se/recept/kottbullar/?portioner=4" {
+		t.Fatalf("fetched %q", im.url)
 	}
 }
