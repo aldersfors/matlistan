@@ -616,3 +616,32 @@ func TestNetworkPolicyModelServerPort(t *testing.T) {
 		t.Error("model server rule rendered without a port")
 	}
 }
+
+func TestMaxOutputTokensEnv(t *testing.T) {
+	objs := render(t, "--set", "llm.provider=openai", "--set", "llm.model=gpt-4.1-mini",
+		"--set", "llm.maxOutputTokens=16000")
+	for _, spec := range []any{podSpec(t, objs), cronPod(t, objs)} {
+		if env := envOf(container(t, spec)); env["MATLISTAN_MAX_OUTPUT_TOKENS"] != "16000" {
+			t.Errorf("MATLISTAN_MAX_OUTPUT_TOKENS = %q", env["MATLISTAN_MAX_OUTPUT_TOKENS"])
+		}
+	}
+	if env := envOf(container(t, podSpec(t, render(t)))); env["MATLISTAN_MAX_OUTPUT_TOKENS"] != "" {
+		t.Error("token cap set by default")
+	}
+}
+
+// Review: an Anthropic key left in the deprecated block must never go to another provider.
+func TestAnthropicKeyNeverGoesToOpenAI(t *testing.T) {
+	if _, err := helmTemplate(t, "--set", "llm.apiKeySecret.name=", "--set", "llm.provider=openai",
+		"--set", "llm.model=llama4", "--set", "llm.baseURL=http://ollama.ai.svc:11434/v1",
+		"--set", "anthropic.apiKeySecret.name=matlistan-anthropic"); err == nil {
+		t.Error("openai rendered with the deprecated anthropic key set")
+	}
+}
+
+// Review: a model-server port without destinations would open that port to everywhere.
+func TestModelServerPortNeedsDestinations(t *testing.T) {
+	if _, err := helmTemplate(t, "--set", "networkPolicy.llm.port=11434"); err == nil {
+		t.Error("networkPolicy.llm.port rendered without cidrs")
+	}
+}

@@ -81,6 +81,13 @@ networkPolicy:
     port: 11434
 ```
 
+An answer may use up to 64000 tokens. Models and servers with a smaller output cap or
+context reject such requests, so every plan fails. Set `llm.maxOutputTokens` (for example
+`16000`, at least 1024) to fit them. It becomes `MATLISTAN_MAX_OUTPUT_TOKENS`.
+
+Leave the deprecated `anthropic:` block out when the provider is `openai`. The chart
+refuses to render with both, so an Anthropic key is never sent to another server.
+
 The planner asks for answers that follow a strict JSON schema. Servers that do not enforce
 the schema produce more failed plans. The planner retries once with the errors, then shows
 the problem on the week.

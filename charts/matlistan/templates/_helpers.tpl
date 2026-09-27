@@ -25,6 +25,12 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 {{- $_ := required "oidc.clientID is required" .Values.oidc.clientID -}}
 {{- $_ := required "oidc.clientSecret.name is required" .Values.oidc.clientSecret.name -}}
 {{- $_ := required "session.keySecret.name is required" .Values.session.keySecret.name -}}
+{{- if and (eq .Values.llm.provider "openai") (or .Values.anthropic.apiKeySecret.name .Values.anthropic.model) -}}
+{{- fail "anthropic.* is set but llm.provider is openai: remove the anthropic block so its key is never sent to another provider" -}}
+{{- end -}}
+{{- if and .Values.networkPolicy.llm.port (not .Values.networkPolicy.llm.cidrs) -}}
+{{- fail "networkPolicy.llm.port needs networkPolicy.llm.cidrs, or it opens that port to every destination" -}}
+{{- end -}}
 {{- if and (eq .Values.llm.provider "openai") (not .Values.llm.model) -}}
 {{- fail "llm.model is required for llm.provider openai" -}}
 {{- end -}}
@@ -68,7 +74,9 @@ the CNPG cluster's own <cluster>-app and <cluster>-ca when database.cnpg is on. 
 {{/* The model key secret and its key, and the model: llm wins over the deprecated
 anthropic values. */}}
 {{- define "matlistan.llmKeySecret" -}}
-{{- .Values.llm.apiKeySecret.name | default .Values.anthropic.apiKeySecret.name -}}
+{{- if .Values.llm.apiKeySecret.name -}}{{ .Values.llm.apiKeySecret.name }}
+{{- else if eq .Values.llm.provider "anthropic" -}}{{ .Values.anthropic.apiKeySecret.name }}
+{{- end -}}
 {{- end -}}
 
 {{- define "matlistan.llmKeyKey" -}}
@@ -76,7 +84,9 @@ anthropic values. */}}
 {{- end -}}
 
 {{- define "matlistan.llmModel" -}}
-{{- .Values.llm.model | default .Values.anthropic.model -}}
+{{- if .Values.llm.model -}}{{ .Values.llm.model }}
+{{- else if eq .Values.llm.provider "anthropic" -}}{{ .Values.anthropic.model }}
+{{- end -}}
 {{- end -}}
 
 {{/* Env shared by serve and generate. */}}
@@ -99,6 +109,10 @@ anthropic values. */}}
   value: {{ $v.llm.provider | quote }}
 {{- with include "matlistan.llmModel" . }}
 - name: MATLISTAN_MODEL
+  value: {{ . | quote }}
+{{- end }}
+{{- with $v.llm.maxOutputTokens }}
+- name: MATLISTAN_MAX_OUTPUT_TOKENS
   value: {{ . | quote }}
 {{- end }}
 {{- with $v.llm.baseURL }}

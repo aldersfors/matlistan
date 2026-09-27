@@ -462,6 +462,17 @@
               "minLength": 1
             }
           }
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "anyOf": [
+            {
+              "const": 0
+            },
+            {
+              "minimum": 1024
+            }
+          ]
         }
       }
     }

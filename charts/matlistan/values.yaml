@@ -78,8 +78,12 @@ llm:
   apiKeySecret:
     name: ""
     key: api-key
+  # openai only: the most tokens an answer may use. 0 keeps the app default (64000); models
+  # and servers with a smaller output cap or context need less, for example 16000.
+  maxOutputTokens: 0
 
-# Deprecated: use llm. Still read when llm.apiKeySecret.name and llm.model are empty.
+# Deprecated: use llm. With provider anthropic, each value here is read when its llm
+# counterpart is empty. With provider openai it must be left empty.
 anthropic:
   apiKeySecret:
     name: ""
@@ -129,7 +133,7 @@ networkPolicy:
       - 0.0.0.0/0
     port: 443
   # Optional egress to a model server on another port or network (for example an
-  # in-cluster Ollama on 11434). Renders only when port is set.
+  # in-cluster Ollama on 11434). Renders only when port is set, and then needs cidrs.
   llm:
     cidrs: []
     port: 0
