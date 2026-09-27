@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/jalet/matlistan/internal/config"
+	"github.com/jalet/matlistan/internal/theme"
 )
 
 const _chart = "../../charts/matlistan"
@@ -329,5 +330,64 @@ func TestSelectorsKeepWebAndJobApart(t *testing.T) {
 	svc := path(one(t, objs, "Service"), "spec", "selector", "app.kubernetes.io/component")
 	if sel != "web" || svc != "web" {
 		t.Errorf("deployment selector %v, service selector %v", sel, svc)
+	}
+}
+
+func TestHTTPRoute(t *testing.T) {
+	if got := find(render(t), "HTTPRoute"); len(got) != 0 {
+		t.Fatal("route rendered by default")
+	}
+	r := one(t, render(t, "--set", "httpRoute.enabled=true",
+		"--set", "httpRoute.hostnames[0]=matlistan.example",
+		"--set", "httpRoute.parentRefs[0].name=ingress"), "HTTPRoute")
+	if path(r, "spec", "hostnames", "0") != "matlistan.example" ||
+		path(r, "spec", "rules", "0", "backendRefs", "0", "port") != 8080.0 {
+		t.Errorf("route = %v", r["spec"])
+	}
+}
+
+func TestNetworkPolicy(t *testing.T) {
+	np := one(t, render(t), "NetworkPolicy")
+	raw, _ := json.Marshal(np["spec"])
+	for _, want := range []string{`"port":8080`, `"port":9091`, `"port":53`, `"port":5432`,
+		`"port":443`, `"Ingress","Egress"`} {
+		if !strings.Contains(string(raw), want) {
+			t.Errorf("policy lacks %s: %s", want, raw)
+		}
+	}
+	if got := find(render(t, "--set", "networkPolicy.enabled=false"), "NetworkPolicy"); len(got) != 0 {
+		t.Error("policy rendered when disabled")
+	}
+}
+
+func TestServiceMonitorOptional(t *testing.T) {
+	if len(find(render(t), "ServiceMonitor")) != 0 {
+		t.Error("rendered by default")
+	}
+	sm := one(t, render(t, "--set", "serviceMonitor.enabled=true"), "ServiceMonitor")
+	if path(sm, "spec", "endpoints", "0", "port") != "metrics" {
+		t.Errorf("monitor = %v", sm["spec"])
+	}
+}
+
+func TestThemeRendered(t *testing.T) {
+	objs := render(t, "--set-string", "theme.light.day1=#112233")
+	cm := one(t, objs, "ConfigMap")
+	body, _ := path(cm, "data", "theme.yaml").(string)
+	if _, err := theme.Parse([]byte(body)); err != nil {
+		t.Fatalf("app rejects the rendered theme: %v\n%s", err, body)
+	}
+	env := envOf(container(t, podSpec(t, objs)))
+	if env["MATLISTAN_THEME_FILE"] != "/etc/matlistan/theme/theme.yaml" {
+		t.Error("theme file env missing")
+	}
+	if len(find(render(t), "ConfigMap")) != 0 {
+		t.Error("theme ConfigMap without a theme")
+	}
+}
+
+func TestThemeSchemaRejects(t *testing.T) {
+	if _, err := helmTemplate(t, "--set-string", "theme.light.day1=blue"); err == nil {
+		t.Error("schema accepted a non-hex colour")
 	}
 }

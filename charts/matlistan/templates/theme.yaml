@@ -1,0 +1,11 @@
+{{- if include "matlistan.theme" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "matlistan.fullname" . }}-theme
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+data:
+  theme.yaml: |
+    {{- toYaml .Values.theme | nindent 4 }}
+{{- end }}
