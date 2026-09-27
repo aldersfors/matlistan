@@ -13,14 +13,19 @@ import (
 	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
-// exportList serves the current list as text for the iOS Shortcut; exportHTML serves it as
-// rich text for Apple Notes. Both need a valid key and are never cached.
+// exportList serves the current list as text for the iOS Shortcut, exportHTML as rich text
+// for Apple Notes and exportJSON as sections of lines for the checklist Shortcut. All need a
+// valid key and are never cached.
 func (s *server) exportList(w http.ResponseWriter, r *http.Request) {
 	s.export(w, r, "text/plain; charset=utf-8", shopping.Text)
 }
 
 func (s *server) exportHTML(w http.ResponseWriter, r *http.Request) {
 	s.export(w, r, "text/html; charset=utf-8", shopping.HTML)
+}
+
+func (s *server) exportJSON(w http.ResponseWriter, r *http.Request) {
+	s.export(w, r, "application/json", shopping.JSON)
 }
 
 func (s *server) export(w http.ResponseWriter, r *http.Request, contentType string,

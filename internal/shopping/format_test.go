@@ -94,3 +94,27 @@ func TestHTML(t *testing.T) {
 		t.Fatalf("bought list = %s", got)
 	}
 }
+
+// The Shortcut turns each section's lines into Notes tickboxes, so items are plain lines.
+func TestJSON(t *testing.T) {
+	sv := catalog(t, i18n.SV)
+	l := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{
+		{Name: "pumpa", Section: "produce", Quantity: 1.5, Unit: "kg"},
+		{Name: "gul lök", Section: "produce", Quantity: 3, Unit: "pcs", Checked: true},
+		{Name: "koriander", Section: "produce", Quantity: 1, Unit: "pcs", Optional: true},
+		{Name: "<b>tandkräm</b>\nrad två", Section: "other", Manual: true},
+	}}
+	want := `{"title":"Matlistan vecka 40","sections":[` +
+		`{"name":"Frukt och grönt","items":["1,5 kg pumpa","1 st koriander (valfri)"]},` +
+		`{"name":"Övrigt","items":["<b>tandkräm</b> rad två"]}]}`
+	if got := JSON(sv, l); got != want {
+		t.Fatalf("JSON =\n%s\nwant\n%s", got, want)
+	}
+	if got := JSON(sv, nil); got != `{"title":"Matlistan","sections":[],"note":"Ingen godkänd vecka än."}` {
+		t.Fatalf("nil list = %s", got)
+	}
+	bought := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{{Name: "mjölk", Checked: true}}}
+	if got := JSON(sv, bought); got != `{"title":"Matlistan vecka 40","sections":[],"note":"Allt är köpt."}` {
+		t.Fatalf("bought list = %s", got)
+	}
+}

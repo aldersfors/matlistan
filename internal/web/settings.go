@@ -58,7 +58,7 @@ func (s *server) settingsView(w http.ResponseWriter, r *http.Request, st househo
 		v.Tokens = append(v.Tokens, views.TokenRow{ID: t.ID, Name: t.Name, Used: used,
 			RevokeLabel: c.T("tokens.revoke", "name", t.Name)})
 	}
-	v.ExportURL = strings.TrimSuffix(s.BaseURL, "/") + "/api/v1/shopping-list/current.txt"
+	v.ExportURL = strings.TrimSuffix(s.BaseURL, "/") + "/api/v1/shopping-list/current.json"
 	return v, true
 }
 
