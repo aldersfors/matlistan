@@ -23,7 +23,7 @@ func TestRunWithoutCommandPrintsUsage(t *testing.T) {
 	if code := run([]string{"matlistan"}, &out, &errOut, noEnv); code != 2 {
 		t.Fatalf("exit %d, want 2", code)
 	}
-	if !strings.Contains(errOut.String(), "usage: matlistan <migrate|serve|version>") {
+	if !strings.Contains(errOut.String(), "usage: matlistan <generate|migrate|serve|version>") {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }
@@ -57,5 +57,27 @@ func TestServeReportsConfigErrors(t *testing.T) {
 		if !strings.Contains(errOut.String(), want) {
 			t.Errorf("stderr lacks %q: %s", want, errOut.String())
 		}
+	}
+}
+
+func TestGenerateNeedsConfig(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"matlistan", "generate"}, &out, &errOut, noEnv); code != 1 {
+		t.Fatalf("exit %d", code)
+	}
+	if !strings.Contains(errOut.String(), "MATLISTAN_API_KEY_FILE is required") {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestGenerateRejectsABadWeek(t *testing.T) {
+	var out, errOut bytes.Buffer
+	env := func(k string) string {
+		return map[string]string{"MATLISTAN_DATABASE_URL": "postgres://x",
+			"MATLISTAN_ANTHROPIC_API_KEY_FILE": "/k"}[k]
+	}
+	if code := run([]string{"matlistan", "generate", "--week", "2027-W53"}, &out, &errOut,
+		env); code != 2 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
 	}
 }

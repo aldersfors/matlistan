@@ -1,19 +1,21 @@
 package web
 
 import (
-	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/auth"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/theme"
 )
 
 type fakeAuth struct{ signedIn bool }
@@ -30,24 +32,32 @@ func (f fakeAuth) Require(next http.Handler) http.Handler {
 			http.Redirect(w, r, "/auth/login", http.StatusFound)
 			return
 		}
-		next.ServeHTTP(w, r)
+		ctx := auth.WithSession(r.Context(), auth.Session{Subject: "sub-anna", Name: "Anna", Email: "anna@example.org"})
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-type fakeDB struct{ err error }
-
-func (f fakeDB) Ping(context.Context) error { return f.err }
-
-func newServer(t *testing.T, l i18n.Locale, signedIn bool, db fakeDB) http.Handler {
+func newServer(t *testing.T, l i18n.Locale, signedIn bool, st *fakeStore) http.Handler {
 	t.Helper()
 	c, err := i18n.Load(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sthlm, _ := time.LoadLocation("Europe/Stockholm")
-	return New(Deps{Catalog: c, Auth: fakeAuth{signedIn: signedIn}, DB: db,
-		Now: func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
-		Log: zerolog.Nop()})
+	return New(Deps{Catalog: c, Auth: fakeAuth{signedIn: signedIn}, Store: st,
+		Now:     func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
+		BaseURL: "https://matlistan.example.lan", Log: zerolog.Nop()})
+}
+
+func post(t *testing.T, h http.Handler, path string, form url.Values) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, path,
+		strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
 }
 
 func get(t *testing.T, h http.Handler, path string) (*http.Response, string) {
@@ -60,7 +70,7 @@ func get(t *testing.T, h http.Handler, path string) (*http.Response, string) {
 }
 
 func TestWeekPageInSwedish(t *testing.T) {
-	res, body := get(t, newServer(t, i18n.SV, true, fakeDB{}), "/week")
+	res, body := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/week")
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("status %d", res.StatusCode)
 	}
@@ -73,7 +83,7 @@ func TestWeekPageInSwedish(t *testing.T) {
 }
 
 func TestWeekPageDefaultsToEnglish(t *testing.T) {
-	_, body := get(t, newServer(t, i18n.EN, true, fakeDB{}), "/week")
+	_, body := get(t, newServer(t, i18n.EN, true, newFakeStore()), "/week")
 	for _, want := range []string{`lang="en"`, "Week 40", "Sep 28 to Oct 4", "Mon", "Not planned"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("body lacks %q", want)
@@ -82,7 +92,7 @@ func TestWeekPageDefaultsToEnglish(t *testing.T) {
 }
 
 func TestRootRedirectsToWeek(t *testing.T) {
-	res, _ := get(t, newServer(t, i18n.EN, true, fakeDB{}), "/")
+	res, _ := get(t, newServer(t, i18n.EN, true, newFakeStore()), "/")
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/week" {
 		t.Fatalf("status %d location %q", res.StatusCode, res.Header.Get("Location"))
 	}
@@ -90,7 +100,7 @@ func TestRootRedirectsToWeek(t *testing.T) {
 
 // Review focus 5: app pages need a session; only a fixed set of paths is public.
 func TestAppPagesRequireSignIn(t *testing.T) {
-	h := newServer(t, i18n.EN, false, fakeDB{})
+	h := newServer(t, i18n.EN, false, newFakeStore())
 	for _, p := range []string{"/", "/week", "/anything"} {
 		res, _ := get(t, h, p)
 		if res.StatusCode != http.StatusFound || res.Header.Get("Location") != "/auth/login" {
@@ -107,17 +117,19 @@ func TestAppPagesRequireSignIn(t *testing.T) {
 
 // Review focus 3: a down database makes /healthz fail fast.
 func TestHealthz(t *testing.T) {
-	if res, _ := get(t, newServer(t, i18n.EN, false, fakeDB{}), "/healthz"); res.StatusCode != 200 {
+	if res, _ := get(t, newServer(t, i18n.EN, false, newFakeStore()), "/healthz"); res.StatusCode != 200 {
 		t.Errorf("up: %d", res.StatusCode)
 	}
-	down := newServer(t, i18n.EN, false, fakeDB{err: errors.New("down")})
+	st := newFakeStore()
+	st.pingErr = errors.New("down")
+	down := newServer(t, i18n.EN, false, st)
 	if res, _ := get(t, down, "/healthz"); res.StatusCode != http.StatusServiceUnavailable {
 		t.Errorf("down: %d", res.StatusCode)
 	}
 }
 
 func TestSecurityHeaders(t *testing.T) {
-	res, _ := get(t, newServer(t, i18n.EN, true, fakeDB{}), "/week")
+	res, _ := get(t, newServer(t, i18n.EN, true, newFakeStore()), "/week")
 	csp := res.Header.Get("Content-Security-Policy")
 	if !strings.Contains(csp, "default-src 'self'") || strings.Contains(csp, "unsafe-inline") {
 		t.Errorf("CSP = %q", csp)
@@ -133,7 +145,7 @@ func TestThemeCSSServed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := New(Deps{Catalog: c, Theme: th, Auth: fakeAuth{}, DB: fakeDB{},
+	h := New(Deps{Catalog: c, Theme: th, Auth: fakeAuth{}, Store: newFakeStore(),
 		Now: time.Now, Log: zerolog.Nop()})
 	res, body := get(t, h, "/static/theme.css")
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/css") ||
@@ -144,7 +156,7 @@ func TestThemeCSSServed(t *testing.T) {
 
 // Metrics go to a separate internal listener, so the public route never serves them.
 func TestMetricsAreNotOnThePublicHandler(t *testing.T) {
-	res, _ := get(t, newServer(t, i18n.EN, false, fakeDB{}), "/metrics")
+	res, _ := get(t, newServer(t, i18n.EN, false, newFakeStore()), "/metrics")
 	if res.StatusCode == http.StatusOK {
 		t.Fatal("/metrics served on the public handler")
 	}
@@ -157,7 +169,7 @@ func TestMetricsAreNotOnThePublicHandler(t *testing.T) {
 }
 
 func TestStaticHasNoDirectoryListing(t *testing.T) {
-	h := newServer(t, i18n.EN, false, fakeDB{})
+	h := newServer(t, i18n.EN, false, newFakeStore())
 	for _, p := range []string{"/static/", "/static/fonts/"} {
 		if res, body := get(t, h, p); res.StatusCode != http.StatusNotFound {
 			t.Errorf("%s: status %d body %.60q", p, res.StatusCode, body)
@@ -167,12 +179,84 @@ func TestStaticHasNoDirectoryListing(t *testing.T) {
 
 // State-changing requests from another site are refused before they reach a handler.
 func TestCrossSitePostIsRejected(t *testing.T) {
-	h := newServer(t, i18n.EN, true, fakeDB{})
+	h := newServer(t, i18n.EN, true, newFakeStore())
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/week", nil)
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status %d, want 403", rec.Code)
+	}
+}
+
+func TestNavigationMarksTheCurrentPage(t *testing.T) {
+	_, body := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/week")
+	for _, want := range []string{`href="/recipes"`, `href="/family"`, `href="/settings"`,
+		`aria-current="page"`, "Huvudmeny"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body lacks %q", want)
+		}
+	}
+}
+
+// Review focus 5: an oversized form is refused with 400.
+func TestOversizedFormIsRejected(t *testing.T) {
+	h := newServer(t, i18n.EN, true, newFakeStore())
+	rec := post(t, h, "/settings", url.Values{"x": {strings.Repeat("a", 70<<10)}})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status %d, want 400", rec.Code)
+	}
+}
+
+func itoa(id int64) string { return strconv.FormatInt(id, 10) }
+
+// Values Postgres cannot store (NUL, invalid UTF-8) are refused as a bad request, not a 500.
+func TestUnstorableTextIsRejected(t *testing.T) {
+	h := newServer(t, i18n.SV, true, newFakeStore())
+	for _, raw := range []string{"name=a%00b&birth_year=2014", "name=%FF&birth_year=2014"} {
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/family",
+			strings.NewReader(raw))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", raw, rec.Code)
+		}
+	}
+	for _, q := range []string{"%00", "%FF"} {
+		if res, _ := get(t, h, "/recipes?q="+q); res.StatusCode != http.StatusBadRequest {
+			t.Errorf("q=%s: status %d, want 400", q, res.StatusCode)
+		}
+	}
+}
+
+func postHX(t *testing.T, h http.Handler, path string, form url.Values) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, path,
+		strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// Browsers fetch /favicon.ico on their own, before and after sign-in.
+func TestFavicon(t *testing.T) {
+	out := newServer(t, i18n.SV, false, newFakeStore())
+	res, body := get(t, out, "/favicon.ico")
+	if res.StatusCode != http.StatusOK || !strings.HasPrefix(body, "\x00\x00\x01\x00") {
+		t.Fatalf("favicon: status %d, %d bytes", res.StatusCode, len(body))
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "image/x-icon" {
+		t.Errorf("content type %q", ct)
+	}
+	if res.Header.Get("Cache-Control") == "" {
+		t.Error("favicon has no cache header")
+	}
+	if _, page := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/week"); !strings.Contains(page,
+		`<link rel="icon" href="/favicon.ico" sizes="any">`) {
+		t.Error("layout does not link the favicon")
 	}
 }

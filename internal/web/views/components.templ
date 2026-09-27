@@ -1,0 +1,94 @@
+package views
+
+import (
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/validate"
+)
+
+// Option is one checkbox or select choice.
+type Option struct {
+	Value, Label string
+	Checked      bool
+}
+
+templ pageHeader(title string) {
+	<header class="px-2 pt-12 pb-4">
+		<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ title }</h1>
+	</header>
+}
+
+templ errorText(e validate.Errors, field string) {
+	if e[field] != "" {
+		<p class="mt-1 text-sm font-bold text-attention-text">{ i18n.T(ctx, e[field]) }</p>
+	}
+}
+
+templ formSummary(e validate.Errors) {
+	if len(e) > 0 {
+		<p role="alert" class="rounded-xl bg-attention p-3 font-bold text-attention-text">{ i18n.T(ctx, "form.fix_errors") }</p>
+	}
+}
+
+templ textField(label, name, value string, e validate.Errors) {
+	<label class="flex flex-col gap-1">
+		<span class="text-sm font-bold">{ label }</span>
+		<input class="h-12 rounded-xl border border-line bg-panel px-3" type="text" name={ name } value={ value }/>
+		@errorText(e, name)
+	</label>
+}
+
+templ numberField(label, name, value string, e validate.Errors) {
+	<label class="flex flex-col gap-1">
+		<span class="text-sm font-bold">{ label }</span>
+		<input class="h-12 rounded-xl border border-line bg-panel px-3" type="text" inputmode="numeric" name={ name } value={ value }/>
+		@errorText(e, name)
+	</label>
+}
+
+// decimalField is numberField for amounts: phones show a keypad with a decimal separator.
+templ decimalField(label, name, value string, e validate.Errors) {
+	<label class="flex flex-col gap-1">
+		<span class="text-sm font-bold">{ label }</span>
+		<input class="h-12 rounded-xl border border-line bg-panel px-3" type="text" inputmode="decimal" name={ name } value={ value }/>
+		@errorText(e, name)
+	</label>
+}
+
+templ textArea(label, name, value string, e validate.Errors) {
+	<label class="flex flex-col gap-1">
+		<span class="text-sm font-bold">{ label }</span>
+		<textarea class="min-h-24 rounded-xl border border-line bg-panel p-3" name={ name }>{ value }</textarea>
+		@errorText(e, name)
+	</label>
+}
+
+templ checkboxes(legend, name string, opts []Option, e validate.Errors) {
+	<fieldset class="flex flex-col gap-2">
+		<legend class="text-sm font-bold">{ legend }</legend>
+		<div class="flex flex-wrap gap-2">
+			for _, o := range opts {
+				<label class="flex min-h-11 items-center gap-2 rounded-full border border-line bg-panel px-3">
+					<input type="checkbox" name={ name } value={ o.Value } checked?={ o.Checked }/>
+					<span>{ o.Label }</span>
+				</label>
+			}
+		</div>
+		@errorText(e, name)
+	</fieldset>
+}
+
+templ selectField(label, name, value string, opts []Option, e validate.Errors) {
+	<label class="flex flex-col gap-1">
+		<span class="text-sm font-bold">{ label }</span>
+		<select class="h-12 rounded-xl border border-line bg-panel px-2" name={ name }>
+			for _, o := range opts {
+				<option value={ o.Value } selected?={ o.Value == value }>{ o.Label }</option>
+			}
+		</select>
+		@errorText(e, name)
+	</label>
+}
+
+templ primaryButton(label string) {
+	<button type="submit" class="h-14 w-full rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink">{ label }</button>
+}

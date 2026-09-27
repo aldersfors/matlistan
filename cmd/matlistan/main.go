@@ -15,9 +15,9 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/config"
-	"github.com/jalet/matlistan/internal/release"
-	"github.com/jalet/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/release"
+	"github.com/aldersfors/matlistan/internal/store"
 )
 
 // env is what every subcommand receives.
@@ -26,16 +26,17 @@ type env struct {
 	getenv         func(string) string
 }
 
-var _commands = map[string]func(ctx context.Context, e env) int{
-	"version": func(_ context.Context, e env) int {
+var _commands = map[string]func(ctx context.Context, e env, args []string) int{
+	"version": func(_ context.Context, e env, _ []string) int {
 		_, _ = fmt.Fprintln(e.stdout, release.Version())
 		return 0
 	},
-	"migrate": migrate,
-	"serve":   serve,
+	"generate": generate,
+	"migrate":  migrate,
+	"serve":    serve,
 }
 
-func migrate(ctx context.Context, e env) int {
+func migrate(ctx context.Context, e env, _ []string) int {
 	log := newLogger(e.stderr)
 	db, err := config.ParseDatabase(e.getenv)
 	if err != nil {
@@ -78,5 +79,5 @@ func run(args []string, stdout, stderr io.Writer, getenv func(string) string) in
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	return cmd(ctx, env{stdout: stdout, stderr: stderr, getenv: getenv})
+	return cmd(ctx, env{stdout: stdout, stderr: stderr, getenv: getenv}, args[2:])
 }

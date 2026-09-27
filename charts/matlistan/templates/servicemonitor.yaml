@@ -1,0 +1,14 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "matlistan.fullname" . }}
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "matlistan.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+{{- end }}

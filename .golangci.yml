@@ -21,6 +21,12 @@ linters:
           - bodyclose
           - gosec
           - lll
+      # templ components take their context from Render(ctx); contextcheck cannot see that
+      # and flags every page built in a handler.
+      - path: internal/web/
+        linters:
+          - contextcheck
+        text: "(Page|Status|View)->"
 
 formatters:
   enable:
@@ -28,4 +34,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/jalet/matlistan
+        - github.com/aldersfors/matlistan

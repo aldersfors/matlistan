@@ -1,0 +1,64 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "matlistan.fullname" . }}
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  # Web and job pods alike: both reach the database and 443.
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matlistan
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - namespaceSelector: {{ toJson $np.gateway.namespaceSelector }}
+          podSelector: {{ toJson $np.gateway.podSelector }}
+      ports:
+        - port: 8080
+          protocol: TCP
+    - from:
+        - namespaceSelector: {{ toJson $np.metricsScraper.namespaceSelector }}
+          podSelector: {{ toJson $np.metricsScraper.podSelector }}
+      ports:
+        - port: 9091
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector: {{ toJson $np.dns.namespaceSelector }}
+          podSelector: {{ toJson $np.dns.podSelector }}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - namespaceSelector: {{ toJson $np.database.namespaceSelector }}
+          podSelector: {{ toJson $np.database.podSelector }}
+      ports:
+        - port: {{ $np.database.port }}
+          protocol: TCP
+    # The IdP and the model provider on 443.
+    - to:
+        {{- range $np.https.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - port: {{ $np.https.port }}
+          protocol: TCP
+    {{- if $np.llm.port }}
+    # A model server on another port or network.
+    - to:
+        {{- range $np.llm.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - port: {{ $np.llm.port }}
+          protocol: TCP
+    {{- end }}
+{{- end }}

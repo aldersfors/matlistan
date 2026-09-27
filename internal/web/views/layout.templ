@@ -1,21 +1,90 @@
 package views
 
-import "github.com/jalet/matlistan/internal/i18n"
+import "github.com/aldersfors/matlistan/internal/i18n"
 
-templ Layout(title string) {
+templ Layout(title, active string) {
 	<!DOCTYPE html>
 	<html lang={ string(i18n.From(ctx).Locale()) }>
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="description" content={ i18n.T(ctx, "app.description") }/>
+			<meta name="theme-color" content="#eef2f6" media="(prefers-color-scheme: light)"/>
+			<meta name="theme-color" content="#0d1b2a" media="(prefers-color-scheme: dark)"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-title" content={ i18n.T(ctx, "app.name") }/>
+			<link rel="icon" href="/favicon.ico" sizes="any"/>
+			<link rel="manifest" href="/manifest.webmanifest"/>
+			<link rel="apple-touch-icon" href="/static/icons/icon-180.png"/>
 			<meta name="htmx-config" content='{"includeIndicatorStyles":false}'/>
 			<title>{ title } - { i18n.T(ctx, "app.name") }</title>
 			<link rel="stylesheet" href="/static/app.css"/>
 			<link rel="stylesheet" href="/static/theme.css"/>
 			<script src="/static/htmx.min.js" defer></script>
 		</head>
-		<body>
-			{ children... }
+		<body class="relative">
+			if v := chromeFrom(ctx).Viewer; v != nil {
+				<a href="/settings#account" aria-label={ i18n.T(ctx, "account.open", "name", v.Name) } class="absolute top-3 right-3 z-10 flex size-11 items-center justify-center rounded-full border border-line bg-panel font-display text-lg font-extrabold">{ v.Initial }</a>
+			}
+			<div class="pb-24">
+				{ children... }
+				@footer(chromeFrom(ctx).Build)
+			</div>
+			@nav(active)
 		</body>
 	</html>
+}
+
+templ nav(active string) {
+	<nav class="fixed inset-x-0 bottom-0 border-t border-line bg-panel pb-[env(safe-area-inset-bottom)]" aria-label={ i18n.T(ctx, "nav.label") }>
+		<ul class="mx-auto grid max-w-md grid-cols-5">
+			@navItem("/week", i18n.T(ctx, "nav.week"), active == "week", "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4")
+			@navItem("/shopping", i18n.T(ctx, "nav.shopping"), active == "shopping", "M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2")
+			@navItem("/recipes", i18n.T(ctx, "nav.recipes"), active == "recipes", "M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11")
+			@navItem("/family", i18n.T(ctx, "nav.family"), active == "family", "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14a5 5 0 0 1 4 6")
+			@navItem("/settings", i18n.T(ctx, "nav.settings"), active == "settings", "M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4")
+		</ul>
+	</nav>
+}
+
+templ navItem(href, label string, current bool, icon string) {
+	<li>
+		<a
+			href={ templ.URL(href) }
+			if current {
+				aria-current="page"
+			}
+			class={ "flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 text-xs",
+				templ.KV("text-ink", current), templ.KV("text-muted", !current) }
+		>
+			<svg class={ "size-6", templ.KV("stroke-[2.5]", current), templ.KV("stroke-[1.5]", !current) } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={ icon }></path></svg>
+			<span class="max-w-full truncate">{ label }</span>
+		</a>
+	</li>
+}
+
+// footer is the running build: version, commit (linked when it is a clean release commit),
+// and when it was committed and built.
+templ footer(b Build) {
+	if b.Version != "" {
+		<footer class="mx-auto max-w-md px-5 pt-8 pb-4 text-center text-xs text-muted">
+			<span>{ b.Version }</span>
+			if b.Short != "" {
+				{ " · " }
+				if b.URL != "" {
+					<a class="underline-offset-2 hover:underline" href={ templ.SafeURL(b.URL) }><code>{ b.Short }</code></a>
+				} else if b.Dirty {
+					<code>{ b.Short }-dirty</code>
+				} else {
+					<code>{ b.Short }</code>
+				}
+			}
+			if b.Committed != "" {
+				{ " · " + i18n.T(ctx, "footer.committed") + " " }<time datetime={ b.CommittedISO }>{ b.Committed }</time>
+			}
+			if b.Built != "" {
+				{ " · " + i18n.T(ctx, "footer.built") + " " }<time datetime={ b.BuiltISO }>{ b.Built }</time>
+			}
+		</footer>
+	}
 }

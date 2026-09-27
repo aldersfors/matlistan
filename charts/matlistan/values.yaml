@@ -1,0 +1,149 @@
+image:
+  repository: ghcr.io/aldersfors/matlistan
+  # Defaults to .Chart.AppVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Public address, https (required). The OIDC callback is <baseURL>/auth/callback.
+baseURL: ""
+
+# en or sv: the language of the UI, the generated recipes and the Shortcut export.
+locale: en
+# IANA time zone for week boundaries and the CronJob.
+timezone: UTC
+
+database:
+  # Secret with the PostgreSQL URL (required unless cnpg.enabled). A CNPG app secret works
+  # with caSecret.
+  urlSecret:
+    name: ""
+    key: uri
+  # Secret with the database CA (for CNPG: <cluster>-ca). When set, the app refuses any
+  # connection that is not TLS verified against it.
+  caSecret:
+    name: ""
+    key: ca.crt
+  # Optional CloudNativePG cluster for the app, named <release>-matlistan-db. Needs the CNPG
+  # operator. With it on, urlSecret and caSecret default to the cluster's own
+  # <cluster>-app and <cluster>-ca secrets, so the connection is TLS verified.
+  cnpg:
+    enabled: false
+    instances: 1
+    # Empty uses the cluster's default StorageClass.
+    storageClass: ""
+    size: 2Gi
+    # Optional ClusterImageCatalog; empty uses the operator's default image.
+    imageCatalog:
+      name: ""
+      major: 18
+    # Optional barman-cloud ObjectStore (created separately) for WAL archiving and backups.
+    backup:
+      barmanObjectName: ""
+    # A PodMonitor for the database (needs the Prometheus Operator).
+    podMonitor: false
+
+oidc:
+  issuer: ""
+  clientID: matlistan
+  clientSecret:
+    name: ""
+    key: client-secret
+  # Optional ConfigMap with an extra CA bundle for the IdP.
+  caConfigMap:
+    name: ""
+    key: ca.crt
+
+auth:
+  claim: groups
+  # Claim values allowed to sign in (required). Values must not contain commas.
+  allowed: []
+
+session:
+  # At least 32 random bytes.
+  keySecret:
+    name: ""
+    key: key
+
+# The model that plans the weeks. provider: anthropic (default) or openai; openai also
+# works with any OpenAI-compatible server through baseURL.
+llm:
+  provider: anthropic
+  # Required for openai; empty uses the app default for anthropic.
+  model: ""
+  # openai only; empty is https://api.openai.com/v1. http is allowed only for a cluster
+  # service (*.svc) or localhost.
+  baseURL: ""
+  # Secret with the API key. Required except for an OpenAI-compatible server that takes no
+  # key. Used by the web app and the CronJob.
+  apiKeySecret:
+    name: ""
+    key: api-key
+  # openai only: the most tokens an answer may use. 0 keeps the app default (64000); models
+  # and servers with a smaller output cap or context need less, for example 16000.
+  maxOutputTokens: 0
+
+# Deprecated: use llm. With provider anthropic, each value here is read when its llm
+# counterpart is empty. With provider openai it must be left empty.
+anthropic:
+  apiKeySecret:
+    name: ""
+    key: api-key
+  model: ""
+
+# The Sunday draft. The job plans the upcoming week and does nothing when it is planned.
+generate:
+  enabled: true
+  schedule: "0 7 * * 0"
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 48Mi
+  limits:
+    memory: 256Mi
+
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+
+networkPolicy:
+  enabled: true
+  # Set these selectors to your Gateway's pods; the empty defaults allow any pod.
+  gateway:
+    namespaceSelector: {}
+    podSelector: {}
+  metricsScraper:
+    namespaceSelector: {}
+    podSelector: {}
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+  database:
+    namespaceSelector: {}
+    podSelector: {}
+    port: 5432
+  # The IdP and the model provider, both on 443.
+  https:
+    cidrs:
+      - 0.0.0.0/0
+    port: 443
+  # Optional egress to a model server on another port or network (for example an
+  # in-cluster Ollama on 11434). Renders only when port is set, and then needs cidrs.
+  llm:
+    cidrs: []
+    port: 0
+
+serviceMonitor:
+  enabled: false
+
+# Optional color overrides; keys left out keep the built-in colors. Quote every value: an
+# unquoted #fff is a YAML comment. Keys for light and dark: page, panel, line, ink, muted,
+# focus, primary, primaryInk, attention, attentionText, day1..day7 (Monday is 1) and
+# day1Ink..day7Ink. Values are #rgb, #rrggbb or #rrggbbaa. Changing the theme restarts the
+# pod.
+theme: {}

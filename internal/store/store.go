@@ -164,3 +164,20 @@ func assert(cond bool, msg string) {
 		panic("invariant violated: " + msg)
 	}
 }
+
+// ErrNotFound is returned for unknown or archived rows.
+var ErrNotFound = errors.New("not found")
+
+// orEmpty keeps nil slices out of NOT NULL array columns.
+func orEmpty(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
+
+// ErrTooMany is returned when a list already holds the most items allowed.
+var ErrTooMany = errors.New("too many items")
+
+// ErrApproved is returned when a write targets a week that is already approved.
+var ErrApproved = errors.New("week is approved")

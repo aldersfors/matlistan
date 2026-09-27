@@ -12,15 +12,18 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/auth"
-	"github.com/jalet/matlistan/internal/config"
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/store"
-	"github.com/jalet/matlistan/internal/theme"
-	"github.com/jalet/matlistan/internal/web"
+	"github.com/aldersfors/matlistan/internal/auth"
+	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/planner"
+	"github.com/aldersfors/matlistan/internal/recipes/importer"
+	"github.com/aldersfors/matlistan/internal/release"
+	"github.com/aldersfors/matlistan/internal/store"
+	"github.com/aldersfors/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/web"
 )
 
-func serve(ctx context.Context, e env) int {
+func serve(ctx context.Context, e env, _ []string) int {
 	log := newLogger(e.stderr)
 	cfg, err := config.Parse(e.getenv)
 	if err != nil {
@@ -51,6 +54,22 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 		return err
 	}
 	defer db.Close()
+	now := func() time.Time { return time.Now().In(cfg.Location) }
+	go pruneAuthEvents(ctx, db, now, log)
+	svc, llm, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
+	if err != nil {
+		return err
+	}
+	if svc == nil {
+		log.Info().Msg("planning disabled: MATLISTAN_API_KEY_FILE is not set")
+	} else {
+		log.Info().Str("provider", cfg.Planner.Provider).Str("model", cfg.Planner.Model).
+			Msg("planning enabled")
+	}
+	var pl web.Planner // stays a nil interface when planning is off
+	if svc != nil {
+		pl = svc
+	}
 
 	key, err := auth.LoadKey(cfg.SessionKeyFile)
 	if err != nil {
@@ -68,7 +87,6 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	if err != nil {
 		return err
 	}
-	now := func() time.Time { return time.Now().In(cfg.Location) }
 	authn, err := auth.New(ctx, auth.Config{Issuer: cfg.OIDC.Issuer, ClientID: cfg.OIDC.ClientID,
 		ClientSecret: strings.TrimSpace(string(secret)), RedirectURL: cfg.RedirectURL(),
 		CAPool: pool, Claim: cfg.OIDC.Claim, Allowed: cfg.OIDC.Allowed,
@@ -78,7 +96,11 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	}
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
-		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, DB: db, Now: now, Log: log})}
+		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Planner: pl,
+			Provider: webProvider(cfg.Planner), Importer: newImporter(llm, cfg.Locale),
+			BaseURL: cfg.BaseURL,
+			Now:     now,
+			Log:     log})}
 	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
 		Handler: web.Metrics()}
 	errc := make(chan error, 2)
@@ -113,4 +135,36 @@ func caPool(path string) (*x509.CertPool, error) {
 		return nil, errors.New("oidc ca: no certificates found")
 	}
 	return p, nil
+}
+
+// Auth events hold email addresses; keep them only as long as they help an investigation.
+const authEventsRetention = 90 * 24 * time.Hour
+
+func pruneAuthEvents(ctx context.Context, db *store.Store, now func() time.Time,
+	log zerolog.Logger) {
+	tick := time.NewTicker(24 * time.Hour)
+	defer tick.Stop()
+	for {
+		n, err := db.PruneAuthEvents(ctx, now().Add(-authEventsRetention))
+		if err != nil {
+			log.Warn().Err(err).Msg("prune auth events")
+		} else if n > 0 {
+			log.Info().Int64("deleted", n).Msg("auth events pruned")
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+	}
+}
+
+// newImporter reads recipe links; with no model it still reads JSON-LD pages.
+func newImporter(llm planner.LLM, l i18n.Locale) importer.Importer {
+	imp := importer.Importer{Lang: l, Fetch: importer.NewFetcher("Matlistan/" +
+		release.Version() + " (+https://github.com/aldersfors/matlistan)")}
+	if llm != nil {
+		imp.Norm = importer.NewNormaliser(llm)
+	}
+	return imp
 }

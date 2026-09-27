@@ -1,0 +1,134 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/validate"
+)
+
+// StapleRow is one "always at home" item.
+type StapleRow struct {
+	ID   int64
+	Name string
+}
+
+// Settings is the settings page; values are strings so invalid input can be shown again.
+type Settings struct {
+	DinnersPerWeek, WeeknightMinutes, RepeatWindowWeeks, LibraryShare string
+	Staples                                                           []StapleRow
+	Errors                                                            validate.Errors
+	Saved                                                             bool
+	Tokens []TokenRow
+	NewToken, ExportURL string
+}
+
+// TokenRow is one Shortcut key, without its secret.
+type TokenRow struct {
+	ID int64
+	Name, Used, RevokeLabel string
+}
+
+templ SettingsPage(v Settings) {
+	@Layout(i18n.T(ctx, "settings.title"), "settings") {
+		<main class="mx-auto flex max-w-md flex-col gap-6 px-3">
+			@pageHeader(i18n.T(ctx, "settings.title"))
+			if me := chromeFrom(ctx).Viewer; me != nil {
+				<section id="account" class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+					<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "account.title") }</h2>
+					<div>
+						<p class="font-bold">{ i18n.T(ctx, "account.signed_in_as", "name", me.Name) }</p>
+						if me.Email != "" {
+							<p class="text-sm text-muted">{ me.Email }</p>
+						}
+					</div>
+					<form method="post" action="/auth/logout">
+						<button type="submit" class="h-12 w-full rounded-2xl border border-line font-bold">{ i18n.T(ctx, "account.sign_out") }</button>
+					</form>
+				</section>
+			}
+			if v.Saved {
+				<p role="status" class="rounded-xl bg-panel p-3 font-bold">{ i18n.T(ctx, "settings.saved") }</p>
+			}
+			<section class="flex flex-col gap-4 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "settings.planning") }</h2>
+				<form method="post" action="/settings" class="flex flex-col gap-4">
+					@formSummary(settingsErrors(v.Errors))
+					@numberField(i18n.T(ctx, "settings.dinners_per_week"), "dinners_per_week", v.DinnersPerWeek, v.Errors)
+					@numberField(i18n.T(ctx, "settings.weeknight_minutes"), "weeknight_minutes", v.WeeknightMinutes, v.Errors)
+					@numberField(i18n.T(ctx, "settings.repeat_window_weeks"), "repeat_window_weeks", v.RepeatWindowWeeks, v.Errors)
+					@numberField(i18n.T(ctx, "settings.library_share"), "library_share", v.LibraryShare, v.Errors)
+					@primaryButton(i18n.T(ctx, "form.save"))
+				</form>
+			</section>
+			<section class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "staples.title") }</h2>
+				<p class="text-muted">{ i18n.T(ctx, "staples.hint") }</p>
+				if len(v.Staples) == 0 {
+					<p class="text-muted italic">{ i18n.T(ctx, "staples.empty") }</p>
+				}
+				<ul class="flex flex-wrap gap-2">
+					for _, sp := range v.Staples {
+						<li class="flex items-center gap-1 rounded-full bg-page py-1 pr-1 pl-3">
+							<span>{ sp.Name }</span>
+							<form method="post" action={ templ.URL(fmt.Sprintf("/settings/staples/%d/delete", sp.ID)) }>
+								<button type="submit" class="h-9 w-9 rounded-full text-muted" aria-label={ i18n.T(ctx, "staples.remove", "name", sp.Name) }>
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+								</button>
+							</form>
+						</li>
+					}
+				</ul>
+				<form method="post" action="/settings/staples" class="flex items-end gap-2">
+					<div class="min-w-0 flex-grow">
+						@textField(i18n.T(ctx, "staples.name"), "name", "", nil)
+					</div>
+					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "staples.add") }</button>
+				</form>
+				@errorText(v.Errors, "staple")
+			</section>
+			<section class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+				<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "tokens.title") }</h2>
+				<p class="text-muted">{ i18n.T(ctx, "tokens.hint") }</p>
+				<p class="text-sm"><span class="font-bold">{ i18n.T(ctx, "tokens.url") }</span><br/><code class="break-all">{ v.ExportURL }</code></p>
+				if v.NewToken != "" {
+					<div role="status" class="flex flex-col gap-2 rounded-xl bg-attention p-3 text-attention-text">
+						<p class="font-bold">{ i18n.T(ctx, "tokens.created") }</p>
+						<code class="break-all select-all">{ v.NewToken }</code>
+					</div>
+				}
+				if len(v.Tokens) == 0 {
+					<p class="text-muted italic">{ i18n.T(ctx, "tokens.empty") }</p>
+				}
+				<ul class="flex flex-col gap-2">
+					for _, t := range v.Tokens {
+						<li class="flex items-center justify-between gap-2">
+							<span><span class="font-bold">{ t.Name }</span><br/><span class="text-sm text-muted">{ t.Used }</span></span>
+							<form method="post" action={ templ.URL(fmt.Sprintf("/settings/tokens/%d/delete", t.ID)) }>
+								<button type="submit" class="h-11 rounded-full border border-line px-4" aria-label={ t.RevokeLabel }>{ i18n.T(ctx, "tokens.revoke", "name", t.Name) }</button>
+							</form>
+						</li>
+					}
+				</ul>
+				<form method="post" action="/settings/tokens" class="flex items-end gap-2">
+					<div class="min-w-0 flex-grow">
+						@textField(i18n.T(ctx, "tokens.name"), "name", "", nil)
+					</div>
+					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "tokens.create") }</button>
+				</form>
+				@errorText(v.Errors, "token_name")
+			</section>
+		</main>
+	}
+}
+
+// settingsErrors hides the staple error from the planning form's summary.
+func settingsErrors(e validate.Errors) validate.Errors {
+	out := validate.Errors{}
+	for k, v := range e {
+		if k != "staple" && k != "token_name" {
+			out[k] = v
+		}
+	}
+	return out
+}

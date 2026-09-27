@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 
 func runTests(m *testing.M) int {
 	ctx := context.Background()
-	ctr, err := postgres.Run(ctx, "postgres:17-alpine",
+	ctr, err := postgres.Run(ctx, "postgres:18-alpine",
 		postgres.WithDatabase("matlistan"),
 		postgres.WithUsername("matlistan"),
 		postgres.WithPassword("matlistan"),
@@ -118,5 +118,19 @@ func TestOpenUnreachableDoesNotLeakURL(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), "hunter2") {
 		t.Fatalf("error leaks the password: %v", err)
+	}
+}
+
+func TestPruneAuthEvents(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	now := time.Now()
+	for _, at := range []time.Time{now.Add(-100 * 24 * time.Hour), now.Add(-time.Hour)} {
+		if err := s.InsertAuthEvent(ctx, AuthEvent{At: at, Outcome: AuthOutcomeLogin}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := s.PruneAuthEvents(ctx, now.Add(-90*24*time.Hour))
+	if err != nil || n != 1 {
+		t.Fatalf("pruned %d, %v", n, err)
 	}
 }

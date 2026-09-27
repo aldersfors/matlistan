@@ -1,0 +1,80 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/aldersfors/matlistan/internal/i18n"
+)
+
+// RateChoice is one of the three rating buttons.
+type RateChoice struct {
+	Score            int
+	Label, AriaLabel string
+	Pressed          bool
+}
+
+// RateRow is one member's rating of one dinner.
+type RateRow struct {
+	Year, Week, Day int
+	MemberID        int64
+	Name            string
+	Score           int
+	Choices         []RateChoice
+}
+
+// RateDinner is one dinner of the week.
+type RateDinner struct {
+	Day            int
+	DayName, Title string
+	Rows           []RateRow
+}
+
+// RateWeek is the rating screen.
+type RateWeek struct {
+	Label, Range, Hint string
+	Dinners            []RateDinner
+}
+
+templ RateRowView(r RateRow) {
+	<li id={ fmt.Sprintf("rate-%d-%d", r.Day, r.MemberID) } class="flex flex-wrap items-center justify-between gap-2 py-2">
+		<span class="font-bold">{ r.Name }</span>
+		<span class="flex gap-1.5">
+			for _, c := range r.Choices {
+				<form method="post" action="/fragments/ratings" hx-post="/fragments/ratings" hx-target={ fmt.Sprintf("#rate-%d-%d", r.Day, r.MemberID) } hx-swap="outerHTML">
+					<input type="hidden" name="y" value={ strconv.Itoa(r.Year) }/>
+					<input type="hidden" name="w" value={ strconv.Itoa(r.Week) }/>
+					<input type="hidden" name="day" value={ strconv.Itoa(r.Day) }/>
+					<input type="hidden" name="member" value={ strconv.FormatInt(r.MemberID, 10) }/>
+					<input type="hidden" name="score" value={ strconv.Itoa(c.Score) }/>
+					<button type="submit" id={ fmt.Sprintf("rate-%d-%d-%d", r.Day, r.MemberID, c.Score) } aria-pressed={ strconv.FormatBool(c.Pressed) } aria-label={ c.AriaLabel } class={ "min-h-11 rounded-full border px-3 text-sm font-bold", templ.KV("border-ink bg-ink text-page", c.Pressed), templ.KV("border-line", !c.Pressed) }>{ c.Label }</button>
+				</form>
+			}
+		</span>
+	</li>
+}
+
+templ RateWeekPage(v RateWeek) {
+	@Layout(i18n.T(ctx, "rate.title"), "week") {
+		<main class="mx-auto flex max-w-md flex-col gap-3 px-3">
+			<header class="flex flex-col gap-1 px-2 pt-12 pb-2">
+				<span class="text-sm text-muted">{ v.Label }, { v.Range }</span>
+				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ i18n.T(ctx, "rate.title") }</h1>
+				<p class="mt-1 text-sm text-muted">{ v.Hint }</p>
+			</header>
+			for _, d := range v.Dinners {
+				<section class="flex overflow-hidden rounded-2xl bg-panel">
+					<div class={ "flex w-16 shrink-0 items-start justify-center pt-4 font-display text-xl font-extrabold", fmt.Sprintf("day-%d", d.Day) }>{ d.DayName }</div>
+					<div class="flex flex-grow flex-col px-3 py-2">
+						<h2 class="py-1 font-bold">{ d.Title }</h2>
+						<ul class="flex flex-col divide-y divide-line">
+							for _, row := range d.Rows {
+								@RateRowView(row)
+							}
+						</ul>
+					</div>
+				</section>
+			}
+		</main>
+	}
+}

@@ -13,8 +13,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
-	"github.com/jalet/matlistan/internal/i18n"
-	"github.com/jalet/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/release"
+	"github.com/aldersfors/matlistan/internal/shopping"
+	"github.com/aldersfors/matlistan/internal/theme"
+	"github.com/aldersfors/matlistan/internal/web/views"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 //go:embed static
@@ -26,9 +33,48 @@ type Authenticator interface {
 	Require(next http.Handler) http.Handler
 }
 
-// Pinger reports database health.
-type Pinger interface {
+// Store is what the web layer needs from persistence.
+type Store interface {
 	Ping(ctx context.Context) error
+	ListMembers(ctx context.Context) ([]household.Member, error)
+	GetMember(ctx context.Context, id int64) (household.Member, error)
+	CreateMember(ctx context.Context, m household.Member) (int64, error)
+	UpdateMember(ctx context.Context, m household.Member) error
+	ArchiveMember(ctx context.Context, id int64) error
+	LinkMember(ctx context.Context, id int64, subject string) error
+	GetSettings(ctx context.Context) (household.Settings, error)
+	UpdateSettings(ctx context.Context, s household.Settings) error
+	ListStaples(ctx context.Context) ([]household.Staple, error)
+	AddStaple(ctx context.Context, name string) error
+	RemoveStaple(ctx context.Context, id int64) error
+	ListRecipes(ctx context.Context, lang i18n.Locale, q string) ([]recipes.Summary, error)
+	GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error)
+	CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, error)
+	FindRecipeBySourceURL(ctx context.Context, url string) (int64, error)
+	UpdateRecipe(ctx context.Context, r recipes.Recipe) error
+	ArchiveRecipe(ctx context.Context, id int64) error
+	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
+	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error
+	ApprovePlan(ctx context.Context, k weekplan.Key, subject string, items []shopping.Item,
+		excluded int) error
+	PlanIngredients(ctx context.Context, k weekplan.Key) ([]shopping.Use, error)
+	GetShoppingList(ctx context.Context, k weekplan.Key) (shopping.List, error)
+	CurrentShoppingList(ctx context.Context, upTo weekplan.Key) (shopping.List, error)
+	SetItemChecked(ctx context.Context, id int64, checked bool) (shopping.Item, error)
+	AddManualItem(ctx context.Context, listID int64, name string) error
+	RemoveManualItem(ctx context.Context, id int64) error
+	CreateAPIToken(ctx context.Context, subject, name string, hash []byte) error
+	ListAPITokens(ctx context.Context) ([]apitoken.Token, error)
+	RevokeAPIToken(ctx context.Context, id int64) error
+	UseAPIToken(ctx context.Context, hash []byte) (bool, error)
+	SetRating(ctx context.Context, k weekplan.Key, day int, memberID int64, score int) error
+	WeekRatings(ctx context.Context, k weekplan.Key) (map[int]map[int64]int, error)
+}
+
+// Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
+type Planner interface {
+	Generate(ctx context.Context, k weekplan.Key) error
+	Swap(ctx context.Context, k weekplan.Key, day int) error
 }
 
 // Deps are the server's collaborators.
@@ -36,20 +82,54 @@ type Deps struct {
 	Catalog *i18n.Catalog
 	Theme   theme.Theme
 	Auth    Authenticator
-	DB      Pinger
+	Store   Store
+	Planner Planner
+	BaseURL string           // public address, shown for the Shortcut
 	Now     func() time.Time // in the configured location
 	Log     zerolog.Logger
+	Build   release.Info // the running build for the footer; zero means release.Get()
+	// Provider is who planning data goes to, for the Family page.
+	Provider Provider
+	// Importer reads a recipe from a link; nil hides import.
+	Importer RecipeImporter
 }
 
-type server struct{ Deps }
+// RecipeImporter reads a recipe page into an unsaved recipe plus note keys for the form.
+type RecipeImporter interface {
+	Import(ctx context.Context, url string) (recipes.Recipe, []string, error)
+}
+
+// Provider is the model provider as the Family page names it: Name is "anthropic" or
+// "openai", and Host is set for an OpenAI-compatible server other than api.openai.com.
+type Provider struct{ Name, Host string }
+
+type server struct {
+	Deps
+	jobs   *jobs
+	footer views.Build
+}
+
+// jobTimeout bounds one background planning run.
+const jobTimeout = 10 * time.Minute
 
 // New builds the HTTP handler. Public: /healthz, /static/*, /auth/*.
 // Everything else requires a session.
-func New(d Deps) http.Handler {
-	if d.Catalog == nil || d.Auth == nil || d.DB == nil || d.Now == nil {
-		panic("invariant violated: web.New needs catalog, auth, db and clock")
+func New(d Deps) http.Handler { return buildServer(d).handler() }
+
+func buildServer(d Deps) *server {
+	if d.Catalog == nil || d.Auth == nil || d.Store == nil || d.Now == nil {
+		panic("invariant violated: web.New needs catalog, auth, store and clock")
 	}
-	s := &server{d}
+	if d.Build.Version == "" {
+		d.Build = release.Get()
+	}
+	s := &server{Deps: d, jobs: newJobs(jobTimeout, d.Log)}
+	s.footer = s.footerBuild(d.Build)
+	return s
+}
+
+func (s *server) handler() http.Handler {
+	d := s.Deps
 	static, err := fs.Sub(_static, "static")
 	if err != nil {
 		panic("invariant violated: embedded static: " + err.Error())
@@ -65,15 +145,59 @@ func New(d Deps) http.Handler {
 		_, _ = w.Write(themeCSS)
 	})
 	mux.HandleFunc("GET /healthz", s.healthz)
+	mux.HandleFunc("GET /manifest.webmanifest", s.manifest)
+	favicon, err := fs.ReadFile(static, "favicon.ico")
+	if err != nil {
+		panic("invariant violated: embedded favicon: " + err.Error())
+	}
+	// Browsers ask for /favicon.ico on their own, also before sign-in.
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/x-icon")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(favicon)
+	})
+	// The Shortcut has no session: this route checks its own key.
+	mux.HandleFunc("GET /api/v1/shopping-list/current.txt", s.exportList)
 
 	app := http.NewServeMux()
 	app.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/week", http.StatusSeeOther)
 	})
 	app.HandleFunc("GET /week", s.week)
-	app.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, i18n.T(r.Context(), "error.not_found"), http.StatusNotFound)
-	})
+	app.HandleFunc("GET /fragments/week-status", s.weekStatus)
+	app.HandleFunc("POST /week/context", s.saveWeekContext)
+	app.HandleFunc("POST /week/generate", s.generateWeek)
+	app.HandleFunc("POST /week/swap", s.swapDinner)
+	app.HandleFunc("POST /week/approve", s.approveWeek)
+	app.HandleFunc("GET /family", s.family)
+	app.HandleFunc("GET /family/new", s.newMember)
+	app.HandleFunc("POST /family", s.createMember)
+	app.HandleFunc("GET /family/{id}/edit", s.editMember)
+	app.HandleFunc("POST /family/{id}", s.updateMember)
+	app.HandleFunc("POST /family/{id}/archive", s.archiveMember)
+	app.HandleFunc("POST /family/{id}/me", s.linkMember)
+	app.HandleFunc("GET /settings", s.settings)
+	app.HandleFunc("POST /settings", s.saveSettings)
+	app.HandleFunc("POST /settings/staples", s.addStaple)
+	app.HandleFunc("POST /settings/staples/{id}/delete", s.removeStaple)
+	app.HandleFunc("GET /recipes", s.recipeList)
+	app.HandleFunc("GET /recipes/new", s.newRecipe)
+	app.HandleFunc("POST /recipes", s.createRecipe)
+	app.HandleFunc("POST /recipes/import", s.importRecipe)
+	app.HandleFunc("GET /recipes/{id}", s.showRecipe)
+	app.HandleFunc("GET /recipes/{id}/edit", s.editRecipe)
+	app.HandleFunc("POST /recipes/{id}", s.updateRecipe)
+	app.HandleFunc("POST /recipes/{id}/archive", s.archiveRecipe)
+	app.HandleFunc("GET /shopping", s.shoppingList)
+	app.HandleFunc("POST /fragments/shopping/items/{id}/toggle", s.toggleItem)
+	app.HandleFunc("POST /shopping/items", s.addItem)
+	app.HandleFunc("POST /shopping/items/{id}/delete", s.removeItem)
+	app.HandleFunc("POST /settings/tokens", s.createToken)
+	app.HandleFunc("POST /settings/tokens/{id}/delete", s.revokeToken)
+	app.HandleFunc("GET /week/rate", s.rateWeek)
+	app.HandleFunc("POST /fragments/ratings", s.rate)
+	app.HandleFunc("GET /recipes/{id}/cook", s.cook)
+	app.HandleFunc("/", s.notFound)
 	// Cross-origin protection covers every app request, so later POST handlers need no
 	// per-form token.
 	mux.Handle("/", http.NewCrossOriginProtection().Handler(d.Auth.Require(app)))
@@ -84,7 +208,7 @@ func New(d Deps) http.Handler {
 func (s *server) healthz(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
-	if err := s.DB.Ping(ctx); err != nil {
+	if err := s.Store.Ping(ctx); err != nil {
 		s.Log.Warn().Err(err).Msg("healthz: database")
 		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
 		return

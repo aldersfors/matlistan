@@ -3,7 +3,7 @@ package web
 import (
 	"net/http"
 
-	"github.com/jalet/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/i18n"
 )
 
 const _csp = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; " +

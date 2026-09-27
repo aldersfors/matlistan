@@ -1,0 +1,8 @@
+Matlistan is at {{ .Values.baseURL }}.
+{{- if .Values.generate.enabled }}
+The Sunday draft runs on "{{ .Values.generate.schedule }}" ({{ .Values.timezone }}).
+Run it now: kubectl create job -n {{ .Release.Namespace }} --from=cronjob/{{ include "matlistan.fullname" . }}-generate generate-now
+{{- end }}
+{{- if or .Values.anthropic.apiKeySecret.name .Values.anthropic.model }}
+anthropic.* is deprecated: move it to llm.apiKeySecret and llm.model.
+{{- end }}

@@ -31,3 +31,20 @@ func (c *Catalog) Quantity(q float64) string {
 	s := strconv.FormatFloat(math.Round(q*100)/100, 'f', -1, 64)
 	return strings.Replace(s, ".", c.T("format.decimal_separator"), 1)
 }
+
+// Allergen is the label of an allergen key: "nuts" is "Nuts" / "Nötter".
+func (c *Catalog) Allergen(key string) string { return c.T("allergen." + key) }
+
+// Diet is the label of a diet key.
+func (c *Catalog) Diet(key string) string { return c.T("diet." + key) }
+
+// Unit is the label of a unit key; "" (no unit) stays "".
+func (c *Catalog) Unit(key string) string {
+	if key == "" {
+		return ""
+	}
+	return c.T("unit." + key)
+}
+
+// Section is the label of a store section key.
+func (c *Catalog) Section(key string) string { return c.T("section." + key) }
