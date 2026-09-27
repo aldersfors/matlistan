@@ -1,0 +1,67 @@
+[tools]
+go = "1.26.7"
+golangci-lint = "2.14.0"
+ko = "0.19.1"
+helm = "4.3.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.5.0"
+"go:github.com/a-h/templ/cmd/templ" = "0.3.1020"
+"github:tailwindlabs/tailwindcss" = { version = "4.3.3", bin = "tailwindcss" }
+
+[env]
+# Tests terminate their own containers; the Ryuk reaper does not start under rootless Podman.
+TESTCONTAINERS_RYUK_DISABLED = "true"
+
+[tasks.fmt]
+run = "golangci-lint fmt"
+
+[tasks.lint]
+run = "golangci-lint run ./..."
+
+[tasks.test]
+run = "go test -race -shuffle=on ./..."
+
+[tasks.vuln]
+run = "govulncheck ./..."
+
+[tasks.templ]
+description = "Generate Go code from .templ files"
+run = "templ generate"
+
+[tasks."templ:check"]
+description = "Fail if generated templ code is stale"
+run = "mise run templ && git diff --exit-code -- '*_templ.go'"
+
+[tasks.css]
+description = "Compile Tailwind into internal/web/static/app.css"
+run = "tailwindcss -i web/styles/input.css -o internal/web/static/app.css --minify"
+
+[tasks."css:check"]
+description = "Fail if the committed CSS is stale"
+run = "mise run css && git diff --exit-code -- internal/web/static/app.css"
+
+[tasks.build]
+run = "ko build --local ./cmd/matlistan"
+
+[tasks."dev:db"]
+description = "Start a throwaway Postgres on :5432"
+run = "podman run --rm -d --name matlistan-db -e POSTGRES_USER=matlistan -e POSTGRES_PASSWORD=matlistan -e POSTGRES_DB=matlistan -p 5432:5432 postgres:17-alpine"
+
+[tasks.devidp]
+description = "Run the fake OIDC provider on 127.0.0.1:5556"
+run = "go run ./hack/devidp"
+
+[tasks.dev]
+description = "Run serve against dev:db and devidp"
+run = '''
+mkdir -p .dev
+[ -f .dev/session.key ] || openssl rand -hex 32 > .dev/session.key
+echo dev-secret > .dev/oidc.secret
+export MATLISTAN_BASE_URL="${MATLISTAN_BASE_URL:-http://localhost:8080}"
+export MATLISTAN_DATABASE_URL="${MATLISTAN_DATABASE_URL:-postgres://matlistan:matlistan@localhost:5432/matlistan?sslmode=disable}"
+export MATLISTAN_SESSION_KEY_FILE=.dev/session.key
+export MATLISTAN_OIDC_ISSUER="${MATLISTAN_OIDC_ISSUER:-http://127.0.0.1:5556}"
+export MATLISTAN_OIDC_CLIENT_ID=matlistan
+export MATLISTAN_OIDC_CLIENT_SECRET_FILE=.dev/oidc.secret
+export MATLISTAN_OIDC_ALLOWED=dev
+go run ./cmd/matlistan serve
+'''

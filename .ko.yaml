@@ -1,0 +1,17 @@
+# Digest-pinned so a rebuild of the same commit gets the same base; Renovate bumps the digest.
+defaultBaseImage: gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+defaultPlatforms:
+  - linux/amd64
+  - linux/arm64
+builds:
+  - id: matlistan
+    main: ./cmd/matlistan
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jalet/matlistan/internal/release.version={{.Env.VERSION}}
+      - -X github.com/jalet/matlistan/internal/release.commit={{.Git.FullCommit}}
+      - -X github.com/jalet/matlistan/internal/release.commitTime={{.Git.CommitDate}}

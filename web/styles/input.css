@@ -1,0 +1,74 @@
+/* Scan only the web package, so words in docs never become utilities. */
+@import "tailwindcss" source(none);
+@source "../../internal/web";
+
+@font-face { font-family: "Geist"; font-weight: 400; font-display: swap;
+  src: url("/static/fonts/geist-sans-400.woff2") format("woff2"); }
+@font-face { font-family: "Geist"; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/geist-sans-700.woff2") format("woff2"); }
+@font-face { font-family: "Bricolage Grotesque"; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/bricolage-grotesque-700.woff2") format("woff2"); }
+@font-face { font-family: "Bricolage Grotesque"; font-weight: 800; font-display: swap;
+  src: url("/static/fonts/bricolage-grotesque-800.woff2") format("woff2"); }
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Geist", ui-sans-serif, sans-serif;
+}
+
+@theme inline {
+  --color-page: var(--ml-page);
+  --color-panel: var(--ml-panel);
+  --color-line: var(--ml-line);
+  --color-ink: var(--ml-ink);
+  --color-muted: var(--ml-muted);
+  --color-focus: var(--ml-focus);
+  --color-primary: var(--ml-primary);
+  --color-primary-ink: var(--ml-primary-ink);
+  --color-attention: var(--ml-attention);
+  --color-attention-text: var(--ml-attention-text);
+}
+
+@layer base {
+  /* tokens:start */
+  /* Every colour in the UI. /static/theme.css overrides these; TestInputCSSColorsAreTokens
+     keeps colours out of the rest of this file. Base from the Halsingland theme and
+     pulumi-operator-ui; weekdays go light to dark blue, the weekend is gold. */
+  :root {
+    color-scheme: light dark;
+    --ml-page: #eef2f6; --ml-panel: #ffffff; --ml-line: #d5dde6;
+    --ml-ink: #0d1b2a; --ml-muted: #4f5f6f; --ml-focus: #3a6582;
+    --ml-primary: #0d1b2a; --ml-primary-ink: #ffffff;
+    --ml-attention: #f6edd2; --ml-attention-text: #7a5f10;
+    --ml-day1: #8ab8d0; --ml-day1-ink: #0d1b2a;
+    --ml-day2: #5a8fa8; --ml-day2-ink: #0d1b2a;
+    --ml-day3: #3a6582; --ml-day3-ink: #ffffff;
+    --ml-day4: #2a4f6b; --ml-day4-ink: #ffffff;
+    --ml-day5: #1f3058; --ml-day5-ink: #ffffff;
+    --ml-day6: #d8b85e; --ml-day6-ink: #0d1b2a;
+    --ml-day7: #7a5f10; --ml-day7-ink: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ml-page: #0d1b2a; --ml-panel: #172433; --ml-line: #25323f;
+      --ml-ink: #e8ecf0; --ml-muted: #a0aab4; --ml-focus: #6aa0b8;
+      --ml-primary: #6aa0b8; --ml-primary-ink: #0d1b2a;
+      --ml-attention: #3a3520; --ml-attention-text: #e8d080;
+    }
+  }
+  /* tokens:end */
+  body { @apply bg-page text-ink font-sans antialiased; }
+  a, button {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus;
+  }
+}
+
+@layer components {
+  .day-1 { background: var(--ml-day1); color: var(--ml-day1-ink); }
+  .day-2 { background: var(--ml-day2); color: var(--ml-day2-ink); }
+  .day-3 { background: var(--ml-day3); color: var(--ml-day3-ink); }
+  .day-4 { background: var(--ml-day4); color: var(--ml-day4-ink); }
+  .day-5 { background: var(--ml-day5); color: var(--ml-day5-ink); }
+  .day-6 { background: var(--ml-day6); color: var(--ml-day6-ink); }
+  .day-7 { background: var(--ml-day7); color: var(--ml-day7-ink); }
+}
