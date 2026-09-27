@@ -21,11 +21,39 @@ by the app, except the database URL, which the app reads from an environment var
 
 | Value | Default key | Contents |
 |---|---|---|
-| `database.urlSecret` | `uri` | PostgreSQL URL, for example the CNPG `<cluster>-app` secret |
+| `database.urlSecret` | `uri` | PostgreSQL URL, for example the CNPG `<cluster>-app` secret. Not needed with `database.cnpg.enabled` |
 | `database.caSecret` (optional) | `ca.crt` | Database CA, for example CNPG `<cluster>-ca`. When set, the app refuses any connection that is not TLS verified against it |
 | `oidc.clientSecret` | `client-secret` | The OIDC client secret |
 | `session.keySecret` | `key` | At least 32 random bytes: `openssl rand -hex 32` |
 | `anthropic.apiKeySecret` | `api-key` | The Anthropic API key, used by the web UI and the CronJob |
+
+## Database with CloudNativePG (optional)
+
+With the CloudNativePG operator installed, the chart can create the database itself:
+
+```yaml
+database:
+  cnpg:
+    enabled: true
+    size: 2Gi
+    # Leave empty to use the cluster's default StorageClass, or name another one, for
+    # example an encrypted class.
+    storageClass: ""
+```
+
+The cluster is named `<release>-matlistan-db` (`matlistan-db` when the release is called
+`matlistan`). With it on, `database.urlSecret` and `database.caSecret` default to the
+cluster's own `<cluster>-app` and `<cluster>-ca` Secrets, so you do not create them, and
+the connection is TLS verified. Optional settings:
+
+- `database.cnpg.instances`: replicas (default 1).
+- `database.cnpg.imageCatalog.name` and `.major`: a ClusterImageCatalog to take the
+  Postgres image from.
+- `database.cnpg.backup.barmanObjectName`: a barman-cloud ObjectStore you created, for WAL
+  archiving. Add a ScheduledBackup for base backups.
+- `database.cnpg.podMonitor`: a PodMonitor for the database.
+
+Choose the StorageClass with care: the database holds allergies, which can be health data.
 
 ## OIDC client
 

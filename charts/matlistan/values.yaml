@@ -13,7 +13,8 @@ locale: en
 timezone: UTC
 
 database:
-  # Secret with the PostgreSQL URL (required). A CNPG app secret works with caSecret.
+  # Secret with the PostgreSQL URL (required unless cnpg.enabled). A CNPG app secret works
+  # with caSecret.
   urlSecret:
     name: ""
     key: uri
@@ -22,6 +23,24 @@ database:
   caSecret:
     name: ""
     key: ca.crt
+  # Optional CloudNativePG cluster for the app, named <release>-matlistan-db. Needs the CNPG
+  # operator. With it on, urlSecret and caSecret default to the cluster's own
+  # <cluster>-app and <cluster>-ca secrets, so the connection is TLS verified.
+  cnpg:
+    enabled: false
+    instances: 1
+    # Empty uses the cluster's default StorageClass.
+    storageClass: ""
+    size: 2Gi
+    # Optional ClusterImageCatalog; empty uses the operator's default image.
+    imageCatalog:
+      name: ""
+      major: 18
+    # Optional barman-cloud ObjectStore (created separately) for WAL archiving and backups.
+    backup:
+      barmanObjectName: ""
+    # A PodMonitor for the database (needs the Prometheus Operator).
+    podMonitor: false
 
 oidc:
   issuer: ""

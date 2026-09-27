@@ -1,0 +1,44 @@
+{{- $c := .Values.database.cnpg }}
+{{- if $c.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "matlistan.dbCluster" . }}
+  # Not the app's labels: the app's network policies select app.kubernetes.io/name, and a
+  # CNPG operator set to inherit labels would copy them onto the database pods.
+  labels:
+    app.kubernetes.io/name: matlistan-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: matlistan
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
+spec:
+  instances: {{ $c.instances }}
+  {{- with $c.imageCatalog.name }}
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: {{ . }}
+    major: {{ $c.imageCatalog.major }}
+  {{- end }}
+  storage:
+    {{- with $c.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+    size: {{ $c.size }}
+  {{- if $c.podMonitor }}
+  monitoring:
+    enablePodMonitor: true
+  {{- end }}
+  {{- with $c.backup.barmanObjectName }}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ . }}
+  {{- end }}
+  bootstrap:
+    initdb:
+      database: matlistan
+      owner: matlistan
+{{- end }}

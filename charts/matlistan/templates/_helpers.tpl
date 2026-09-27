@@ -20,7 +20,7 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 
 {{- define "matlistan.validate" -}}
 {{- $_ := required "baseURL is required" .Values.baseURL -}}
-{{- $_ := required "database.urlSecret.name is required" .Values.database.urlSecret.name -}}
+{{- $_ := required "database.urlSecret.name is required (or set database.cnpg.enabled)" (include "matlistan.dbURLSecret" .) -}}
 {{- $_ := required "oidc.issuer is required" .Values.oidc.issuer -}}
 {{- $_ := required "oidc.clientID is required" .Values.oidc.clientID -}}
 {{- $_ := required "oidc.clientSecret.name is required" .Values.oidc.clientSecret.name -}}
@@ -28,6 +28,28 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 {{- $_ := required "anthropic.apiKeySecret.name is required" .Values.anthropic.apiKeySecret.name -}}
 {{- if not .Values.auth.allowed -}}
 {{- fail "auth.allowed must list at least one claim value" -}}
+{{- end -}}
+{{- end -}}
+
+{{/* The CNPG cluster's name, and the database secrets: explicit names win, otherwise
+the CNPG cluster's own <cluster>-app and <cluster>-ca when database.cnpg is on. */}}
+{{- define "matlistan.dbCluster" -}}
+{{- printf "%s-db" (include "matlistan.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "matlistan.dbURLSecret" -}}
+{{- if .Values.database.urlSecret.name -}}
+{{- .Values.database.urlSecret.name -}}
+{{- else if .Values.database.cnpg.enabled -}}
+{{- printf "%s-app" (include "matlistan.dbCluster" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "matlistan.dbCASecret" -}}
+{{- if .Values.database.caSecret.name -}}
+{{- .Values.database.caSecret.name -}}
+{{- else if .Values.database.cnpg.enabled -}}
+{{- printf "%s-ca" (include "matlistan.dbCluster" .) -}}
 {{- end -}}
 {{- end -}}
 
@@ -43,9 +65,9 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 - name: MATLISTAN_DATABASE_URL
   valueFrom:
     secretKeyRef:
-      name: {{ $v.database.urlSecret.name }}
+      name: {{ include "matlistan.dbURLSecret" . }}
       key: {{ $v.database.urlSecret.key }}
-{{- if $v.database.caSecret.name }}
+{{- if include "matlistan.dbCASecret" . }}
 - name: MATLISTAN_DATABASE_CA_FILE
   value: /etc/matlistan/db-ca/ca.crt
 {{- end }}
@@ -85,10 +107,10 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
             - key: {{ $v.session.keySecret.key }}
               path: session-key
       {{- end }}
-{{- if $v.database.caSecret.name }}
+{{- with .caSecret }}
 - name: db-ca
   secret:
-    secretName: {{ $v.database.caSecret.name }}
+    secretName: {{ . }}
     defaultMode: 0444
     items:
       - key: {{ $v.database.caSecret.key }}

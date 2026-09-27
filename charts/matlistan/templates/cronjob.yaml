@@ -45,11 +45,11 @@ spec:
                 - name: secrets
                   mountPath: /etc/matlistan/secrets
                   readOnly: true
-                {{- if $v.database.caSecret.name }}
+                {{- if include "matlistan.dbCASecret" . }}
                 - name: db-ca
                   mountPath: /etc/matlistan/db-ca
                   readOnly: true
                 {{- end }}
           volumes:
-            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true) | nindent 12 }}
+            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true "caSecret" (include "matlistan.dbCASecret" .)) | nindent 12 }}
 {{- end }}

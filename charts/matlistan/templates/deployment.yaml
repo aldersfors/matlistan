@@ -93,7 +93,7 @@ spec:
             - name: secrets
               mountPath: /etc/matlistan/secrets
               readOnly: true
-            {{- if $v.database.caSecret.name }}
+            {{- if include "matlistan.dbCASecret" . }}
             - name: db-ca
               mountPath: /etc/matlistan/db-ca
               readOnly: true
@@ -111,7 +111,7 @@ spec:
             - name: tmp
               mountPath: /tmp
       volumes:
-        {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" false) | nindent 8 }}
+        {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" false "caSecret" (include "matlistan.dbCASecret" .)) | nindent 8 }}
         {{- if $v.oidc.caConfigMap.name }}
         - name: oidc-ca
           configMap:

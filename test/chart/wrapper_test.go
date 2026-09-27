@@ -48,4 +48,22 @@ func TestHomelabValuesRender(t *testing.T) {
 	if strings.Contains(string(out), "kind: NetworkPolicy") {
 		t.Error("chart NetworkPolicy on in the homelab (Cilium policy replaces it)")
 	}
+	// The chart owns the database, on the cluster's default StorageClass, archiving WAL.
+	for _, want := range []string{"kind: Cluster", "name: matlistan-db\n",
+		"barmanObjectName: s3-eu-north-1"} {
+		if !strings.Contains(string(out), want) {
+			t.Errorf("rendered homelab chart lacks %q", want)
+		}
+	}
+	if strings.Contains(string(out), "storageClass:") {
+		t.Error("homelab database pins a StorageClass; it should use the cluster default")
+	}
+	if _, err := os.Stat(_wrapper + "/manifests/cnpg-cluster.yaml"); err == nil {
+		t.Error("wrapper still defines its own CNPG Cluster")
+	}
+	// Review M6: the first base backup runs at once, not the night after go-live.
+	backup, err := os.ReadFile(_wrapper + "/manifests/cnpg-backup.yaml")
+	if err != nil || !strings.Contains(string(backup), "immediate: true") {
+		t.Errorf("ScheduledBackup is not immediate: %v", err)
+	}
 }

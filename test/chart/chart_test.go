@@ -450,3 +450,80 @@ func TestThemeSchemaRejectsUnknownKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestCNPGOffByDefault(t *testing.T) {
+	if got := find(render(t), "Cluster"); len(got) != 0 {
+		t.Error("CNPG Cluster rendered by default")
+	}
+}
+
+// With database.cnpg on and no secrets named, the chart uses the cluster's own app and CA
+// secrets, and the cluster's default StorageClass.
+func TestCNPGDefaults(t *testing.T) {
+	objs := render(t, "--set", "database.cnpg.enabled=true", "--set", "database.urlSecret.name=")
+	c := one(t, objs, "Cluster")
+	if c["apiVersion"] != "postgresql.cnpg.io/v1" || path(c, "metadata", "name") != "ml-matlistan-db" {
+		t.Fatalf("cluster = %v %v", c["apiVersion"], path(c, "metadata", "name"))
+	}
+	storage, _ := path(c, "spec", "storage").(obj)
+	if _, set := storage["storageClass"]; set {
+		t.Errorf("storageClass set by default: %v", storage)
+	}
+	if storage["size"] != "2Gi" || path(c, "spec", "instances") != 1.0 {
+		t.Errorf("spec = %v", c["spec"])
+	}
+	if path(c, "spec", "bootstrap", "initdb", "database") != "matlistan" ||
+		path(c, "spec", "bootstrap", "initdb", "owner") != "matlistan" {
+		t.Errorf("bootstrap = %v", path(c, "spec", "bootstrap"))
+	}
+	for _, key := range []string{"imageCatalogRef", "plugins"} {
+		if path(c, "spec", key) != nil {
+			t.Errorf("%s set by default", key)
+		}
+	}
+	spec := podSpec(t, objs)
+	raw, _ := json.Marshal(spec)
+	for _, want := range []string{`"name":"ml-matlistan-db-app"`, `"secretName":"ml-matlistan-db-ca"`} {
+		if !strings.Contains(string(raw), want) {
+			t.Errorf("web pod lacks %s", want)
+		}
+	}
+	if env := envOf(container(t, spec)); env["MATLISTAN_DATABASE_CA_FILE"] == "" {
+		t.Error("CNPG database not TLS verified")
+	}
+	if env := envOf(container(t, cronPod(t, objs))); env["MATLISTAN_DATABASE_CA_FILE"] == "" {
+		t.Error("job does not verify the CNPG database")
+	}
+}
+
+func TestCNPGOverrides(t *testing.T) {
+	c := one(t, render(t, "--set", "database.cnpg.enabled=true",
+		"--set", "database.cnpg.storageClass=longhorn-crypt", "--set", "database.cnpg.size=5Gi",
+		"--set", "database.cnpg.imageCatalog.name=postgresql-minimal-trixie",
+		"--set", "database.cnpg.backup.barmanObjectName=s3-eu-north-1"), "Cluster")
+	if path(c, "spec", "storage", "storageClass") != "longhorn-crypt" ||
+		path(c, "spec", "storage", "size") != "5Gi" {
+		t.Errorf("storage = %v", path(c, "spec", "storage"))
+	}
+	if path(c, "spec", "imageCatalogRef", "name") != "postgresql-minimal-trixie" ||
+		path(c, "spec", "imageCatalogRef", "major") != 18.0 {
+		t.Errorf("imageCatalogRef = %v", path(c, "spec", "imageCatalogRef"))
+	}
+	if path(c, "spec", "plugins", "0", "name") != "barman-cloud.cloudnative-pg.io" ||
+		path(c, "spec", "plugins", "0", "isWALArchiver") != true ||
+		path(c, "spec", "plugins", "0", "parameters", "barmanObjectName") != "s3-eu-north-1" {
+		t.Errorf("plugins = %v", path(c, "spec", "plugins"))
+	}
+}
+
+// The app's policies select app.kubernetes.io/name=matlistan. A CNPG operator that copies
+// cluster labels to its pods must not make the database pods match them.
+func TestCNPGClusterIsNotSelectedAsTheApp(t *testing.T) {
+	c := one(t, render(t, "--set", "database.cnpg.enabled=true"), "Cluster")
+	if got := path(c, "metadata", "labels", "app.kubernetes.io/name"); got != "matlistan-db" {
+		t.Errorf("cluster name label = %v, want matlistan-db", got)
+	}
+	if got := path(c, "metadata", "labels", "app.kubernetes.io/part-of"); got != "matlistan" {
+		t.Errorf("cluster part-of label = %v", got)
+	}
+}

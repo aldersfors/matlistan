@@ -74,6 +74,50 @@
               "minLength": 1
             }
           }
+        },
+        "cnpg": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "instances": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "storageClass": {
+              "type": "string"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi|Ti)$"
+            },
+            "imageCatalog": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "major": {
+                  "type": "integer"
+                }
+              }
+            },
+            "backup": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "barmanObjectName": {
+                  "type": "string"
+                }
+              }
+            },
+            "podMonitor": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
