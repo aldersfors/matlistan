@@ -1,6 +1,7 @@
 package shopping
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/aldersfors/matlistan/internal/i18n"
@@ -63,5 +64,33 @@ func TestTextWhenEverythingIsBought(t *testing.T) {
 		Section: "produce", Quantity: 1, Unit: "kg", Checked: true}}}
 	if got := Text(sv, l); got != "Matlistan vecka 40\n\nAllt är köpt.\n" {
 		t.Fatalf("Text = %q", got)
+	}
+}
+
+// Notes keeps headings, bullets and bold from pasted rich text, so the list reads like one.
+func TestHTML(t *testing.T) {
+	sv := catalog(t, i18n.SV)
+	l := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{
+		{Name: "pumpa", Section: "produce", Quantity: 1.5, Unit: "kg"},
+		{Name: "gul lök", Section: "produce", Quantity: 3, Unit: "pcs", Checked: true},
+		{Name: "koriander", Section: "produce", Quantity: 1, Unit: "pcs", Optional: true},
+		{Name: "salt", Section: "pantry"},
+		{Name: "<b>tandkräm</b> & tvål", Section: "other", Manual: true},
+	}}
+	want := `<!doctype html><html lang="sv"><head><meta charset="utf-8">` +
+		`<title>Matlistan vecka 40</title></head><body><h1>Matlistan vecka 40</h1>` +
+		`<h2>Frukt och grönt</h2><ul><li><b>1,5 kg</b> pumpa</li>` +
+		`<li><b>1 st</b> koriander <i>(valfri)</i></li></ul>` +
+		`<h2>Skafferi</h2><ul><li>salt, efter smak</li></ul>` +
+		`<h2>Övrigt</h2><ul><li>&lt;b&gt;tandkräm&lt;/b&gt; &amp; tvål</li></ul></body></html>`
+	if got := HTML(sv, l); got != want {
+		t.Fatalf("HTML =\n%s\nwant\n%s", got, want)
+	}
+	if got := HTML(sv, nil); !strings.Contains(got, "<h1>Matlistan</h1><p>Ingen godkänd vecka än.</p>") {
+		t.Fatalf("nil list = %s", got)
+	}
+	bought := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{{Name: "mjölk", Checked: true}}}
+	if got := HTML(sv, bought); !strings.Contains(got, "<p>Allt är köpt.</p>") {
+		t.Fatalf("bought list = %s", got)
 	}
 }
