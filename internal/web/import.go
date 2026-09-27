@@ -59,7 +59,9 @@ func (s *server) importRecipe(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		s.Log.Info().Err(err).Str("host", hostOf(norm)).Msg("recipe import failed")
+		// The error text holds the full URL, and a pasted link can carry a token: log the
+		// host and the reason only.
+		s.Log.Info().Str("host", hostOf(norm)).Str("reason", key).Msg("recipe import failed")
 		s.importFailed(w, r, key)
 		return
 	}

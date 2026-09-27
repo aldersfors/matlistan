@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -155,5 +156,26 @@ func TestCrossSiteImportIsRefused(t *testing.T) {
 	importServer(t, newFakeStore(), im).ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden || im.calls != 0 {
 		t.Fatalf("status %d calls %d", rec.Code, im.calls)
+	}
+}
+
+// Security review: a failed import logs the host and the reason, never the pasted URL's path
+// or query, which can carry tokens.
+func TestImportFailureLogsOnlyTheHost(t *testing.T) {
+	var buf strings.Builder
+	sthlm, _ := time.LoadLocation("Europe/Stockholm")
+	err := fmt.Errorf("%w: Get \"https://www.ica.se/recept/x?token=hemligt\": dial tcp: timeout",
+		importer.ErrUnreachable)
+	h := New(Deps{Catalog: mustCatalog(t, i18n.SV), Auth: fakeAuth{signedIn: true},
+		Store: newFakeStore(), Now: func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
+		BaseURL: "https://matlistan.example.lan", Log: zerolog.New(&buf),
+		Importer: &fakeImporter{err: err}})
+	post(t, h, "/recipes/import", url.Values{"url": {"https://www.ica.se/recept/x?token=hemligt"}})
+	log := buf.String()
+	if strings.Contains(log, "hemligt") || strings.Contains(log, "/recept/x") {
+		t.Errorf("log leaks the URL: %s", log)
+	}
+	if !strings.Contains(log, `"host":"www.ica.se"`) || !strings.Contains(log, "import.error.unreachable") {
+		t.Errorf("log lacks host or reason: %s", log)
 	}
 }
