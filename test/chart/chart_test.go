@@ -4,7 +4,10 @@ package chart
 import (
 	"bytes"
 	"encoding/json"
+	"io/fs"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -18,11 +21,29 @@ const _chart = "../../charts/matlistan"
 
 type obj = map[string]any
 
+// readChart reads every chart file in the test process. Go caches test results by the
+// files a test opens, and helm's own reads are invisible to it, so without this a changed
+// template could pass from the cache (CI restores GOCACHE).
+func readChart(t *testing.T) {
+	t.Helper()
+	err := filepath.WalkDir(_chart, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		_, err = os.ReadFile(p)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func helmTemplate(t *testing.T, extra ...string) (string, error) {
 	t.Helper()
 	if _, err := exec.LookPath("helm"); err != nil {
 		t.Skip("helm not on PATH")
 	}
+	readChart(t)
 	args := append([]string{"template", "ml", _chart, "-n", "matlistan", "-f",
 		"testdata/minimal.yaml"}, extra...)
 	var out bytes.Buffer
@@ -389,5 +410,22 @@ func TestThemeRendered(t *testing.T) {
 func TestThemeSchemaRejects(t *testing.T) {
 	if _, err := helmTemplate(t, "--set-string", "theme.light.day1=blue"); err == nil {
 		t.Error("schema accepted a non-hex colour")
+	}
+}
+
+// Security review M6: the Sunday job runs as hardened as the web pod.
+func TestCronJobPodHardening(t *testing.T) {
+	spec := cronPod(t, render(t))
+	for k, want := range map[string]any{"runAsNonRoot": true, "runAsUser": 65532.0,
+		"fsGroup": 65532.0} {
+		if got := path(spec, "securityContext", k); got != want {
+			t.Errorf("job securityContext.%s = %v", k, got)
+		}
+	}
+	c := container(t, spec)
+	if path(c, "securityContext", "readOnlyRootFilesystem") != true ||
+		path(c, "securityContext", "allowPrivilegeEscalation") != false ||
+		path(c, "securityContext", "capabilities", "drop", "0") != "ALL" {
+		t.Errorf("job container securityContext = %v", c["securityContext"])
 	}
 }
