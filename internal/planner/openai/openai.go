@@ -72,6 +72,11 @@ func (s *session) Send(ctx context.Context, text string) (planner.Reply, error) 
 		return planner.Reply{Usage: u}, errors.New("openai: empty reply")
 	}
 	ch := resp.Choices[0]
+	// Keep any answer in the history before judging it: the planner's follow-up after a
+	// cut-off answer must alternate roles, which strict chat templates enforce.
+	if ch.Message.Content != "" {
+		s.history = append(s.history, oai.AssistantMessage(ch.Message.Content))
+	}
 	switch {
 	case ch.Message.Refusal != "":
 		return planner.Reply{Usage: u}, planner.ErrRefused
@@ -80,6 +85,5 @@ func (s *session) Send(ctx context.Context, text string) (planner.Reply, error) 
 	case ch.Message.Content == "":
 		return planner.Reply{Usage: u}, errors.New("openai: empty reply")
 	}
-	s.history = append(s.history, oai.AssistantMessage(ch.Message.Content))
 	return planner.Reply{Text: ch.Message.Content, Usage: u}, nil
 }

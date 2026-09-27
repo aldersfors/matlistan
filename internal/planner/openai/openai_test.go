@@ -169,3 +169,23 @@ func TestEnvironmentDoesNotLeakIn(t *testing.T) {
 		t.Errorf("keyless client sent Authorization %q", f.auth[0])
 	}
 }
+
+// Review: after a cut-off answer the planner sends a follow-up in the same conversation;
+// the roles must still alternate, or strict chat templates reject the retry.
+func TestTruncatedReplyStaysInTheHistory(t *testing.T) {
+	f := &fakeAPI{replies: []string{reply(`{"days":[`, "length", ""), reply(`{"days":[]}`, "stop", "")}}
+	s := serve(t, f, _key).NewSession("sys", map[string]any{})
+	if _, err := s.Send(context.Background(), "plan"); !errors.Is(err, planner.ErrTruncated) {
+		t.Fatalf("first send: %v", err)
+	}
+	if _, err := s.Send(context.Background(), "your answer was cut off"); err != nil {
+		t.Fatal(err)
+	}
+	var roles []string
+	for _, m := range f.bodies[1]["messages"].([]any) {
+		roles = append(roles, m.(map[string]any)["role"].(string))
+	}
+	if strings.Join(roles, ",") != "system,user,assistant,user" {
+		t.Fatalf("roles = %v", roles)
+	}
+}
