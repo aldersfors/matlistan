@@ -61,6 +61,13 @@ func TestHomelabValuesRender(t *testing.T) {
 	if _, err := os.Stat(_wrapper + "/manifests/cnpg-cluster.yaml"); err == nil {
 		t.Error("wrapper still defines its own CNPG Cluster")
 	}
+	chart, err := os.ReadFile(_wrapper + "/Chart.yaml")
+	if err != nil || !strings.Contains(string(chart), "repository: oci://ghcr.io/aldersfors/helm-charts") {
+		t.Errorf("wrapper does not pull the chart from ghcr.io/aldersfors: %v", err)
+	}
+	if strings.Contains(string(raw), "jalet/matlistan") {
+		t.Error("wrapper values still name jalet/matlistan")
+	}
 	// Review M6: the first base backup runs at once, not the night after go-live.
 	backup, err := os.ReadFile(_wrapper + "/manifests/cnpg-backup.yaml")
 	if err != nil || !strings.Contains(string(backup), "immediate: true") {
