@@ -85,3 +85,11 @@ url = "https://github.com/ko-build/ko/releases/download/v0.19.1/multiple.intoto.
 [[tools.node]]
 version = "22.23.2"
 backend = "core:node"
+
+[tools.node."platforms.linux-x64"]
+checksum = "sha256:b294a556e639d64338823920e5866c21c02741742d2e1529ee1a225c1ec9252a"
+url = "https://nodejs.org/dist/v22.23.2/node-v22.23.2-linux-x64.tar.gz"
+
+[tools.node."platforms.macos-arm64"]
+checksum = "sha256:61130f394c1630d211dd50aecc4353d379480f36d3ac913cd85dbba1aed585c6"
+url = "https://nodejs.org/dist/v22.23.2/node-v22.23.2-darwin-arm64.tar.gz"
