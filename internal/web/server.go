@@ -159,6 +159,7 @@ func (s *server) handler() http.Handler {
 	// The Shortcut has no session: this route checks its own key.
 	mux.HandleFunc("GET /api/v1/shopping-list/current.txt", s.exportList)
 	mux.HandleFunc("GET /api/v1/shopping-list/current.html", s.exportHTML)
+	mux.HandleFunc("GET /api/v1/shopping-list/current.json", s.exportJSON)
 
 	app := http.NewServeMux()
 	app.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {

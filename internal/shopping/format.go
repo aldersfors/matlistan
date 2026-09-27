@@ -1,6 +1,7 @@
 package shopping
 
 import (
+	"encoding/json"
 	"html"
 	"strings"
 
@@ -121,4 +122,37 @@ func itemHTML(c *i18n.Catalog, it Item) string {
 		line += " <i>(" + esc(c.T("recipe.optional")) + ")</i>"
 	}
 	return line
+}
+
+type jsonExport struct {
+	Title    string        `json:"title"`
+	Sections []jsonSection `json:"sections"`
+	Note     string        `json:"note,omitempty"`
+}
+
+type jsonSection struct {
+	Name  string   `json:"name"`
+	Items []string `json:"items"`
+}
+
+// JSON is the export for the checklist Shortcut, which appends each section's items as Notes
+// tickboxes, one per line. A line break inside an item would split it in two, so it becomes
+// a space.
+func JSON(c *i18n.Catalog, l *List) string {
+	e := exportOf(c, l)
+	out := jsonExport{Title: e.title, Sections: []jsonSection{}, Note: e.note}
+	for _, s := range e.sections {
+		js := jsonSection{Name: s.name}
+		for _, it := range s.items {
+			js.Items = append(js.Items, strings.Join(strings.Fields(ItemLine(c, it)), " "))
+		}
+		out.Sections = append(out.Sections, js)
+	}
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false) // read by Shortcuts, never rendered as a page
+	if err := enc.Encode(out); err != nil {
+		panic(err) // only strings: cannot fail
+	}
+	return strings.TrimSuffix(b.String(), "\n")
 }
