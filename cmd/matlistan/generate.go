@@ -82,7 +82,7 @@ func parseWeekFlag(s string) (weekplan.Key, error) {
 // newPlanner builds the planning service; nil when no API key file is configured.
 func newPlanner(cfg config.Planner, db *store.Store, l i18n.Locale, loc *time.Location,
 	log zerolog.Logger) (*planner.Service, error) {
-	if cfg.APIKeyFile == "" {
+	if !cfg.Enabled() {
 		return nil, nil //nolint:nilnil // nil service means planning is off
 	}
 	key, err := os.ReadFile(cfg.APIKeyFile) //nolint:gosec // operator configuration

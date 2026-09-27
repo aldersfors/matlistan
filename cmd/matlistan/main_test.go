@@ -65,7 +65,7 @@ func TestGenerateNeedsConfig(t *testing.T) {
 	if code := run([]string{"matlistan", "generate"}, &out, &errOut, noEnv); code != 1 {
 		t.Fatalf("exit %d", code)
 	}
-	if !strings.Contains(errOut.String(), "MATLISTAN_ANTHROPIC_API_KEY_FILE is required") {
+	if !strings.Contains(errOut.String(), "MATLISTAN_API_KEY_FILE is required") {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }
