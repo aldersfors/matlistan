@@ -31,7 +31,8 @@ Rules. Every rule is checked by a program; an answer that breaks one is rejected
 - A dinner's total time must not exceed the day's "max_minutes".
 - Write new recipes for the day's "servings" portions; set "servings" to that number.
 - Use metric amounts. Ingredient names are short, lower case and in the output language, for
-  example "yellow onion". Use quantity 0 and unit "" for "to taste". Every quantity above 0
+  example "yellow onion". Write each name in its singular base form, even for several pieces:
+  "carrot", not "carrots". Use quantity 0 and unit "" for "to taste". Every quantity above 0
   needs a unit.
 - Prefer seasonal produce for the given month and simple weeknight cooking.
 - "why" is one short, friendly sentence telling the family why this dinner was chosen, using

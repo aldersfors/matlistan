@@ -15,8 +15,12 @@ var _tokenRE = regexp.MustCompile(`mlt_[A-Za-z0-9_-]{43}`)
 
 func exportWith(t *testing.T, h http.Handler, auth string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet,
-		"/api/v1/shopping-list/current.txt", nil)
+	return exportAt(t, h, "/api/v1/shopping-list/current.txt", auth)
+}
+
+func exportAt(t *testing.T, h http.Handler, path, auth string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
 	}
@@ -101,6 +105,25 @@ func TestKeyDoesNotOpenTheApp(t *testing.T) {
 		anon.ServeHTTP(rec, req)
 		if rec.Code != http.StatusFound {
 			t.Errorf("%s with a key and no session: %d, want the login redirect", p, rec.Code)
+		}
+	}
+}
+
+func TestExportAsHTML(t *testing.T) {
+	h, _ := approvedWeek(t)
+	rec := post(t, h, "/settings/tokens", url.Values{"name": {"Annas iPhone"}})
+	key := _tokenRE.FindString(rec.Body.String())
+	const path = "/api/v1/shopping-list/current.html"
+	res := exportAt(t, h, path, "Bearer "+key)
+	if res.Code != http.StatusOK || !strings.HasPrefix(res.Header().Get("Content-Type"), "text/html") ||
+		res.Header().Get("Cache-Control") != "no-store" ||
+		!strings.Contains(res.Body.String(), "<h1>Matlistan vecka 40</h1>") ||
+		!strings.Contains(res.Body.String(), "<li><b>1,5 kg</b> pumpa</li>") {
+		t.Fatalf("export: %d %q %.400s", res.Code, res.Header(), res.Body.String())
+	}
+	for _, a := range []string{"", "Bearer nope"} {
+		if res := exportAt(t, h, path, a); res.Code != http.StatusUnauthorized {
+			t.Errorf("%q: %d", a, res.Code)
 		}
 	}
 }

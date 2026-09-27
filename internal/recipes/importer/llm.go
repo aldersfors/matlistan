@@ -91,7 +91,8 @@ func (n llmNormaliser) Ingredients(ctx context.Context, lines []string, lang i18
 	[]recipes.Ingredient, []string, error) {
 	system := _dataRule + "Return exactly one item per input line, in the same order, never " +
 		"merging or skipping lines. Write names in " + _languages[lang] + ", in lower case, " +
-		"without the amount. Units: g, kg, ml, dl, l; tbsp for msk, tsp for tsk, ml for krm " +
+		"without the amount, and in their singular base form (\"morot\", not \"morötter\"). " +
+		"Units: g, kg, ml, dl, l; tbsp for msk, tsp for tsk, ml for krm " +
 		"(1 krm = 1 ml); pcs for counted items (st, ägg, lökar, burkar); pinch for a nypa. " +
 		"Convert cups, ounces and pounds to metric. Write fractions as decimals (½ = 0.5, " +
 		"1 1/2 = 1.5). Use unit null and quantity null when the line has no amount (\"salt\", " +

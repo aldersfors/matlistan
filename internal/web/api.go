@@ -6,15 +6,25 @@ import (
 	"net/http"
 
 	"github.com/aldersfors/matlistan/internal/apitoken"
+	"github.com/aldersfors/matlistan/internal/i18n"
 	"github.com/aldersfors/matlistan/internal/shopping"
 	"github.com/aldersfors/matlistan/internal/store"
 	"github.com/aldersfors/matlistan/internal/week"
 	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
-// exportList serves the current list as text for the iOS Shortcut. It needs a valid key and
-// says nothing about why a key was refused.
+// exportList serves the current list as text for the iOS Shortcut; exportHTML serves it as
+// rich text for Apple Notes. Both need a valid key and are never cached.
 func (s *server) exportList(w http.ResponseWriter, r *http.Request) {
+	s.export(w, r, "text/plain; charset=utf-8", shopping.Text)
+}
+
+func (s *server) exportHTML(w http.ResponseWriter, r *http.Request) {
+	s.export(w, r, "text/html; charset=utf-8", shopping.HTML)
+}
+
+func (s *server) export(w http.ResponseWriter, r *http.Request, contentType string,
+	render func(*i18n.Catalog, *shopping.List) string) {
 	tok, ok := apitoken.FromHeader(r.Header.Get("Authorization"))
 	if ok {
 		found, err := s.Store.UseAPIToken(r.Context(), apitoken.Hash(tok))
@@ -39,7 +49,7 @@ func (s *server) exportList(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = io.WriteString(w, shopping.Text(s.Catalog, list))
+	_, _ = io.WriteString(w, render(s.Catalog, list))
 }

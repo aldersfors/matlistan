@@ -37,6 +37,7 @@ func TestNormaliserIngredients(t *testing.T) {
 		t.Fatalf("got %+v %v %v", got, notes, err)
 	}
 	if !strings.Contains(f.system, "Swedish") || !strings.Contains(f.system, "data") ||
+		!strings.Contains(f.system, "singular base form") ||
 		!strings.Contains(f.sent[0], "500 g blandfärs") {
 		t.Errorf("prompt: %q / %q", f.system, f.sent)
 	}
