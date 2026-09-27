@@ -42,14 +42,16 @@ spec:
                 {{- toYaml $v.resources | nindent 16 }}
               {{- include "matlistan.containerSecurity" . | nindent 14 }}
               volumeMounts:
+                {{- if include "matlistan.llmKeySecret" . }}
                 - name: secrets
                   mountPath: /etc/matlistan/secrets
                   readOnly: true
+                {{- end }}
                 {{- if include "matlistan.dbCASecret" . }}
                 - name: db-ca
                   mountPath: /etc/matlistan/db-ca
                   readOnly: true
                 {{- end }}
           volumes:
-            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true "caSecret" (include "matlistan.dbCASecret" .)) | nindent 12 }}
+            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true "caSecret" (include "matlistan.dbCASecret" .) "llmKey" (include "matlistan.llmKeySecret" .) "llmKeyKey" (include "matlistan.llmKeyKey" .)) | nindent 12 }}
 {{- end }}

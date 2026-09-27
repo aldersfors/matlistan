@@ -68,6 +68,9 @@ func TestHomelabValuesRender(t *testing.T) {
 	if strings.Contains(string(raw), "jalet/matlistan") {
 		t.Error("wrapper values still name jalet/matlistan")
 	}
+	if strings.Contains(string(raw), "anthropic:") {
+		t.Error("homelab values still use the deprecated anthropic block")
+	}
 	// Review M6: the first base backup runs at once, not the night after go-live.
 	backup, err := os.ReadFile(_wrapper + "/manifests/cnpg-backup.yaml")
 	if err != nil || !strings.Contains(string(backup), "immediate: true") {

@@ -10,7 +10,8 @@ this repository's release workflow).
 - PostgreSQL 18. A CloudNativePG cluster works well: its app secret and CA plug straight
   into the chart.
 - An OpenID Connect provider, for example Keycloak.
-- An Anthropic API key.
+- An API key for Anthropic or OpenAI, or an OpenAI-compatible server (see "Choosing the
+  model provider").
 - Optional: a Gateway API implementation for the HTTPRoute, and the Prometheus Operator for
   the ServiceMonitor.
 
@@ -25,7 +26,7 @@ by the app, except the database URL, which the app reads from an environment var
 | `database.caSecret` (optional) | `ca.crt` | Database CA, for example CNPG `<cluster>-ca`. When set, the app refuses any connection that is not TLS verified against it |
 | `oidc.clientSecret` | `client-secret` | The OIDC client secret |
 | `session.keySecret` | `key` | At least 32 random bytes: `openssl rand -hex 32` |
-| `anthropic.apiKeySecret` | `api-key` | The Anthropic API key, used by the web UI and the CronJob |
+| `llm.apiKeySecret` | `api-key` | The API key for the model provider, used by the web UI and the CronJob. Not needed for an OpenAI-compatible server without a key |
 
 ## Database with CloudNativePG (optional)
 
@@ -54,6 +55,35 @@ the connection is TLS verified. Optional settings:
 - `database.cnpg.podMonitor`: a PodMonitor for the database.
 
 Choose the StorageClass with care: the database holds allergies, which can be health data.
+
+## Choosing the model provider
+
+`llm.provider` picks who plans the weeks. There is one provider per deployment.
+
+- **Anthropic** (`llm.provider: anthropic`, the default). `llm.model` is optional and
+  defaults to the app's choice.
+- **OpenAI** (`llm.provider: openai`). `llm.model` is required. The key is an OpenAI
+  platform API key; a ChatGPT subscription does not include API access.
+- **An OpenAI-compatible server** (`llm.provider: openai` with `llm.baseURL`), such as
+  Azure OpenAI, LiteLLM or an Ollama or vLLM server of your own. `llm.model` is the model
+  name on that server. `llm.baseURL` becomes `MATLISTAN_OPENAI_BASE_URL`. It must be https,
+  except `http://` for a cluster service (`*.svc`) or localhost. `llm.apiKeySecret` can be
+  left out when the server takes no key.
+
+```yaml
+llm:
+  provider: openai
+  model: llama4
+  baseURL: http://ollama.ai.svc:11434/v1
+networkPolicy:
+  llm:              # the server listens on 11434, not 443
+    cidrs: [10.0.0.0/8]
+    port: 11434
+```
+
+The planner asks for answers that follow a strict JSON schema. Servers that do not enforce
+the schema produce more failed plans. The planner retries once with the errors, then shows
+the problem on the week.
 
 ## OIDC client
 
@@ -89,9 +119,9 @@ auth:
 session:
   keySecret:
     name: matlistan-session
-anthropic:
+llm:
   apiKeySecret:
-    name: matlistan-anthropic
+    name: matlistan-llm
 httpRoute:
   enabled: true
   parentRefs:
@@ -138,18 +168,26 @@ name already contains `matlistan`.
 
 The chart's NetworkPolicy (on by default) admits traffic from the Gateway and the metrics
 scraper only; set `networkPolicy.gateway` and `networkPolicy.metricsScraper` to their
-selectors. Egress is limited to DNS, the database and port 443 (the OIDC provider and
-`api.anthropic.com`). Metrics are served on port 9091, which the HTTPRoute does not expose.
+selectors. Egress is limited to DNS, the database and port 443 (the OIDC provider and the model
+provider), plus `networkPolicy.llm` when set. Metrics are served on port 9091, which the HTTPRoute does not expose.
 
 ## Personal data
 
 When a week is planned, Matlistan sends each family member's age, diets, allergies, likes
-and dislikes to the Anthropic API. Names are never sent. Allergies can count as data
-concerning health under GDPR Article 9 (Regulation (EU) 2016/679, applicable 2018-05-25),
-and Anthropic processes the request in the United States, a transfer governed by GDPR
-Chapter V (Articles 44 to 49). A purely private household use may fall under the household
-exemption in GDPR Article 2(2)(c), but that has not been verified. **VERIFY WITH LEGAL
-COUNSEL** before anyone outside your own household uses the app.
+and dislikes to the configured model provider. Names are never sent. Allergies can count as
+data concerning health under GDPR Article 9 (Regulation (EU) 2016/679, applicable
+2018-05-25).
+
+- **Anthropic and OpenAI** process the request in the United States: a transfer governed
+  by GDPR Chapter V (Articles 44 to 49).
+- **A self-hosted OpenAI-compatible server** in your own network keeps the data at home,
+  with no transfer.
+- **A third-party compatible service** (Azure OpenAI and others) is a processor in whatever
+  region it runs. Check the region and its terms.
+
+A purely private household use may fall under the household exemption in GDPR
+Article 2(2)(c), but that has not been verified.
+**VERIFY WITH LEGAL COUNSEL** before anyone outside your own household uses the app.
 
 Everything else (names, history, ratings, shopping lists) stays in your database.
 

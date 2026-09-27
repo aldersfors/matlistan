@@ -62,7 +62,8 @@ func TestDeployDocsNameEverySecret(t *testing.T) {
 	doc := string(raw)
 	for _, want := range []string{"oci://ghcr.io/aldersfors/helm-charts/matlistan",
 		"database.urlSecret", "oidc.clientSecret", "session.keySecret",
-		"anthropic.apiKeySecret", "/auth/callback", "kubectl create job", "database.cnpg",
+		"llm.apiKeySecret", "llm.provider", "MATLISTAN_OPENAI_BASE_URL",
+		"VERIFY WITH LEGAL COUNSEL", "/auth/callback", "kubectl create job", "database.cnpg",
 		"storageClass"} {
 		if !strings.Contains(doc, want) {
 			t.Errorf("docs/deploy.md lacks %q", want)

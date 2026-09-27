@@ -41,7 +41,7 @@ spec:
       ports:
         - port: {{ $np.database.port }}
           protocol: TCP
-    # The IdP and api.anthropic.com.
+    # The IdP and the model provider on 443.
     - to:
         {{- range $np.https.cidrs }}
         - ipBlock:
@@ -50,4 +50,15 @@ spec:
       ports:
         - port: {{ $np.https.port }}
           protocol: TCP
+    {{- if $np.llm.port }}
+    # A model server on another port or network.
+    - to:
+        {{- range $np.llm.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - port: {{ $np.llm.port }}
+          protocol: TCP
+    {{- end }}
 {{- end }}

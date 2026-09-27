@@ -13,6 +13,6 @@ auth:
 session:
   keySecret:
     name: matlistan-session
-anthropic:
+llm:
   apiKeySecret:
-    name: matlistan-anthropic
+    name: matlistan-llm

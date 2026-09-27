@@ -224,14 +224,14 @@ func TestSecretsAsFiles(t *testing.T) {
 	for k, want := range map[string]string{
 		"MATLISTAN_SESSION_KEY_FILE":        "/etc/matlistan/secrets/session-key",
 		"MATLISTAN_OIDC_CLIENT_SECRET_FILE": "/etc/matlistan/secrets/client-secret",
-		"MATLISTAN_ANTHROPIC_API_KEY_FILE":  "/etc/matlistan/secrets/anthropic-api-key",
+		"MATLISTAN_API_KEY_FILE":            "/etc/matlistan/secrets/llm-api-key",
 	} {
 		if env[k] != want {
 			t.Errorf("%s = %q", k, env[k])
 		}
 	}
 	raw, _ := json.Marshal(spec)
-	for _, secret := range []string{"matlistan-session", "matlistan-oidc", "matlistan-anthropic"} {
+	for _, secret := range []string{"matlistan-session", "matlistan-oidc", "matlistan-llm"} {
 		if !strings.Contains(string(raw), `"name":"`+secret+`"`) {
 			t.Errorf("secret %s not mounted", secret)
 		}
@@ -265,7 +265,7 @@ func TestDatabaseCAIsVerified(t *testing.T) {
 
 func TestRequiredValues(t *testing.T) {
 	for _, v := range []string{"baseURL=", "database.urlSecret.name=", "oidc.issuer=",
-		"oidc.clientSecret.name=", "session.keySecret.name=", "anthropic.apiKeySecret.name=",
+		"oidc.clientSecret.name=", "session.keySecret.name=", "llm.apiKeySecret.name=",
 		"auth.allowed=null"} {
 		if out, err := helmTemplate(t, "--set", v); err == nil {
 			t.Errorf("rendered without %s:\n%.200s", v, out)
@@ -525,5 +525,94 @@ func TestCNPGClusterIsNotSelectedAsTheApp(t *testing.T) {
 	}
 	if got := path(c, "metadata", "labels", "app.kubernetes.io/part-of"); got != "matlistan" {
 		t.Errorf("cluster part-of label = %v", got)
+	}
+}
+
+func TestOpenAIEnv(t *testing.T) {
+	objs := render(t, "--set", "llm.provider=openai", "--set", "llm.model=gpt-6",
+		"--set", "llm.baseURL=https://llm.example.org/v1")
+	for _, spec := range []any{podSpec(t, objs), cronPod(t, objs)} {
+		env := envOf(container(t, spec))
+		for k, want := range map[string]string{"MATLISTAN_PROVIDER": "openai",
+			"MATLISTAN_MODEL": "gpt-6", "MATLISTAN_OPENAI_BASE_URL": "https://llm.example.org/v1",
+			"MATLISTAN_API_KEY_FILE": "/etc/matlistan/secrets/llm-api-key"} {
+			if env[k] != want {
+				t.Errorf("%s = %q, want %q", k, env[k], want)
+			}
+		}
+	}
+	env := envOf(container(t, podSpec(t, objs)))
+	if _, err := config.Parse(func(k string) string { return env[k] }); err != nil {
+		t.Fatalf("serve config: %v", err)
+	}
+	jobEnv := envOf(container(t, cronPod(t, objs)))
+	if _, err := config.ParseGenerate(func(k string) string { return jobEnv[k] }); err != nil {
+		t.Fatalf("generate config: %v", err)
+	}
+}
+
+func TestOpenAINeedsAModel(t *testing.T) {
+	if _, err := helmTemplate(t, "--set", "llm.provider=openai"); err == nil {
+		t.Error("openai rendered without llm.model")
+	}
+	if _, err := helmTemplate(t, "--set", "llm.provider=gemini"); err == nil {
+		t.Error("unknown provider accepted")
+	}
+}
+
+// Review focus 1: the running homelab values still render the same key and model.
+func TestDeprecatedAnthropicValuesStillRender(t *testing.T) {
+	objs := render(t, "--set", "llm.apiKeySecret.name=", "--set", "anthropic.apiKeySecret.name=old",
+		"--set", "anthropic.model=claude-sonnet-5")
+	env := envOf(container(t, podSpec(t, objs)))
+	if env["MATLISTAN_API_KEY_FILE"] != "/etc/matlistan/secrets/llm-api-key" ||
+		env["MATLISTAN_MODEL"] != "claude-sonnet-5" || env["MATLISTAN_ANTHROPIC_API_KEY_FILE"] != "" {
+		t.Errorf("env = %v", env)
+	}
+	raw, _ := json.Marshal(podSpec(t, objs))
+	if !strings.Contains(string(raw), `"name":"old"`) {
+		t.Error("deprecated key secret not mounted")
+	}
+}
+
+// Review focus 5: a keyless local server leaves the job without a secrets volume.
+func TestCronJobWithoutKeyHasNoSecretVolume(t *testing.T) {
+	objs := render(t, "--set", "llm.apiKeySecret.name=", "--set", "llm.provider=openai",
+		"--set", "llm.model=llama4", "--set", "llm.baseURL=http://ollama.ml.svc:11434/v1")
+	spec := cronPod(t, objs)
+	raw, _ := json.Marshal(spec)
+	if strings.Contains(string(raw), `"name":"secrets"`) {
+		t.Errorf("job has a secrets volume without any secret: %s", raw)
+	}
+	env := envOf(container(t, spec))
+	if env["MATLISTAN_API_KEY_FILE"] != "" {
+		t.Errorf("key file env without a key: %v", env)
+	}
+	if _, err := config.ParseGenerate(func(k string) string { return env[k] }); err != nil {
+		t.Fatalf("generate config: %v", err)
+	}
+}
+
+func TestKeyRequiredForHostedProviders(t *testing.T) {
+	if _, err := helmTemplate(t, "--set", "llm.apiKeySecret.name="); err == nil {
+		t.Error("anthropic rendered without a key secret")
+	}
+	if _, err := helmTemplate(t, "--set", "llm.apiKeySecret.name=", "--set", "llm.provider=openai",
+		"--set", "llm.model=gpt-6"); err == nil {
+		t.Error("api.openai.com rendered without a key secret")
+	}
+}
+
+func TestNetworkPolicyModelServerPort(t *testing.T) {
+	np := one(t, render(t, "--set", "networkPolicy.llm.port=11434",
+		"--set", "networkPolicy.llm.cidrs[0]=10.0.0.0/8"), "NetworkPolicy")
+	raw, _ := json.Marshal(np["spec"])
+	if !strings.Contains(string(raw), `"port":11434`) || !strings.Contains(string(raw), `"cidr":"10.0.0.0/8"`) {
+		t.Errorf("policy lacks the model server rule: %s", raw)
+	}
+	np = one(t, render(t), "NetworkPolicy")
+	raw, _ = json.Marshal(np["spec"])
+	if strings.Contains(string(raw), `"port":11434`) {
+		t.Error("model server rule rendered without a port")
 	}
 }

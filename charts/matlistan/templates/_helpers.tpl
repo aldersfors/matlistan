@@ -25,7 +25,13 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 {{- $_ := required "oidc.clientID is required" .Values.oidc.clientID -}}
 {{- $_ := required "oidc.clientSecret.name is required" .Values.oidc.clientSecret.name -}}
 {{- $_ := required "session.keySecret.name is required" .Values.session.keySecret.name -}}
-{{- $_ := required "anthropic.apiKeySecret.name is required" .Values.anthropic.apiKeySecret.name -}}
+{{- if and (eq .Values.llm.provider "openai") (not .Values.llm.model) -}}
+{{- fail "llm.model is required for llm.provider openai" -}}
+{{- end -}}
+{{- $keyless := and (eq .Values.llm.provider "openai") .Values.llm.baseURL (not (contains "api.openai.com" .Values.llm.baseURL)) -}}
+{{- if and (not $keyless) (not (include "matlistan.llmKeySecret" .)) -}}
+{{- fail "llm.apiKeySecret.name is required (except for an OpenAI-compatible server without a key)" -}}
+{{- end -}}
 {{- if not .Values.auth.allowed -}}
 {{- fail "auth.allowed must list at least one claim value" -}}
 {{- end -}}
@@ -59,6 +65,20 @@ the CNPG cluster's own <cluster>-app and <cluster>-ca when database.cnpg is on. 
 {{- if or $t.light $t.dark -}}true{{- end -}}
 {{- end -}}
 
+{{/* The model key secret and its key, and the model: llm wins over the deprecated
+anthropic values. */}}
+{{- define "matlistan.llmKeySecret" -}}
+{{- .Values.llm.apiKeySecret.name | default .Values.anthropic.apiKeySecret.name -}}
+{{- end -}}
+
+{{- define "matlistan.llmKeyKey" -}}
+{{- if .Values.llm.apiKeySecret.name -}}{{ .Values.llm.apiKeySecret.key }}{{- else -}}{{ .Values.anthropic.apiKeySecret.key }}{{- end -}}
+{{- end -}}
+
+{{- define "matlistan.llmModel" -}}
+{{- .Values.llm.model | default .Values.anthropic.model -}}
+{{- end -}}
+
 {{/* Env shared by serve and generate. */}}
 {{- define "matlistan.env" -}}
 {{- $v := .Values -}}
@@ -75,26 +95,37 @@ the CNPG cluster's own <cluster>-app and <cluster>-ca when database.cnpg is on. 
   value: {{ $v.locale | quote }}
 - name: MATLISTAN_TIMEZONE
   value: {{ $v.timezone | quote }}
-- name: MATLISTAN_ANTHROPIC_API_KEY_FILE
-  value: /etc/matlistan/secrets/anthropic-api-key
-{{- with $v.anthropic.model }}
+- name: MATLISTAN_PROVIDER
+  value: {{ $v.llm.provider | quote }}
+{{- with include "matlistan.llmModel" . }}
 - name: MATLISTAN_MODEL
   value: {{ . | quote }}
+{{- end }}
+{{- with $v.llm.baseURL }}
+- name: MATLISTAN_OPENAI_BASE_URL
+  value: {{ . | quote }}
+{{- end }}
+{{- if include "matlistan.llmKeySecret" . }}
+- name: MATLISTAN_API_KEY_FILE
+  value: /etc/matlistan/secrets/llm-api-key
 {{- end }}
 {{- end -}}
 
 {{/* Projected secret volume; mode 0440 with fsGroup 65532 lets only the app read it. */}}
 {{- define "matlistan.secretVolume" -}}
 {{- $v := .Values -}}
+{{- if or (not .jobOnly) .llmKey }}
 - name: secrets
   projected:
     defaultMode: 0440
     sources:
+      {{- with .llmKey }}
       - secret:
-          name: {{ $v.anthropic.apiKeySecret.name }}
+          name: {{ . }}
           items:
-            - key: {{ $v.anthropic.apiKeySecret.key }}
-              path: anthropic-api-key
+            - key: {{ $.llmKeyKey }}
+              path: llm-api-key
+      {{- end }}
       {{- if not .jobOnly }}
       - secret:
           name: {{ $v.oidc.clientSecret.name }}
@@ -107,6 +138,7 @@ the CNPG cluster's own <cluster>-app and <cluster>-ca when database.cnpg is on. 
             - key: {{ $v.session.keySecret.key }}
               path: session-key
       {{- end }}
+{{- end }}
 {{- with .caSecret }}
 - name: db-ca
   secret:

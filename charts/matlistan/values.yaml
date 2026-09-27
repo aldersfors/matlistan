@@ -64,12 +64,26 @@ session:
     name: ""
     key: key
 
-anthropic:
-  # Secret with the Anthropic API key (required): the web UI and the CronJob plan with it.
+# The model that plans the weeks. provider: anthropic (default) or openai; openai also
+# works with any OpenAI-compatible server through baseURL.
+llm:
+  provider: anthropic
+  # Required for openai; empty uses the app default for anthropic.
+  model: ""
+  # openai only; empty is https://api.openai.com/v1. http is allowed only for a cluster
+  # service (*.svc) or localhost.
+  baseURL: ""
+  # Secret with the API key. Required except for an OpenAI-compatible server that takes no
+  # key. Used by the web app and the CronJob.
   apiKeySecret:
     name: ""
     key: api-key
-  # Empty uses the app default.
+
+# Deprecated: use llm. Still read when llm.apiKeySecret.name and llm.model are empty.
+anthropic:
+  apiKeySecret:
+    name: ""
+    key: api-key
   model: ""
 
 # The Sunday draft. The job plans the upcoming week and does nothing when it is planned.
@@ -109,11 +123,16 @@ networkPolicy:
     namespaceSelector: {}
     podSelector: {}
     port: 5432
-  # The IdP and api.anthropic.com, both on 443.
+  # The IdP and the model provider, both on 443.
   https:
     cidrs:
       - 0.0.0.0/0
     port: 443
+  # Optional egress to a model server on another port or network (for example an
+  # in-cluster Ollama on 11434). Renders only when port is set.
+  llm:
+    cidrs: []
+    port: 0
 
 serviceMonitor:
   enabled: false
