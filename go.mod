@@ -16,6 +16,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
+	golang.org/x/net v0.58.0
 	golang.org/x/oauth2 v0.37.0
 	sigs.k8s.io/yaml v1.6.0
 )
