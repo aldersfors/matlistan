@@ -38,7 +38,7 @@ func TestShortcutKeyLifecycle(t *testing.T) {
 	}
 	body := rec.Body.String()
 	key := _tokenRE.FindString(body)
-	if key == "" || !strings.Contains(body, "https://matlistan.example.lan/api/v1/shopping-list/current.json") {
+	if key == "" || !strings.Contains(body, "https://matlistan.example.lan/api/v1/shopping-list/current.md") {
 		t.Fatalf("key or url not shown: %.400s", body)
 	}
 	if _, again := get(t, h, "/settings"); strings.Contains(again, key) {
@@ -139,6 +139,26 @@ func TestExportAsJSON(t *testing.T) {
 		res.Header().Get("Cache-Control") != "no-store" ||
 		!strings.Contains(res.Body.String(), `"title":"Matlistan vecka 40"`) ||
 		!strings.Contains(res.Body.String(), `"1,5 kg pumpa"`) {
+		t.Fatalf("export: %d %q %.400s", res.Code, res.Header(), res.Body.String())
+	}
+	for _, a := range []string{"", "Bearer nope"} {
+		if res := exportAt(t, h, path, a); res.Code != http.StatusUnauthorized {
+			t.Errorf("%q: %d", a, res.Code)
+		}
+	}
+}
+
+func TestExportAsMarkdown(t *testing.T) {
+	h, _ := approvedWeek(t)
+	rec := post(t, h, "/settings/tokens", url.Values{"name": {"Annas iPhone"}})
+	key := _tokenRE.FindString(rec.Body.String())
+	const path = "/api/v1/shopping-list/current.md"
+	res := exportAt(t, h, path, "Bearer "+key)
+	if res.Code != http.StatusOK ||
+		!strings.HasPrefix(res.Header().Get("Content-Type"), "text/markdown") ||
+		res.Header().Get("Cache-Control") != "no-store" ||
+		!strings.Contains(res.Body.String(), "# Matlistan vecka 40\n") ||
+		!strings.Contains(res.Body.String(), "- [ ] 1,5 kg pumpa\n") {
 		t.Fatalf("export: %d %q %.400s", res.Code, res.Header(), res.Body.String())
 	}
 	for _, a := range []string{"", "Bearer nope"} {

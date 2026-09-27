@@ -156,3 +156,41 @@ func JSON(c *i18n.Catalog, l *List) string {
 	}
 	return strings.TrimSuffix(b.String(), "\n")
 }
+
+// Markdown is the export for the Shortcut that creates the note with "Interpret as
+// Markdown": Notes turns "##" into headings and "- [ ]" into tickboxes. Names are escaped
+// and kept on one line, so an item typed with Markdown in it stays one plain tickbox.
+func Markdown(c *i18n.Catalog, l *List) string {
+	e := exportOf(c, l)
+	var b strings.Builder
+	b.WriteString("# " + mdEscape(e.title) + "\n")
+	for _, s := range e.sections {
+		b.WriteString("\n## " + mdEscape(s.name) + "\n")
+		for _, it := range s.items {
+			b.WriteString("- [ ] " + itemMarkdown(c, it) + "\n")
+		}
+	}
+	if e.note != "" {
+		b.WriteString("\n" + mdEscape(e.note) + "\n")
+	}
+	return b.String()
+}
+
+func itemMarkdown(c *i18n.Catalog, it Item) string {
+	if it.Manual {
+		return mdEscape(it.Name)
+	}
+	line := mdEscape(it.Name + ", " + c.T("recipe.to_taste"))
+	if it.Quantity > 0 {
+		line = mdEscape(amountText(c, it.Quantity, it.Unit) + " " + it.Name)
+	}
+	if it.Optional {
+		line += " _(" + mdEscape(c.T("recipe.optional")) + ")_"
+	}
+	return line
+}
+
+var _mdSpecial = strings.NewReplacer(`\`, `\\`, "*", `\*`, "_", `\_`, "`", "\\`", "[", `\[`,
+	"]", `\]`, "#", `\#`, "<", `\<`, ">", `\>`)
+
+func mdEscape(s string) string { return _mdSpecial.Replace(strings.Join(strings.Fields(s), " ")) }
