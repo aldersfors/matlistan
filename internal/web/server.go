@@ -160,6 +160,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/shopping-list/current.txt", s.exportList)
 	mux.HandleFunc("GET /api/v1/shopping-list/current.html", s.exportHTML)
 	mux.HandleFunc("GET /api/v1/shopping-list/current.json", s.exportJSON)
+	mux.HandleFunc("GET /api/v1/shopping-list/current.md", s.exportMarkdown)
 
 	app := http.NewServeMux()
 	app.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {

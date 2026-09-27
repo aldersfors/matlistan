@@ -118,3 +118,29 @@ func TestJSON(t *testing.T) {
 		t.Fatalf("bought list = %s", got)
 	}
 }
+
+// Notes reads "- [ ]" as a tickbox when a Shortcut creates the note from Markdown.
+func TestMarkdown(t *testing.T) {
+	sv := catalog(t, i18n.SV)
+	l := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{
+		{Name: "pumpa", Section: "produce", Quantity: 1.5, Unit: "kg"},
+		{Name: "gul lök", Section: "produce", Quantity: 3, Unit: "pcs", Checked: true},
+		{Name: "koriander", Section: "produce", Quantity: 1, Unit: "pcs", Optional: true},
+		{Name: "salt", Section: "pantry"},
+		{Name: "*tandkräm* [x]\n# rad två", Section: "other", Manual: true},
+	}}
+	want := "# Matlistan vecka 40\n\n" +
+		"## Frukt och grönt\n- [ ] 1,5 kg pumpa\n- [ ] 1 st koriander _(valfri)_\n\n" +
+		"## Skafferi\n- [ ] salt, efter smak\n\n" +
+		"## Övrigt\n- [ ] \\*tandkräm\\* \\[x\\] \\# rad två\n"
+	if got := Markdown(sv, l); got != want {
+		t.Fatalf("Markdown =\n%q\nwant\n%q", got, want)
+	}
+	if got := Markdown(sv, nil); got != "# Matlistan\n\nIngen godkänd vecka än.\n" {
+		t.Fatalf("nil list = %q", got)
+	}
+	bought := &List{Key: weekplan.Key{Year: 2026, Week: 40}, Items: []Item{{Name: "mjölk", Checked: true}}}
+	if got := Markdown(sv, bought); got != "# Matlistan vecka 40\n\nAllt är köpt.\n" {
+		t.Fatalf("bought list = %q", got)
+	}
+}
