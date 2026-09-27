@@ -15,3 +15,4 @@ builds:
       - -X github.com/aldersfors/matlistan/internal/release.version={{.Env.VERSION}}
       - -X github.com/aldersfors/matlistan/internal/release.commit={{.Git.FullCommit}}
       - -X github.com/aldersfors/matlistan/internal/release.commitTime={{.Git.CommitDate}}
+      - -X github.com/aldersfors/matlistan/internal/release.buildTime={{.Date}}
