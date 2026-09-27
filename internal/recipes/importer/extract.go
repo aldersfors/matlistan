@@ -143,7 +143,7 @@ func steps(v any) []string {
 	for _, e := range list(v) {
 		switch t := e.(type) {
 		case string:
-			out = append(out, splitSentences(clean(t))...)
+			out = append(out, splitSteps(t)...)
 		case map[string]any:
 			if isType(t["@type"], "HowToSection") {
 				out = append(out, steps(t["itemListElement"])...)
@@ -155,12 +155,15 @@ func steps(v any) []string {
 	return out
 }
 
-// splitSentences keeps a single instruction string as one step unless it has line breaks.
-func splitSentences(s string) []string {
+var _breaks = regexp.MustCompile(`(?i)<br\s*/?>|</p>|<p[^>]*>|</li>|\r?\n`)
+
+// splitSteps splits one instruction string on line breaks, <br> and paragraphs, before
+// cleaning; a single run-on sentence stays one step.
+func splitSteps(raw string) []string {
 	var out []string
-	for _, l := range strings.Split(s, "\n") {
-		if l = strings.TrimSpace(l); l != "" {
-			out = append(out, l)
+	for _, part := range _breaks.Split(raw, -1) {
+		if c := clean(part); c != "" {
+			out = append(out, c)
 		}
 	}
 	return out

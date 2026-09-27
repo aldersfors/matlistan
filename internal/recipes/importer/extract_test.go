@@ -80,3 +80,17 @@ func TestISOMinutes(t *testing.T) {
 		}
 	}
 }
+
+// Review: instructions given as one string with line breaks or paragraphs are several steps.
+func TestInstructionStringWithBreaks(t *testing.T) {
+	for in, want := range map[string]string{
+		"Vispa smeten.\nStek pannkakorna.":             "Vispa smeten.|Stek pannkakorna.",
+		"<p>Vispa smeten.</p><p>Stek pannkakorna.</p>": "Vispa smeten.|Stek pannkakorna.",
+		"Vispa smeten.<br>Stek pannkakorna.":           "Vispa smeten.|Stek pannkakorna.",
+		"Vispa smeten. Stek pannkakorna.":              "Vispa smeten. Stek pannkakorna.",
+	} {
+		if got := strings.Join(steps(in), "|"); got != want {
+			t.Errorf("%q: %q, want %q", in, got, want)
+		}
+	}
+}
