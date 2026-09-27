@@ -15,6 +15,9 @@ import (
 	"github.com/aldersfors/matlistan/internal/auth"
 	"github.com/aldersfors/matlistan/internal/config"
 	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/planner"
+	"github.com/aldersfors/matlistan/internal/recipes/importer"
+	"github.com/aldersfors/matlistan/internal/release"
 	"github.com/aldersfors/matlistan/internal/store"
 	"github.com/aldersfors/matlistan/internal/theme"
 	"github.com/aldersfors/matlistan/internal/web"
@@ -53,7 +56,7 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	defer db.Close()
 	now := func() time.Time { return time.Now().In(cfg.Location) }
 	go pruneAuthEvents(ctx, db, now, log)
-	svc, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
+	svc, llm, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
 	if err != nil {
 		return err
 	}
@@ -94,10 +97,10 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
 		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Planner: pl,
-			Provider: webProvider(cfg.Planner),
-			BaseURL:  cfg.BaseURL,
-			Now:      now,
-			Log:      log})}
+			Provider: webProvider(cfg.Planner), Importer: newImporter(llm, cfg.Locale),
+			BaseURL: cfg.BaseURL,
+			Now:     now,
+			Log:     log})}
 	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
 		Handler: web.Metrics()}
 	errc := make(chan error, 2)
@@ -154,4 +157,14 @@ func pruneAuthEvents(ctx context.Context, db *store.Store, now func() time.Time,
 		case <-tick.C:
 		}
 	}
+}
+
+// newImporter reads recipe links; with no model it still reads JSON-LD pages.
+func newImporter(llm planner.LLM, l i18n.Locale) importer.Importer {
+	imp := importer.Importer{Lang: l, Fetch: importer.NewFetcher("Matlistan/" +
+		release.Version() + " (+https://github.com/aldersfors/matlistan)")}
+	if llm != nil {
+		imp.Norm = importer.NewNormaliser(llm)
+	}
+	return imp
 }

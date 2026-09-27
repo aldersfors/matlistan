@@ -101,6 +101,9 @@ func (s *server) parseRecipe(r *http.Request) (recipes.Recipe, validate.Errors) 
 		Steps:         recipes.SplitLines(r.PostFormValue("steps")),
 		Diets:         uniqueOptions(r.PostForm["diets"]),
 		Allergens:     uniqueOptions(r.PostForm["allergens"])}
+	if src := strings.TrimSpace(r.PostFormValue("source_url")); src != "" {
+		rec.Source, rec.SourceURL = "imported", src
+	}
 	var raw []int // raw[k] is the form row of rec.Ingredients[k]
 	for i := range _rowsMax {
 		name := strings.TrimSpace(r.PostFormValue(rowField(i, "name")))
@@ -138,7 +141,8 @@ func (s *server) recipeForm(rec recipes.Recipe, e validate.Errors) views.RecipeF
 	f := s.formOptions(views.RecipeForm{ID: rec.ID, Title: rec.Title,
 		Description: rec.Description, Servings: strconv.Itoa(rec.Servings),
 		TotalMinutes: strconv.Itoa(rec.TotalMinutes), ActiveMinutes: strconv.Itoa(rec.ActiveMinutes),
-		Tags: strings.Join(rec.Tags, ", "), Steps: strings.Join(rec.Steps, "\n"), Errors: e},
+		Tags: strings.Join(rec.Tags, ", "), Steps: strings.Join(rec.Steps, "\n"), Errors: e,
+		SourceURL: rec.SourceURL},
 		rec.Diets, rec.Allergens)
 	for i, in := range rec.Ingredients {
 		q := ""
@@ -156,7 +160,8 @@ func (s *server) rawRecipeForm(r *http.Request, id int64, e validate.Errors) vie
 	f := s.formOptions(views.RecipeForm{ID: id, Title: r.PostFormValue("title"),
 		Description: r.PostFormValue("description"), Servings: r.PostFormValue("servings"),
 		TotalMinutes: r.PostFormValue("total_minutes"), ActiveMinutes: r.PostFormValue("active_minutes"),
-		Tags: r.PostFormValue("tags"), Steps: r.PostFormValue("steps"), Errors: e},
+		Tags: r.PostFormValue("tags"), Steps: r.PostFormValue("steps"), Errors: e,
+		SourceURL: r.PostFormValue("source_url")},
 		r.PostForm["diets"], r.PostForm["allergens"])
 	last := -1
 	for i := range _rowsMax {

@@ -20,20 +20,29 @@ func (s *server) recipeList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, i18n.T(r.Context(), "error.bad_request"), http.StatusBadRequest)
 		return
 	}
-	q := []rune(strings.TrimSpace(raw))
-	q = q[:min(len(q), _queryRunesMax)]
-	list, err := s.Store.ListRecipes(r.Context(), s.Catalog.Locale(), string(q))
+	v, err := s.recipeListView(r, raw)
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	v := views.RecipeList{Query: string(q)}
+	s.render(w, r, http.StatusOK, views.RecipeListPage(v))
+}
+
+// recipeListView is the library for query raw (trimmed and capped).
+func (s *server) recipeListView(r *http.Request, raw string) (views.RecipeList, error) {
+	q := []rune(strings.TrimSpace(raw))
+	q = q[:min(len(q), _queryRunesMax)]
+	list, err := s.Store.ListRecipes(r.Context(), s.Catalog.Locale(), string(q))
+	if err != nil {
+		return views.RecipeList{}, err
+	}
+	v := views.RecipeList{Query: string(q), CanImport: s.Importer != nil}
 	for _, it := range list {
 		v.Items = append(v.Items, views.RecipeItem{ID: it.ID, Title: it.Title,
 			Meta:   s.Catalog.T("recipes.minutes", "n", it.TotalMinutes),
 			Rating: s.ratingText(it.Rating)})
 	}
-	s.render(w, r, http.StatusOK, views.RecipeListPage(v))
+	return v, nil
 }
 
 func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +64,10 @@ func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
 		Steps: rec.Steps, CookHref: cookHref(rec.ID, servings, day)}
 	if rt := s.ratingText(rec.Rating); rt != "" {
 		v.Meta += ", " + rt
+	}
+	if rec.SourceURL != "" {
+		v.SourceHref = rec.SourceURL
+		v.Source = s.Catalog.T("recipes.source", "host", hostOf(rec.SourceURL))
 	}
 	for _, d := range rec.Diets {
 		v.Chips = append(v.Chips, c.Diet(d))

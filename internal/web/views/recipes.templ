@@ -16,14 +16,17 @@ type RecipeItem struct {
 
 // RecipeList is the library page.
 type RecipeList struct {
-	Query string
-	Items []RecipeItem
+	Query                        string
+	Items                        []RecipeItem
+	CanImport                    bool
+	ImportError, ImportDuplicate string // a message, or the path of the recipe already imported
 }
 
 // RecipeView is one recipe, formatted for reading.
 type RecipeView struct {
 	ID                                 int64
 	Title, Description, Meta, CookHref string
+	Source, SourceHref                 string // "Källa: ica.se" and its link; "" for own recipes
 	Chips, Ingredients, Steps          []string
 }
 
@@ -40,6 +43,8 @@ type RecipeForm struct {
 	Title, Description, Servings, TotalMinutes, ActiveMinutes, Tags, Steps string
 	Diets, Allergens, Units, Sections                                      []Option
 	Rows                                                                   []IngredientRow
+	SourceURL string   // the imported page, kept as a hidden field
+	Notes     []string // localised notes from an import
 	Errors                                                                 validate.Errors
 }
 
@@ -69,6 +74,21 @@ templ RecipeListPage(v RecipeList) {
 					<input class="h-12 rounded-xl border border-line bg-panel px-3" type="search" name="q" value={ v.Query } placeholder={ i18n.T(ctx, "recipes.search") }/>
 				</label>
 			</form>
+			if v.CanImport {
+				<form method="post" action="/recipes/import" class="flex items-end gap-2">
+					<label class="flex min-w-0 flex-grow flex-col gap-1">
+						<span class="text-sm font-bold">{ i18n.T(ctx, "import.title") }</span>
+						<input class="h-12 rounded-xl border border-line bg-panel px-3" type="url" name="url" inputmode="url" placeholder="https://" required/>
+					</label>
+					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "import.submit") }</button>
+				</form>
+			}
+			if v.ImportError != "" {
+				<p role="alert" class="rounded-xl bg-attention p-3 font-bold text-attention-text">{ v.ImportError }</p>
+			}
+			if v.ImportDuplicate != "" {
+				<p role="status" class="rounded-xl bg-panel p-3">{ i18n.T(ctx, "import.duplicate") } <a class="font-bold underline" href={ templ.SafeURL(v.ImportDuplicate) }>{ i18n.T(ctx, "import.duplicate_open") }</a></p>
+			}
 			if len(v.Items) == 0 && v.Query == "" {
 				<p class="px-2 text-muted">{ i18n.T(ctx, "recipes.empty") }</p>
 			}
@@ -101,6 +121,9 @@ templ RecipePage(v RecipeView) {
 			<header class="flex flex-col gap-2 px-2 pt-12">
 				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ v.Title }</h1>
 				<p class="text-muted">{ v.Meta }</p>
+				if v.SourceHref != "" {
+					<a class="text-sm text-muted underline" href={ templ.SafeURL(v.SourceHref) } target="_blank" rel="noopener noreferrer">{ v.Source }</a>
+				}
 				if v.Description != "" {
 					<p>{ v.Description }</p>
 				}
@@ -139,6 +162,12 @@ templ RecipeFormPage(f RecipeForm) {
 		<main class="mx-auto flex max-w-md flex-col gap-4 px-3">
 			@pageHeader(recipeFormTitle(ctx, f))
 			<form method="post" action={ templ.URL(recipeAction(f)) } class="flex flex-col gap-4">
+				for _, n := range f.Notes {
+					<p role="status" class="rounded-xl bg-panel p-3 text-sm">{ n }</p>
+				}
+				if f.SourceURL != "" {
+					<input type="hidden" name="source_url" value={ f.SourceURL }/>
+				}
 				@formSummary(f.Errors)
 				@textField(i18n.T(ctx, "recipe.title"), "title", f.Title, f.Errors)
 				@textArea(i18n.T(ctx, "recipe.description"), "description", f.Description, f.Errors)

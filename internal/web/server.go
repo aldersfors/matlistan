@@ -50,6 +50,7 @@ type Store interface {
 	ListRecipes(ctx context.Context, lang i18n.Locale, q string) ([]recipes.Summary, error)
 	GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error)
 	CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, error)
+	FindRecipeBySourceURL(ctx context.Context, url string) (int64, error)
 	UpdateRecipe(ctx context.Context, r recipes.Recipe) error
 	ArchiveRecipe(ctx context.Context, id int64) error
 	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
@@ -89,6 +90,13 @@ type Deps struct {
 	Build   release.Info // the running build for the footer; zero means release.Get()
 	// Provider is who planning data goes to, for the Family page.
 	Provider Provider
+	// Importer reads a recipe from a link; nil hides import.
+	Importer RecipeImporter
+}
+
+// RecipeImporter reads a recipe page into an unsaved recipe plus note keys for the form.
+type RecipeImporter interface {
+	Import(ctx context.Context, url string) (recipes.Recipe, []string, error)
 }
 
 // Provider is the model provider as the Family page names it: Name is "anthropic" or
@@ -175,6 +183,7 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("GET /recipes", s.recipeList)
 	app.HandleFunc("GET /recipes/new", s.newRecipe)
 	app.HandleFunc("POST /recipes", s.createRecipe)
+	app.HandleFunc("POST /recipes/import", s.importRecipe)
 	app.HandleFunc("GET /recipes/{id}", s.showRecipe)
 	app.HandleFunc("GET /recipes/{id}/edit", s.editRecipe)
 	app.HandleFunc("POST /recipes/{id}", s.updateRecipe)

@@ -52,7 +52,7 @@ func generate(ctx context.Context, e env, args []string) int {
 		return 1
 	}
 	defer db.Close()
-	svc, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
+	svc, _, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
 	if err != nil {
 		log.Error().Err(err).Msg("planner")
 		return 1
@@ -82,22 +82,24 @@ func parseWeekFlag(s string) (weekplan.Key, error) {
 	return k, nil
 }
 
-// newPlanner builds the planning service; nil when planning is not configured.
+// newPlanner builds the planning service and the model client it uses; both nil when
+// planning is not configured. The client also serves recipe import.
 func newPlanner(cfg config.Planner, db *store.Store, l i18n.Locale, loc *time.Location,
-	log zerolog.Logger) (*planner.Service, error) {
+	log zerolog.Logger) (*planner.Service, planner.LLM, error) {
 	if !cfg.Enabled() {
-		return nil, nil //nolint:nilnil // nil service means planning is off
+		return nil, nil, nil
 	}
 	var key string
 	if cfg.APIKeyFile != "" {
 		b, err := os.ReadFile(cfg.APIKeyFile) //nolint:gosec // operator configuration
 		if err != nil {
-			return nil, fmt.Errorf("api key: %w", err)
+			return nil, nil, fmt.Errorf("api key: %w", err)
 		}
 		key = strings.TrimSpace(string(b))
 	}
-	return planner.NewService(db, newLLM(cfg, key), l, loc, log,
-		func(err error) bool { return errors.Is(err, store.ErrNotFound) }), nil
+	llm := newLLM(cfg, key)
+	return planner.NewService(db, llm, l, loc, log,
+		func(err error) bool { return errors.Is(err, store.ErrNotFound) }), llm, nil
 }
 
 // newLLM builds the client for the configured provider.

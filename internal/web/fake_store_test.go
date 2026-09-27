@@ -512,3 +512,14 @@ func (f *fakeStore) WeekRatings(_ context.Context, k weekplan.Key) (map[int]map[
 	}
 	return out, nil
 }
+
+func (f *fakeStore) FindRecipeBySourceURL(_ context.Context, u string) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for id, r := range f.recipes {
+		if r.SourceURL == u {
+			return id, nil
+		}
+	}
+	return 0, store.ErrNotFound
+}
