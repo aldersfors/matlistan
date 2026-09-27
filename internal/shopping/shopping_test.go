@@ -114,3 +114,59 @@ func TestToTasteUseKeepsItsDayAndNeed(t *testing.T) {
 		t.Fatalf("items = %+v", items)
 	}
 }
+
+// Amounts read in the natural unit, also when every use has the same unit.
+func TestBuildShowsReadableUnits(t *testing.T) {
+	items, _ := Build([]Use{
+		use(1, 4, 4, "nötfärs", 800, "g", "meat_fish"), use(2, 4, 4, "nötfärs", 600, "g", "meat_fish"),
+		use(1, 4, 4, "passerade tomater", 250, "ml", "pantry"),
+		use(1, 4, 4, "ris", 8, "dl", "pantry"),
+		use(1, 4, 4, "mjölk", 12, "dl", "dairy"),
+		use(1, 4, 4, "ost", 900, "g", "dairy"),
+		use(1, 4, 4, "smör", 3, "tbsp", "dairy"),
+		use(1, 4, 4, "salt", 50, "ml", "pantry"),
+	}, nil)
+	for _, c := range []struct {
+		name, unit string
+		q          float64
+	}{{"nötfärs", "kg", 1.4}, {"passerade tomater", "dl", 2.5}, {"ris", "dl", 8},
+		{"mjölk", "l", 1.2}, {"ost", "g", 900}, {"smör", "tbsp", 3}, {"salt", "ml", 50}} {
+		if got := find(t, items, c.name, c.unit); got.Quantity != c.q {
+			t.Errorf("%s = %+v, want %v %s", c.name, got, c.q, c.unit)
+		}
+	}
+}
+
+// The same food under its singular and plural name is one line, shown in the singular.
+func TestBuildMergesPluralNames(t *testing.T) {
+	items, _ := Build([]Use{
+		use(1, 4, 4, "morot", 2, "pcs", "produce"),
+		use(2, 4, 4, "morötter", 10, "pcs", "produce"),
+		use(3, 4, 4, "Tomater", 2, "pcs", "produce"),
+		use(4, 4, 4, "tomat", 1, "pcs", "produce"),
+		use(1, 4, 4, "mjöl", 2, "dl", "pantry"),
+		use(1, 4, 4, "mjölk", 2, "dl", "dairy"),
+	}, nil)
+	if got := find(t, items, "morot", "pcs"); got.Quantity != 12 || !slices.Equal(got.Days, []int{1, 2}) {
+		t.Errorf("morot = %+v", got)
+	}
+	if got := find(t, items, "tomat", "pcs"); got.Quantity != 3 {
+		t.Errorf("tomat = %+v", got)
+	}
+	for _, it := range items {
+		if it.Name == "morötter" || it.Name == "Tomater" {
+			t.Errorf("plural line kept: %+v", it)
+		}
+	}
+	find(t, items, "mjöl", "dl")
+	find(t, items, "mjölk", "dl")
+}
+
+// A staple written in the plural still keeps its singular off the list, and the reverse.
+func TestStaplesMatchPluralNames(t *testing.T) {
+	items, n := Build([]Use{use(1, 4, 4, "vitlöksklyftor", 4, "pcs", "produce")},
+		[]household.Staple{{Name: "Vitlöksklyfta"}})
+	if len(items) != 0 || n != 1 {
+		t.Fatalf("items %+v excluded %d", items, n)
+	}
+}

@@ -79,3 +79,10 @@ func TestParseProposal(t *testing.T) {
 		t.Fatal("prose accepted")
 	}
 }
+
+// The shopping list sums the same food across recipes, so names must not vary in number.
+func TestSystemPromptAsksForSingularNames(t *testing.T) {
+	if p := SystemPrompt(i18n.SV); !strings.Contains(p, "singular base form") {
+		t.Fatalf("no singular rule in:\n%s", p)
+	}
+}

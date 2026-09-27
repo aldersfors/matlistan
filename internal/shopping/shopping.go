@@ -70,7 +70,7 @@ type group struct {
 func Build(uses []Use, staples []household.Staple) ([]Item, int) {
 	isStaple := map[string]bool{}
 	for _, s := range staples {
-		isStaple[household.StapleKey(s.Name)] = true
+		isStaple[nameKey(s.Name)] = true
 	}
 	groups := map[string]*group{}
 	measured := map[string]bool{} // names with an amount in some dimension
@@ -78,7 +78,7 @@ func Build(uses []Use, staples []household.Staple) ([]Item, int) {
 	var order []string
 	for _, u := range uses {
 		in := u.Ingredient
-		name := household.StapleKey(in.Name)
+		name := nameKey(in.Name)
 		if isStaple[name] {
 			excluded[name] = true
 			continue
@@ -91,7 +91,7 @@ func Build(uses []Use, staples []household.Staple) ([]Item, int) {
 		key := name + "\x00" + string(rune('0'+dim))
 		g, ok := groups[key]
 		if !ok {
-			g = &group{name: strings.Join(strings.Fields(in.Name), " "), section: in.Section,
+			g = &group{name: baseName(in.Name), section: in.Section,
 				dim: dim, units: map[string]bool{}, optional: true}
 			groups[key] = g
 			order = append(order, key)
@@ -111,13 +111,13 @@ func Build(uses []Use, staples []household.Staple) ([]Item, int) {
 	// its need (not optional) carry over to the amounts, so the list still says who needs it.
 	for _, key := range order {
 		g := groups[key]
-		name := household.StapleKey(g.name)
+		name := nameKey(g.name)
 		if g.dim != dimNone || !measured[name] {
 			continue
 		}
 		for _, other := range order {
 			o := groups[other]
-			if o.dim == dimNone || household.StapleKey(o.name) != name {
+			if o.dim == dimNone || nameKey(o.name) != name {
 				continue
 			}
 			for _, d := range g.days {
@@ -131,7 +131,7 @@ func Build(uses []Use, staples []household.Staple) ([]Item, int) {
 	var items []Item
 	for _, key := range order {
 		g := groups[key]
-		if g.dim == dimNone && measured[household.StapleKey(g.name)] {
+		if g.dim == dimNone && measured[nameKey(g.name)] {
 			continue
 		}
 		it := Item{Name: g.name, Section: g.section, Optional: g.optional,
@@ -154,10 +154,14 @@ func amount(g *group) (float64, string) {
 	}
 	if len(g.units) == 1 {
 		for u := range g.units {
-			if u == "pcs" {
+			switch u {
+			case "pcs":
 				return math.Ceil(g.sameUnit - 1e-9), u
+			case "g", "kg", "ml", "dl", "l":
+				// Grams and litres read best in their natural size: 1,4 kg, 2,5 dl.
+			default:
+				return round2(g.sameUnit), u // spoons and pinches stay as the recipe says
 			}
-			return round2(g.sameUnit), u
 		}
 	}
 	switch g.dim {
