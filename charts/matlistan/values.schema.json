@@ -303,6 +303,34 @@
           "additionalProperties": {
             "type": "string",
             "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+          },
+          "propertyNames": {
+            "enum": [
+              "page",
+              "panel",
+              "line",
+              "ink",
+              "muted",
+              "focus",
+              "primary",
+              "primaryInk",
+              "attention",
+              "attentionText",
+              "day1",
+              "day2",
+              "day3",
+              "day4",
+              "day5",
+              "day6",
+              "day7",
+              "day1Ink",
+              "day2Ink",
+              "day3Ink",
+              "day4Ink",
+              "day5Ink",
+              "day6Ink",
+              "day7Ink"
+            ]
           }
         },
         "dark": {
@@ -310,6 +338,34 @@
           "additionalProperties": {
             "type": "string",
             "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+          },
+          "propertyNames": {
+            "enum": [
+              "page",
+              "panel",
+              "line",
+              "ink",
+              "muted",
+              "focus",
+              "primary",
+              "primaryInk",
+              "attention",
+              "attentionText",
+              "day1",
+              "day2",
+              "day3",
+              "day4",
+              "day5",
+              "day6",
+              "day7",
+              "day1Ink",
+              "day2Ink",
+              "day3Ink",
+              "day4Ink",
+              "day5Ink",
+              "day6Ink",
+              "day7Ink"
+            ]
           }
         }
       }

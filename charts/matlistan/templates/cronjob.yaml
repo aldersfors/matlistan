@@ -12,7 +12,9 @@ spec:
   # generate does nothing when the week is already planned, so a missed or repeated run is
   # harmless; Forbid keeps two from racing.
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 3600
+  # On Sunday, generate plans next week at any hour, so a node that was down at 07:00 still
+  # gets the draft if the job starts by 23:00.
+  startingDeadlineSeconds: 57600
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:

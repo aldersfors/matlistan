@@ -429,3 +429,24 @@ func TestCronJobPodHardening(t *testing.T) {
 		t.Errorf("job container securityContext = %v", c["securityContext"])
 	}
 }
+
+// Review M6: a node down at 07:00 must not cost the week's draft. generate plans next week
+// for any time on Sunday, so the job may start as late as Sunday evening.
+func TestCronJobStartsLateOnSunday(t *testing.T) {
+	cj := one(t, render(t), "CronJob")
+	if got := path(cj, "spec", "startingDeadlineSeconds"); got != 57600.0 {
+		t.Errorf("startingDeadlineSeconds = %v, want 57600 (16h)", got)
+	}
+}
+
+// Review M6: the app rejects unknown theme keys at startup, so the schema must too.
+func TestThemeSchemaRejectsUnknownKeys(t *testing.T) {
+	if _, err := helmTemplate(t, "--set-string", "theme.light.primray=#ffffff"); err == nil {
+		t.Error("schema accepted a misspelt theme key")
+	}
+	for _, k := range theme.Tokens {
+		if out, err := helmTemplate(t, "--set-string", "theme.dark."+k+"=#123456"); err != nil {
+			t.Errorf("schema rejected theme token %s: %v\n%.200s", k, err, out)
+		}
+	}
+}
