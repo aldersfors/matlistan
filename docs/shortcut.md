@@ -7,8 +7,9 @@ Three formats are served, all with the same key:
 
 | Address | Use |
 |---|---|
-| `current.json` | The checklist shortcut below. Needs iOS 18.1 or later |
+| `current.md` | The checklist shortcut below: headings and tickboxes |
 | `current.html` | A note with headings and bullets, through **Make Rich Text from HTML** |
+| `current.json` | The title and each section's items as lines, for your own shortcuts |
 | `current.txt` | Plain text, for anything else |
 
 ## Before you start
@@ -21,35 +22,21 @@ Three formats are served, all with the same key:
 
 ## Build the shortcut
 
-In the Shortcuts app, create a shortcut with these actions. "Get Dictionary Value" takes the
-key named in each step.
+In the Shortcuts app, create a shortcut with two actions:
 
 1. **Get Contents of URL**
    - URL: the address from Settings, for example
-     `https://matlistan.example.org/api/v1/shopping-list/current.json`
+     `https://matlistan.example.org/api/v1/shopping-list/current.md`
    - Method: GET
    - Headers: `Authorization` = `Bearer ` followed by the key
-2. **Get Dictionary Value** `title` from **Contents of URL**.
-3. **Create Note** with **Dictionary Value** as the body, in the folder you want (for example
-   a shared "Matlistan" folder, so the whole family sees it). The first line becomes the
-   note's title.
-4. **Get Dictionary Value** `sections` from **Contents of URL**.
-5. **Repeat with Each** item in **Dictionary Value**. Inside the repeat:
-   1. **Get Dictionary Value** `name` from **Repeat Item**.
-   2. **Append to Note**: an empty line, then **Dictionary Value** on the next line. Note:
-      the note from step 3. The empty line is the space between sections.
-   3. **Get Dictionary Value** `items` from **Repeat Item**.
-   4. **Combine Text** from **Dictionary Value** with **New Lines**.
-   5. **Append Checklist Item**: **Combined Text**, to the note from step 3. Each line becomes
-      one tickbox.
-6. Optional: **Get Dictionary Value** `note` from **Contents of URL**, then **Append to Note**.
-   This adds "Allt är köpt." or "Ingen godkänd vecka än." when there is nothing to buy; the
-   value is empty otherwise.
+2. **Create Note** with **Contents of URL** as the body, in the folder you want (for example
+   a shared "Matlistan" folder, so the whole family sees it). Open its options:
+   - **Interpret as Markdown**: on. This is what turns the lines into headings and
+     tickboxes.
+   - **Name**: empty. The list's first line, "Matlistan vecka 40", becomes the title.
 
-Run it once by hand and check the note.
-
-For bold section headings, put **Make Rich Text from HTML** before step 5.2 with
-`<br><b>` + **Dictionary Value** + `</b>` and append its result instead.
+Run it once by hand and check the note: a title, a heading per store section with space
+above it, and a tickbox per item.
 
 ## Run it every Sunday
 
@@ -64,10 +51,9 @@ at the end if you want a reminder that the list is ready.
   shortcut. To check the key, run step 1 alone and look at its result.
 - The note says everything is bought: every item was ticked in Matlistan.
 - The note says there is no approved week: approve the week in Matlistan first.
-- The note shows `{"title":...`: step 3 uses **Contents of URL** instead of the dictionary
-  value from step 2.
-- Bullets instead of tickboxes: the shortcut uses `current.html`. Switch to `current.json`
-  and the steps above.
+- The note shows `#` and `- [ ]` as text: **Interpret as Markdown** is off in step 2.
+- The title appears twice: the **Name** field in step 2 is filled in. Clear it.
+- Bullets instead of tickboxes: the shortcut uses `current.html`. Switch to `current.md`.
 - A certificate error: the phone does not trust your CA, or it is not on the network or
   Tailscale.
 
