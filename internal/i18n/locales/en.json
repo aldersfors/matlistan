@@ -139,6 +139,7 @@
   "import.note.unit_unknown": "Some amounts or units could not be read. Check the ingredients.",
   "import.note.no_model": "The ingredients are not split up. Fill in amount and unit.",
   "import.note.translated": "The recipe has been translated.",
+  "import.note.unparsed": "Some ingredients could not be split up and are shown as written. Check them.",
   "recipes.source": "Source: {host}",
   "recipes.servings": {"one": "{n} serving", "other": "{n} servings"},
   "recipes.rating": {"one": "{avg} of 5 from 1 rating", "other": "{avg} of 5 from {n} ratings"},

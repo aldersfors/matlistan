@@ -30,7 +30,7 @@ func (f *fakeLLM) Send(_ context.Context, text string) (planner.Reply, error) {
 }
 
 func TestNormaliserIngredients(t *testing.T) {
-	f := &fakeLLM{reply: `{"ingredients":[{"name":"blandfärs","quantity":500,"unit":"g","section":"meat_fish","optional":false},{"name":"ägg","quantity":1,"unit":"pcs","section":"dairy","optional":false}]}`}
+	f := &fakeLLM{reply: `{"ingredients":[{"name":"blandfärs","quantity":500,"unit":"g","section":"meat_fish","optional":false,"heading":false},{"name":"ägg","quantity":1,"unit":"pcs","section":"dairy","optional":false,"heading":false}]}`}
 	got, notes, err := NewNormaliser(f).Ingredients(context.Background(), []string{"500 g blandfärs", "1 ägg"}, i18n.SV)
 	if err != nil || len(got) != 2 || got[0].Quantity != 500 || got[0].Unit != "g" ||
 		got[0].Section != "meat_fish" || len(notes) != 0 {
@@ -46,15 +46,54 @@ func TestNormaliserIngredients(t *testing.T) {
 	}
 }
 
-// Review focus 2: keys the app does not know are cleared, with a note, never guessed.
+// Review focus 2: an amount that cannot be kept never disappears: the raw line stays as the
+// name, with a note.
 func TestNormaliserClearsUnknownKeys(t *testing.T) {
-	f := &fakeLLM{reply: `{"ingredients":[{"name":"mjölk","quantity":2,"unit":"cup","section":"drinks","optional":false}]}`}
+	f := &fakeLLM{reply: `{"ingredients":[{"name":"mjölk","quantity":2,"unit":"cup","section":"drinks","optional":false,"heading":false}]}`}
 	got, notes, err := NewNormaliser(f).Ingredients(context.Background(), []string{"2 cups milk"}, i18n.SV)
-	if err != nil || got[0].Unit != "" || got[0].Section != "other" || got[0].Quantity != 0 {
+	if err != nil || got[0].Unit != "" || got[0].Section != "other" || got[0].Quantity != 0 ||
+		got[0].Name != "2 cups milk" {
 		t.Fatalf("got %+v %v", got, err)
 	}
 	if len(notes) == 0 || notes[0] != "import.note.unit_unknown" {
 		t.Errorf("notes = %v", notes)
+	}
+}
+
+// Review: a quantity with no unit ("1 burk hela tomater") keeps the whole line.
+func TestNormaliserKeepsTheLineWhenTheUnitIsMissing(t *testing.T) {
+	f := &fakeLLM{reply: `{"ingredients":[{"name":"hela tomater","quantity":1,"unit":null,"section":"pantry","optional":false,"heading":false}]}`}
+	got, notes, _ := NewNormaliser(f).Ingredients(context.Background(),
+		[]string{"1 burk hela tomater (à ca 400 g)"}, i18n.SV)
+	if got[0].Name != "1 burk hela tomater (à ca 400 g)" || got[0].Quantity != 0 || len(notes) == 0 {
+		t.Fatalf("got %+v notes %v", got, notes)
+	}
+}
+
+// Review: a skipped or merged line would vanish; a count mismatch falls back to every raw line.
+func TestNormaliserFallsBackWhenLinesGoMissing(t *testing.T) {
+	f := &fakeLLM{reply: `{"ingredients":[{"name":"ägg","quantity":3,"unit":"pcs","section":"dairy","optional":false,"heading":false}]}`}
+	got, notes, err := NewNormaliser(f).Ingredients(context.Background(),
+		[]string{"3 ägg", "0,5 tsk salt"}, i18n.SV)
+	if err != nil || len(got) != 2 || got[1].Name != "0,5 tsk salt" || got[0].Name != "3 ägg" {
+		t.Fatalf("got %+v %v", got, err)
+	}
+	if len(notes) == 0 || notes[0] != "import.note.unparsed" {
+		t.Errorf("notes = %v", notes)
+	}
+}
+
+// Review: headings in recipeIngredient ("Till servering") are not ingredients.
+func TestNormaliserDropsHeadings(t *testing.T) {
+	f := &fakeLLM{reply: `{"ingredients":[{"name":"till servering","quantity":null,"unit":null,"section":"other","optional":false,"heading":true},{"name":"lingonsylt","quantity":null,"unit":null,"section":"pantry","optional":true,"heading":false}]}`}
+	got, _, err := NewNormaliser(f).Ingredients(context.Background(),
+		[]string{"Till servering", "lingonsylt"}, i18n.SV)
+	if err != nil || len(got) != 1 || got[0].Name != "lingonsylt" {
+		t.Fatalf("got %+v %v", got, err)
+	}
+	if !strings.Contains(f.system, "pcs") || !strings.Contains(f.system, "msk") ||
+		!strings.Contains(f.system, "heading") {
+		t.Errorf("prompt lacks unit mapping or heading rule: %q", f.system)
 	}
 }
 

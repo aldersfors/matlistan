@@ -58,10 +58,7 @@ func (im Importer) Import(ctx context.Context, rawURL string) (recipes.Recipe, [
 		ingr, inotes, err = im.Norm.Ingredients(ctx, d.IngredientLines, im.Lang)
 	}
 	if im.Norm == nil || err != nil {
-		ingr, inotes = nil, []string{"import.note.no_model"}
-		for _, l := range d.IngredientLines {
-			ingr = append(ingr, recipes.Ingredient{Name: l, Section: "other"})
-		}
+		ingr, inotes = rawIngredients(d.IngredientLines), []string{"import.note.no_model"}
 	}
 	r.Ingredients = ingr
 	return r, append(notes, inotes...), nil

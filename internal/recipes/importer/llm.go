@@ -61,6 +61,7 @@ func ingredientSchema() map[string]any {
 		"unit":     nullable(map[string]any{"type": "string", "enum": recipes.Units}),
 		"section":  map[string]any{"type": "string", "enum": recipes.Sections},
 		"optional": map[string]any{"type": "boolean"},
+		"heading":  map[string]any{"type": "boolean"},
 	}))})
 }
 
@@ -83,15 +84,20 @@ func (n llmNormaliser) ask(ctx context.Context, system string, schema map[string
 	return nil
 }
 
-// Ingredients maps free-text ingredient lines to matlistan ingredients.
+// Ingredients maps free-text ingredient lines to matlistan ingredients. Nothing the page
+// said is lost: when the model skips or merges lines, every raw line is kept; when an amount
+// cannot be kept, the raw line becomes the name. Each loss adds a note for the form.
 func (n llmNormaliser) Ingredients(ctx context.Context, lines []string, lang i18n.Locale) (
 	[]recipes.Ingredient, []string, error) {
-	system := _dataRule + "Turn each recipe ingredient line into one ingredient, in the same " +
-		"order. Write names in " + _languages[lang] + ", in lower case, without the amount. " +
-		"Use metric units only and convert cups, ounces and pounds. Use unit null and " +
-		"quantity null when the line has no amount (\"salt\", \"efter smak\"). Never invent " +
-		"an amount. Mark ingredients the recipe calls optional. Pick the store section the " +
-		"item is sold in."
+	system := _dataRule + "Return exactly one item per input line, in the same order, never " +
+		"merging or skipping lines. Write names in " + _languages[lang] + ", in lower case, " +
+		"without the amount. Units: g, kg, ml, dl, l; tbsp for msk, tsp for tsk, ml for krm " +
+		"(1 krm = 1 ml); pcs for counted items (st, ägg, lökar, burkar); pinch for a nypa. " +
+		"Convert cups, ounces and pounds to metric. Write fractions as decimals (½ = 0.5, " +
+		"1 1/2 = 1.5). Use unit null and quantity null when the line has no amount (\"salt\", " +
+		"\"efter smak\"). Never invent an amount. Set heading true for a line that is a " +
+		"heading, not an ingredient (\"Till servering\", \"Sås:\"). Mark ingredients the " +
+		"recipe calls optional. Pick the store section the item is sold in."
 	var out struct {
 		Ingredients []struct {
 			Name     string   `json:"name"`
@@ -99,20 +105,33 @@ func (n llmNormaliser) Ingredients(ctx context.Context, lines []string, lang i18
 			Unit     *string  `json:"unit"`
 			Section  string   `json:"section"`
 			Optional bool     `json:"optional"`
+			Heading  bool     `json:"heading"`
 		} `json:"ingredients"`
 	}
 	if err := n.ask(ctx, system, ingredientSchema(), strings.Join(lines, "\n"), &out); err != nil {
 		return nil, nil, err
 	}
+	if len(out.Ingredients) != len(lines) {
+		return rawIngredients(lines), []string{"import.note.unparsed"}, nil
+	}
 	var notes []string
 	got := make([]recipes.Ingredient, 0, len(out.Ingredients))
-	for _, in := range out.Ingredients {
+	for i, in := range out.Ingredients {
+		if in.Heading {
+			continue
+		}
 		g := recipes.Ingredient{Name: strings.TrimSpace(in.Name), Section: in.Section,
 			Optional: in.Optional}
-		if in.Unit != nil && slices.Contains(recipes.Units, *in.Unit) && in.Quantity != nil {
+		switch {
+		case in.Unit != nil && slices.Contains(recipes.Units, *in.Unit) && in.Quantity != nil &&
+			*in.Quantity > 0 && *in.Quantity < 100000:
 			g.Unit, g.Quantity = *in.Unit, *in.Quantity
-		} else if in.Unit != nil || in.Quantity != nil {
+		case in.Unit != nil || in.Quantity != nil:
+			g.Name = bounded(lines[i])
 			notes = appendOnce(notes, "import.note.unit_unknown")
+		}
+		if g.Name == "" {
+			g.Name = bounded(lines[i])
 		}
 		if !slices.Contains(recipes.Sections, g.Section) {
 			g.Section = "other"
@@ -121,6 +140,21 @@ func (n llmNormaliser) Ingredients(ctx context.Context, lines []string, lang i18
 		got = append(got, g)
 	}
 	return got, notes, nil
+}
+
+// rawIngredients keeps each line as written, for the user to split in the form.
+func rawIngredients(lines []string) []recipes.Ingredient {
+	out := make([]recipes.Ingredient, 0, len(lines))
+	for _, l := range lines {
+		out = append(out, recipes.Ingredient{Name: bounded(l), Section: "other"})
+	}
+	return out
+}
+
+// bounded keeps a name within the recipe form's 80-character limit.
+func bounded(s string) string {
+	r := []rune(strings.TrimSpace(s))
+	return string(r[:min(len(r), 80)])
 }
 
 func appendOnce(s []string, v string) []string {

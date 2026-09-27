@@ -139,6 +139,7 @@
   "import.note.unit_unknown": "Några mängder eller enheter gick inte att tolka. Kontrollera ingredienserna.",
   "import.note.no_model": "Ingredienserna är inte uppdelade. Fyll i mängd och enhet.",
   "import.note.translated": "Receptet har översatts.",
+  "import.note.unparsed": "Några ingredienser kunde inte delas upp och står som de var skrivna. Kontrollera dem.",
   "recipes.source": "Källa: {host}",
   "recipes.servings": {"one": "{n} portion", "other": "{n} portioner"},
   "recipes.rating": {"one": "{avg} av 5, 1 betyg", "other": "{avg} av 5, {n} betyg"},
