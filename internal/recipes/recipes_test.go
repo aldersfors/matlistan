@@ -117,3 +117,42 @@ func TestScores(t *testing.T) {
 		t.Fatalf("scores = %v", Scores)
 	}
 }
+
+func TestNormalizeSourceURL(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"https://www.ICA.se/recept/kottbullar-123/", "https://www.ica.se/recept/kottbullar-123"},
+		{"HTTPS://www.ica.se/recept/kottbullar-123#steg", "https://www.ica.se/recept/kottbullar-123"},
+		{" https://www.arla.se/recept/pannkakor/?utm=x ", "https://www.arla.se/recept/pannkakor?utm=x"},
+		{"https://www.koket.se/", "https://www.koket.se"},
+	} {
+		if got, err := NormalizeSourceURL(c.in); err != nil || got != c.want {
+			t.Errorf("%q = %q, %v; want %q", c.in, got, err, c.want)
+		}
+	}
+	for _, bad := range []string{"", "ica.se/recept", "ftp://x/y", "javascript:alert(1)", "https://",
+		"https://" + strings.Repeat("a", 2000) + ".se"} {
+		if _, err := NormalizeSourceURL(bad); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}
+
+func TestSourceURLRules(t *testing.T) {
+	r := valid()
+	r.Source, r.SourceURL = "imported", "https://www.ica.se/recept/x"
+	if e := r.Validate(); len(e) != 0 {
+		t.Fatalf("imported recipe: %v", e)
+	}
+	r.Source = "manual"
+	if r.Validate()["source"] != "form.unknown_option" {
+		t.Error("manual recipe with a source URL accepted")
+	}
+	r.Source, r.SourceURL = "imported", ""
+	if r.Validate()["source"] != "form.unknown_option" {
+		t.Error("imported recipe without a source URL accepted")
+	}
+	r.SourceURL = "http://www.ica.se/recept/x"
+	if r.Validate()["source_url"] != "form.invalid_url" {
+		t.Error("http source URL accepted")
+	}
+}

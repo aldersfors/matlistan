@@ -4,6 +4,7 @@ package recipes
 import (
 	"errors"
 	"math"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -46,6 +47,7 @@ type Recipe struct {
 	Servings, ActiveMinutes, TotalMinutes int
 	Tags, Steps, Diets, Allergens         []string
 	Source                                string
+	SourceURL                             string // https page it was imported from; "" otherwise
 	Ingredients                           []Ingredient
 	Rating                                Rating
 }
@@ -72,6 +74,15 @@ func (r Recipe) Validate() validate.Errors {
 		e.Add("lang", "form.unknown_option")
 	}
 	e.Options("source", []string{r.Source}, Sources)
+	switch {
+	case r.SourceURL != "" && r.Source != "imported", r.SourceURL == "" && r.Source == "imported":
+		e.Add("source", "form.unknown_option")
+	}
+	if r.SourceURL != "" {
+		if n, err := NormalizeSourceURL(r.SourceURL); err != nil || n != r.SourceURL {
+			e.Add("source_url", "form.invalid_url")
+		}
+	}
 	e.Options("diets", r.Diets, household.Diets)
 	e.Options("allergens", r.Allergens, household.Allergens)
 	if len(r.Tags) > TagsMax {
@@ -178,4 +189,24 @@ var Scores = []int{ScoreLoved, ScoreOkay, ScoreNotAgain}
 type Rating struct {
 	Average float64
 	Count   int
+}
+
+// SourceURLMax is the longest source URL stored.
+const SourceURLMax = 2000
+
+// NormalizeSourceURL gives the form an imported recipe's link is stored and compared in:
+// https only, lowercase scheme and host, no fragment, no trailing slash.
+func NormalizeSourceURL(raw string) (string, error) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Host == "" || u.User != nil {
+		return "", errors.New("not an https URL")
+	}
+	u.Scheme, u.Host, u.Fragment, u.RawFragment = "https", strings.ToLower(u.Host), "", ""
+	u.Path = strings.TrimSuffix(u.Path, "/")
+	u.RawPath = ""
+	s := u.String()
+	if len(s) > SourceURLMax {
+		return "", errors.New("URL too long")
+	}
+	return s, nil
 }

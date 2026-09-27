@@ -39,6 +39,7 @@
   "form.too_long": "Too long",
   "form.out_of_range": "Out of range",
   "form.unknown_option": "Not a valid choice",
+  "form.invalid_url": "Enter a valid https address.",
   "form.not_a_number": "Not a number",
   "form.unit_required": "Pick a unit",
   "form.fix_errors": "Fix the marked fields and save again.",

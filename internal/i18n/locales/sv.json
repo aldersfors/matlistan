@@ -39,6 +39,7 @@
   "form.too_long": "För långt",
   "form.out_of_range": "Utanför tillåtet intervall",
   "form.unknown_option": "Inget giltigt val",
+  "form.invalid_url": "Ange en giltig https-adress.",
   "form.not_a_number": "Inte ett tal",
   "form.unit_required": "Välj en enhet",
   "form.fix_errors": "Rätta de markerade fälten och spara igen.",

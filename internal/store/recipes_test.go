@@ -98,3 +98,33 @@ func TestGeneratedRecipesAreNotInTheLibrary(t *testing.T) {
 		t.Fatalf("generated recipe page: %+v, %v", r, err)
 	}
 }
+
+func TestSourceURLRoundTripAndLookup(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	r := soup()
+	r.Source, r.SourceURL = "imported", "https://www.ica.se/recept/artsoppa-1"
+	id, err := s.CreateRecipe(ctx, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetRecipe(ctx, id); got.SourceURL != r.SourceURL || got.Source != "imported" {
+		t.Fatalf("got %q %q", got.SourceURL, got.Source)
+	}
+	if found, err := s.FindRecipeBySourceURL(ctx, r.SourceURL); err != nil || found != id {
+		t.Fatalf("find = %d, %v", found, err)
+	}
+	if _, err := s.FindRecipeBySourceURL(ctx, "https://www.ica.se/other"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing url: %v", err)
+	}
+	if _, err := s.CreateRecipe(ctx, r); err == nil {
+		t.Fatal("second recipe with the same source URL stored")
+	}
+	manual := soup()
+	manual.Title = "Ärtsoppa 2"
+	if _, err := s.CreateRecipe(ctx, manual); err != nil {
+		t.Fatalf("manual recipes without a URL must not collide: %v", err)
+	}
+	if _, err := s.CreateRecipe(ctx, manual); err != nil {
+		t.Fatalf("two manual recipes: %v", err)
+	}
+}
