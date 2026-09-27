@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/aldersfors/matlistan/internal/i18n"
 	"github.com/aldersfors/matlistan/internal/recipes"
@@ -21,11 +22,19 @@ func (s *Store) CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, erro
 		id, err = createRecipeTx(ctx, tx, r)
 		return err
 	})
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" &&
+		pgErr.ConstraintName == "recipes_source_url" {
+		return 0, ErrDuplicateSource
+	}
 	if err != nil {
 		return 0, fmt.Errorf("create recipe: %w", err)
 	}
 	return id, nil
 }
+
+// ErrDuplicateSource means a live recipe was already imported from the same page.
+var ErrDuplicateSource = errors.New("a recipe from this page already exists")
 
 func createRecipeTx(ctx context.Context, tx pgx.Tx, r recipes.Recipe) (int64, error) {
 	var id int64

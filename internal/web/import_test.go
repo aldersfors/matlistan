@@ -179,3 +179,21 @@ func TestImportFailureLogsOnlyTheHost(t *testing.T) {
 		t.Errorf("log lacks host or reason: %s", log)
 	}
 }
+
+// Review: a double tap on Save (or two tabs) lands on the recipe, not an error page.
+func TestSavingAnImportTwiceOpensTheFirst(t *testing.T) {
+	st := newFakeStore()
+	h := importServer(t, st, &fakeImporter{})
+	form := meatballs()
+	form.Set("source_url", "https://www.ica.se/recept/kottbullar")
+	first := post(t, h, "/recipes", form)
+	second := post(t, h, "/recipes", form)
+	if first.Code != http.StatusSeeOther || second.Code != http.StatusSeeOther ||
+		first.Header().Get("Location") != second.Header().Get("Location") {
+		t.Fatalf("first %d %q, second %d %q", first.Code, first.Header().Get("Location"),
+			second.Code, second.Header().Get("Location"))
+	}
+	if len(st.recipes) != 1 {
+		t.Fatalf("%d recipes stored", len(st.recipes))
+	}
+}

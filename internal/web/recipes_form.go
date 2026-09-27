@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/recipes"
+	"github.com/aldersfors/matlistan/internal/store"
 	"github.com/aldersfors/matlistan/internal/validate"
 	"github.com/aldersfors/matlistan/internal/web/views"
 )
@@ -48,6 +50,10 @@ func (s *server) createRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, err := s.Store.CreateRecipe(r.Context(), rec)
+	if errors.Is(err, store.ErrDuplicateSource) {
+		// A double tap on Save, or the page imported in another tab: open that recipe.
+		id, err = s.Store.FindRecipeBySourceURL(r.Context(), rec.SourceURL)
+	}
 	if err != nil {
 		s.fail(w, r, err)
 		return

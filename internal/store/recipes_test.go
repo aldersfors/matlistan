@@ -128,3 +128,27 @@ func TestSourceURLRoundTripAndLookup(t *testing.T) {
 		t.Fatalf("two manual recipes: %v", err)
 	}
 }
+
+// Review: an archived import must not block importing the same page again.
+func TestReimportAfterArchive(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	r := soup()
+	r.Source, r.SourceURL = "imported", "https://www.ica.se/recept/artsoppa-2"
+	id, err := s.CreateRecipe(ctx, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ArchiveRecipe(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	again, err := s.CreateRecipe(ctx, r)
+	if err != nil {
+		t.Fatalf("re-import after archive: %v", err)
+	}
+	if found, _ := s.FindRecipeBySourceURL(ctx, r.SourceURL); found != again {
+		t.Fatalf("find = %d, want %d", found, again)
+	}
+	if _, err := s.CreateRecipe(ctx, r); !errors.Is(err, ErrDuplicateSource) {
+		t.Fatalf("live duplicate: %v, want ErrDuplicateSource", err)
+	}
+}

@@ -201,6 +201,11 @@ func (f *fakeStore) GetRecipe(_ context.Context, id int64) (recipes.Recipe, erro
 func (f *fakeStore) CreateRecipe(_ context.Context, r recipes.Recipe) (int64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	for _, other := range f.recipes {
+		if r.SourceURL != "" && other.SourceURL == r.SourceURL {
+			return 0, store.ErrDuplicateSource
+		}
+	}
 	r.ID = f.id()
 	f.recipes[r.ID] = r
 	return r.ID, nil
