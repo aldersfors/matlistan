@@ -213,7 +213,9 @@ func (s *Service) request(ctx context.Context, k weekplan.Key) (Request, weekpla
 	case err != nil:
 		return Request{}, weekplan.Plan{}, err
 	}
-	cooked, err := s.st.CookedSince(ctx, k.AddWeeks(-_historyWeeks), k)
+	// Approved later weeks count as recent too: a week can be planned after the next one.
+	cooked, err := s.st.CookedSince(ctx, k.AddWeeks(-_historyWeeks),
+		k.AddWeeks(settings.RepeatWindowWeeks+1))
 	if err != nil {
 		return Request{}, weekplan.Plan{}, err
 	}
@@ -240,7 +242,12 @@ func (s *Service) request(ctx context.Context, k weekplan.Key) (Request, weekpla
 	lastCooked := map[int64]weekplan.Key{}
 	recent := map[int64]bool{}
 	for _, c := range cooked {
-		lastCooked[c.RecipeID] = c.Key
+		if c.Key == k {
+			continue // the week being planned is not history
+		}
+		if c.Key.Less(k) {
+			lastCooked[c.RecipeID] = c.Key // how long ago, so past weeks only
+		}
 		if !c.Key.Less(windowStart) {
 			recent[c.RecipeID] = true
 			if !slices.Contains(req.Recent, c.Title) {
