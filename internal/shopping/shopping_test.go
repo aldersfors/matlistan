@@ -170,3 +170,27 @@ func TestStaplesMatchPluralNames(t *testing.T) {
 		t.Fatalf("items %+v excluded %d", items, n)
 	}
 }
+
+// A rebuilt line is ticked when a ticked planned line had the same base name, whatever its
+// amount or plural; hand-added items are not matched here, they are kept as they are.
+func TestCarryTicks(t *testing.T) {
+	old := []Item{
+		{Name: "morötter", Quantity: 10, Unit: "pcs", Checked: true},
+		{Name: "gul lök", Quantity: 2, Unit: "pcs"},
+		{Name: "Grädde", Quantity: 2, Unit: "dl", Checked: true},
+		{Name: "mjöl", Checked: true, Manual: true},
+	}
+	built := []Item{
+		{Name: "morot", Quantity: 12, Unit: "pcs"},
+		{Name: "gul lök", Quantity: 2, Unit: "pcs"},
+		{Name: "grädde", Quantity: 4, Unit: "dl"},
+		{Name: "mjöl", Quantity: 1, Unit: "dl"},
+	}
+	got := CarryTicks(old, built)
+	want := []bool{true, false, true, false}
+	for i, it := range got {
+		if it.Checked != want[i] {
+			t.Errorf("%s checked = %v, want %v", it.Name, it.Checked, want[i])
+		}
+	}
+}

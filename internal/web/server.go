@@ -63,6 +63,8 @@ type Store interface {
 	SetItemChecked(ctx context.Context, id int64, checked bool) (shopping.Item, error)
 	AddManualItem(ctx context.Context, listID int64, name string) error
 	RemoveManualItem(ctx context.Context, id int64) error
+	RebuildShoppingList(ctx context.Context, k weekplan.Key, items []shopping.Item,
+		excluded int) error
 	CreateAPIToken(ctx context.Context, subject, name string, hash []byte) error
 	ListAPITokens(ctx context.Context) ([]apitoken.Token, error)
 	RevokeAPIToken(ctx context.Context, id int64) error
@@ -195,6 +197,7 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("POST /fragments/shopping/items/{id}/toggle", s.toggleItem)
 	app.HandleFunc("POST /shopping/items", s.addItem)
 	app.HandleFunc("POST /shopping/items/{id}/delete", s.removeItem)
+	app.HandleFunc("POST /shopping/rebuild", s.rebuildList)
 	app.HandleFunc("POST /settings/tokens", s.createToken)
 	app.HandleFunc("POST /settings/tokens/{id}/delete", s.revokeToken)
 	app.HandleFunc("GET /week/rate", s.rateWeek)

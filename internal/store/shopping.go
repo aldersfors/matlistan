@@ -48,11 +48,11 @@ func insertItems(ctx context.Context, tx pgx.Tx, listID int64, from int,
 			days = []int{}
 		}
 		rows[i] = []any{listID, from + i, it.Name, it.Section, it.Quantity, it.Unit, days,
-			it.Optional, it.Manual}
+			it.Optional, it.Manual, it.Checked}
 	}
 	_, err := tx.CopyFrom(ctx, pgx.Identifier{"shopping_items"},
 		[]string{"list_id", "position", "name", "section", "quantity", "unit", "days",
-			"optional", "manual"}, pgx.CopyFromRows(rows))
+			"optional", "manual", "checked"}, pgx.CopyFromRows(rows))
 	return err
 }
 
@@ -98,6 +98,55 @@ func (s *Store) GetShoppingList(ctx context.Context, k weekplan.Key) (shopping.L
 func (s *Store) CurrentShoppingList(ctx context.Context, upTo weekplan.Key) (shopping.List,
 	error) {
 	return s.listWhere(ctx, `(p.iso_year, p.iso_week) <= ($1, $2)`, upTo.Year, upTo.Week)
+}
+
+// RebuildShoppingList replaces the planned lines of week k's list with built, in one
+// transaction. Ticks carry over by base name, hand-added items stay after the planned lines
+// with their ticks, and the staple count is replaced.
+func (s *Store) RebuildShoppingList(ctx context.Context, k weekplan.Key, built []shopping.Item,
+	excluded int) error {
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		var listID int64
+		err := tx.QueryRow(ctx, `SELECT l.id FROM shopping_lists l
+			JOIN week_plans p ON p.id = l.plan_id
+			WHERE p.iso_year = $1 AND p.iso_week = $2 AND p.status = 'approved'
+			FOR UPDATE OF l`, k.Year, k.Week).Scan(&listID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		rows, err := tx.Query(ctx, `DELETE FROM shopping_items WHERE list_id = $1 AND NOT manual
+			RETURNING `+_itemCols, listID)
+		if err != nil {
+			return err
+		}
+		old, err := pgx.CollectRows(rows, scanItem)
+		if err != nil {
+			return err
+		}
+		items := shopping.CarryTicks(old, built)
+		// Hand-added items move after the new planned lines, in the order they had.
+		if _, err := tx.Exec(ctx, `UPDATE shopping_items i SET position = $2 + n.rank
+			FROM (SELECT id, row_number() OVER (ORDER BY position) - 1 AS rank
+				FROM shopping_items WHERE list_id = $1) n
+			WHERE i.id = n.id`, listID, len(items)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE shopping_lists SET excluded_staples = $2 WHERE id = $1`,
+			listID, excluded); err != nil {
+			return err
+		}
+		return insertItems(ctx, tx, listID, 0, items)
+	})
+	if errors.Is(err, ErrNotFound) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("rebuild shopping list: %w", err)
+	}
+	return nil
 }
 
 // SetItemChecked ticks or unticks an item and returns it. It sets the state rather than

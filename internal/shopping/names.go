@@ -33,3 +33,21 @@ func baseName(name string) string {
 
 // nameKey compares ingredients and staples.
 func nameKey(name string) string { return household.StapleKey(baseName(name)) }
+
+// CarryTicks ticks each built line whose base name was ticked among the old planned lines,
+// so a rebuilt list keeps what was already bought even when its amount or plural changed.
+// Hand-added lines never match: the rebuild keeps those as they are.
+func CarryTicks(old, built []Item) []Item {
+	ticked := map[string]bool{}
+	for _, it := range old {
+		if it.Checked && !it.Manual {
+			ticked[nameKey(it.Name)] = true
+		}
+	}
+	out := make([]Item, len(built))
+	for i, it := range built {
+		it.Checked = ticked[nameKey(it.Name)]
+		out[i] = it
+	}
+	return out
+}
