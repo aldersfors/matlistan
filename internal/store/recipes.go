@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/keys"
 	"github.com/aldersfors/matlistan/internal/recipes"
 )
 
@@ -37,14 +38,21 @@ func (s *Store) CreateRecipe(ctx context.Context, r recipes.Recipe) (int64, erro
 var ErrDuplicateSource = errors.New("a recipe from this page already exists")
 
 func createRecipeTx(ctx context.Context, tx pgx.Tx, r recipes.Recipe) (int64, error) {
+	key := r.Key
+	if key == "" {
+		var err error
+		if key, err = uniqueKey(ctx, tx, "recipes", keys.Slug(r.Title), "recipe"); err != nil {
+			return 0, err
+		}
+	}
 	var id int64
 	if err := tx.QueryRow(ctx, `INSERT INTO recipes (title, title_key, description, lang,
 		servings, active_minutes, total_minutes, tags, steps, diets, allergens, source,
-		source_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+		source_url, key, managed)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`,
 		r.Title, recipes.TitleKey(r.Title), r.Description, string(r.Lang), r.Servings,
 		r.ActiveMinutes, r.TotalMinutes, orEmpty(r.Tags), orEmpty(r.Steps), orEmpty(r.Diets),
-		orEmpty(r.Allergens), r.Source, nullIfEmpty(r.SourceURL)).Scan(&id); err != nil {
+		orEmpty(r.Allergens), r.Source, nullIfEmpty(r.SourceURL), key, r.Managed).Scan(&id); err != nil {
 		return 0, err
 	}
 	return id, insertIngredients(ctx, tx, id, r.Ingredients)
@@ -98,11 +106,11 @@ func (s *Store) GetRecipe(ctx context.Context, id int64) (recipes.Recipe, error)
 	var lang string
 	err := s.pool.QueryRow(ctx, `SELECT r.id, r.title, r.description, r.lang, r.servings,
 		r.active_minutes, r.total_minutes, r.tags, r.steps, r.diets, r.allergens, r.source,
-		coalesce(r.source_url, ''), coalesce(rt.average, 0), coalesce(rt.n, 0)
+		coalesce(r.source_url, ''), coalesce(rt.average, 0), coalesce(rt.n, 0), r.key, r.managed
 		FROM recipes r`+_ratingsJoin+`WHERE r.id = $1 AND r.archived_at IS NULL`, id).Scan(&r.ID,
 		&r.Title, &r.Description, &lang, &r.Servings, &r.ActiveMinutes, &r.TotalMinutes, &r.Tags,
 		&r.Steps, &r.Diets, &r.Allergens, &r.Source, &r.SourceURL, &r.Rating.Average,
-		&r.Rating.Count)
+		&r.Rating.Count, &r.Key, &r.Managed)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return recipes.Recipe{}, ErrNotFound
 	}

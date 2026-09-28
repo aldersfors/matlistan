@@ -4,19 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/keys"
 )
 
 const _memberCols = `id, name, birth_year, coalesce(oidc_subject, ''), diets, allergens, likes,
-	dislikes`
+	dislikes, key, managed`
 
 func scanMember(row pgx.CollectableRow) (household.Member, error) {
 	var m household.Member
 	err := row.Scan(&m.ID, &m.Name, &m.BirthYear, &m.Subject, &m.Diets, &m.Allergens, &m.Likes,
-		&m.Dislikes)
+		&m.Dislikes, &m.Key, &m.Managed)
 	return m, err
 }
 
@@ -54,10 +56,20 @@ func (s *Store) GetMember(ctx context.Context, id int64) (household.Member, erro
 // CreateMember stores a new member and returns its id. The subject is set by LinkMember.
 func (s *Store) CreateMember(ctx context.Context, m household.Member) (int64, error) {
 	var id int64
-	err := s.pool.QueryRow(ctx, `INSERT INTO members
-		(name, birth_year, diets, allergens, likes, dislikes)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-		m.Name, m.BirthYear, orEmpty(m.Diets), orEmpty(m.Allergens), m.Likes, m.Dislikes).Scan(&id)
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		key := m.Key
+		if key == "" {
+			var err error
+			if key, err = uniqueKey(ctx, tx, "members", keys.Slug(m.Name), "member"); err != nil {
+				return err
+			}
+		}
+		return tx.QueryRow(ctx, `INSERT INTO members
+			(name, birth_year, diets, allergens, likes, dislikes, key, managed)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+			m.Name, m.BirthYear, orEmpty(m.Diets), orEmpty(m.Allergens), m.Likes, m.Dislikes,
+			key, m.Managed).Scan(&id)
+	})
 	if err != nil {
 		return 0, fmt.Errorf("create member: %w", err)
 	}
@@ -166,4 +178,26 @@ func (s *Store) RemoveStaple(ctx context.Context, id int64) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// uniqueKey is base, or base-2, base-3, ... when taken; fallback stands in for an empty base.
+// table is a constant from the caller, never input.
+func uniqueKey(ctx context.Context, tx pgx.Tx, table, base, fallback string) (string, error) {
+	if base == "" {
+		base = fallback
+	}
+	for n := 1; ; n++ {
+		key := base
+		if n > 1 {
+			key = base + "-" + strconv.Itoa(n)
+		}
+		var taken bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM `+table+` WHERE key = $1)`,
+			key).Scan(&taken); err != nil {
+			return "", err
+		}
+		if !taken {
+			return key, nil
+		}
+	}
 }
