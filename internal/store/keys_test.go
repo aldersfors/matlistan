@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"io/fs"
-	"strconv"
 	"testing"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -17,8 +16,14 @@ import (
 // The migration's slug and the app's must agree, or backfilled keys would not match what
 // the app makes for new rows.
 func TestSQLSlugMatchesGo(t *testing.T) {
-	s, ctx := newTestStore(t), context.Background()
+	ctx := context.Background()
+	s, err := Open(ctx, Options{URL: newDatabaseC(t), Log: zerolog.Nop()}) // as CNPG creates it
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
 	for _, in := range []string{"Pumpasoppa", "Äppelpaj med vaniljsås", "  Kött & potatis!! ",
+		"Åsa", "Östen", "ÄRTSOPPA MED FLÄSK", "Crème Brûlée", "Ölbräserad Högrev",
 		"Crème brûlée", "???", "Långkokt högrevsgryta med rotfrukter, äpple och örter från trädgården"} {
 		var got string
 		if err := s.pool.QueryRow(ctx, `SELECT matlistan_slug($1)`, in).Scan(&got); err != nil {
@@ -54,7 +59,7 @@ func TestNewRowsGetUniqueKeys(t *testing.T) {
 // key, repeats get their id appended, and an empty slug falls back.
 func TestMigrationBackfillsKeys(t *testing.T) {
 	ctx := context.Background()
-	url := newDatabase(t)
+	url := newDatabaseC(t) // the production database's locale
 	s, err := Open(ctx, Options{URL: url, Log: zerolog.Nop()})
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +77,7 @@ func TestMigrationBackfillsKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	var ids []int64
-	for _, name := range []string{"Anna", "Anna", "Ölänning", "???"} {
+	for _, name := range []string{"Anna", "Anna", "Ölänning", "???", "Anna 2", "Åsa"} {
 		var id int64
 		if err := s.pool.QueryRow(ctx, `INSERT INTO members (name, birth_year) VALUES ($1, 1990)
 			RETURNING id`, name).Scan(&id); err != nil {
@@ -88,7 +93,8 @@ func TestMigrationBackfillsKeys(t *testing.T) {
 	if _, err := p.Up(ctx); err != nil {
 		t.Fatalf("migrate up with rows: %v", err)
 	}
-	want := []string{"anna", "anna-" + strconv.FormatInt(ids[1], 10), "olanning", "member"}
+	// "Anna 2" is a natural anna-2, so the second Anna must not take that key.
+	want := []string{"anna", "anna-3", "olanning", "member", "anna-2", "asa"}
 	for i, id := range ids {
 		var key string
 		if err := s.pool.QueryRow(ctx, `SELECT key FROM members WHERE id = $1`, id).Scan(&key); err != nil {

@@ -52,6 +52,18 @@ func runTests(m *testing.M) int {
 // newDatabase creates an empty database and returns its URL.
 func newDatabase(t *testing.T) string {
 	t.Helper()
+	return newDatabaseWith(t, "")
+}
+
+// newDatabaseC is a database with the C locale, which CNPG's initdb uses by default: there
+// lower() changes only ASCII letters.
+func newDatabaseC(t *testing.T) string {
+	t.Helper()
+	return newDatabaseWith(t, " TEMPLATE template0 LOCALE 'C'")
+}
+
+func newDatabaseWith(t *testing.T, options string) string {
+	t.Helper()
 	b := make([]byte, 6)
 	if _, err := rand.Read(b); err != nil {
 		t.Fatal(err)
@@ -62,7 +74,7 @@ func newDatabase(t *testing.T) string {
 		t.Fatal(err)
 	}
 	defer func() { _ = conn.Close(context.Background()) }() // test cleanup only
-	if _, err := conn.Exec(t.Context(), "CREATE DATABASE "+name); err != nil {
+	if _, err := conn.Exec(t.Context(), "CREATE DATABASE "+name+options); err != nil {
 		t.Fatal(err)
 	}
 	u, err := url.Parse(_adminURL)
