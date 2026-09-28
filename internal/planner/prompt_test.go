@@ -97,9 +97,9 @@ func TestUserPromptCarriesUseUpFirst(t *testing.T) {
 	if p, _ := UserPrompt(r); !strings.Contains(p, `"use_up_first":["halv grädde","ris, kokt"]`) {
 		t.Errorf("prompt lacks use_up_first: %s", p)
 	}
-	r.SwapDay = 3
+	r.Only = map[int]bool{3: true}
 	if p, _ := UserPrompt(r); !strings.Contains(p, `"use_up_first":["halv grädde","ris, kokt"]`) {
-		t.Errorf("swap prompt lacks use_up_first: %s", p)
+		t.Errorf("partial prompt lacks use_up_first: %s", p)
 	}
 	if !strings.Contains(SystemPrompt(i18n.SV), `"use_up_first"`) {
 		t.Error("system prompt does not explain use_up_first")

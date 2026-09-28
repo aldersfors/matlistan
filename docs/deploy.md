@@ -144,7 +144,7 @@ helm install matlistan oci://ghcr.io/aldersfors/helm-charts/matlistan --version 
 ```
 
 The app applies its database migrations at startup. It runs as one replica by design:
-planning and swapping run in the web process.
+planning runs in the web process.
 
 To check a release's signatures before installing (both are signed by this repository's
 release workflow on `main`):

@@ -179,3 +179,48 @@ func TestConditionsUpdateServings(t *testing.T) {
 		t.Fatalf("entries = %+v", p.Entries)
 	}
 }
+
+// A locked dinner survives planning the week again, whole or in part.
+func TestLockedDinnersSurvivePlanning(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	a, _ := s.CreateRecipe(ctx, soup())
+	b, _ := s.CreateRecipe(ctx, soup())
+	c := weekplan.DefaultContext(7)
+	if err := s.SavePicks(ctx, _w40, c, []weekplan.Pick{{Day: 1, RecipeID: a, Servings: 4},
+		{Day: 2, RecipeID: a, Servings: 4}}, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetEntryLocked(ctx, _w40, 1, true); err != nil {
+		t.Fatal(err)
+	}
+	// A whole-week plan and a stray pick for the locked day leave it as it was.
+	if err := s.SavePicks(ctx, _w40, c, []weekplan.Pick{{Day: 1, RecipeID: b, Servings: 2},
+		{Day: 2, RecipeID: b, Servings: 4}}, true); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := s.GetPlan(ctx, _w40)
+	if len(p.Entries) != 2 || p.Entries[0].RecipeID != a || !p.Entries[0].Locked ||
+		p.Entries[1].RecipeID != b || p.Entries[1].Locked {
+		t.Fatalf("entries = %+v", p.Entries)
+	}
+	if err := s.SetEntryLocked(ctx, _w40, 1, false); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := s.GetPlan(ctx, _w40); p.Entries[0].Locked {
+		t.Fatal("still locked")
+	}
+	if err := s.SetEntryLocked(ctx, _w40, 5, true); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("lock a day without dinner: %v", err)
+	}
+}
+
+func TestLockingNeedsADraft(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	plannedWeek(t, s, _w40)
+	if err := s.ApprovePlan(ctx, _w40, "x", nil, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetEntryLocked(ctx, _w40, 4, true); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("lock in an approved week: %v", err)
+	}
+}

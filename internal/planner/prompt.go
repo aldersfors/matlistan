@@ -82,14 +82,13 @@ func UserPrompt(r Request) (string, error) {
 		doc.Candidates = []Candidate{}
 	}
 	for _, d := range r.Days {
-		planned := d.Planned && (r.SwapDay == 0 || r.SwapDay == d.Day)
 		doc.Days = append(doc.Days, promptDay{Day: d.Day, Weekday: d.Date.Weekday().String(),
-			Planned: planned, QuickNight: d.Busy, Guests: d.Guests, Servings: d.Servings,
+			Planned: r.plans(d), QuickNight: d.Busy, Guests: d.Guests, Servings: d.Servings,
 			MaxMinutes: d.MaxMinutes})
 	}
-	if r.SwapDay != 0 {
-		doc.Task = "Replace the dinner of the only planned day with a different one. It must " +
-			"differ from the other days' dinners and should not share their main ingredient."
+	if r.Only != nil {
+		doc.Task = "Plan only the planned days. The dinners in other_days_this_week stay; " +
+			"each new dinner must differ from them and should not share their main ingredient."
 		doc.KeepOtherDay = orEmpty(r.Keep)
 	}
 	b, err := json.Marshal(doc)

@@ -56,6 +56,7 @@ type Store interface {
 	ArchiveRecipe(ctx context.Context, id int64) error
 	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
 	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context, servings [7]int) error
+	SetEntryLocked(ctx context.Context, k weekplan.Key, day int, locked bool) error
 	ApprovePlan(ctx context.Context, k weekplan.Key, subject string, items []shopping.Item,
 		excluded int) error
 	PlanIngredients(ctx context.Context, k weekplan.Key) ([]shopping.Use, error)
@@ -77,10 +78,9 @@ type Store interface {
 	WeekRatings(ctx context.Context, k weekplan.Key) (map[int]map[int64]int, error)
 }
 
-// Planner drafts weeks and swaps dinners. A nil Planner means planning is off.
+// Planner drafts weeks. A nil Planner means planning is off.
 type Planner interface {
 	Generate(ctx context.Context, k weekplan.Key) error
-	Swap(ctx context.Context, k weekplan.Key, day int) error
 }
 
 // Deps are the server's collaborators.
@@ -188,7 +188,7 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("GET /fragments/week-status", s.weekStatus)
 	app.HandleFunc("POST /week/context", s.saveWeekContext)
 	app.HandleFunc("POST /week/generate", s.generateWeek)
-	app.HandleFunc("POST /week/swap", s.swapDinner)
+	app.HandleFunc("POST /week/lock", s.lockDinner)
 	app.HandleFunc("POST /week/approve", s.approveWeek)
 	app.HandleFunc("GET /family", s.family)
 	app.HandleFunc("GET /family/new", s.newMember)

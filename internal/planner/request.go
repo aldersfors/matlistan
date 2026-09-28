@@ -48,9 +48,14 @@ type Request struct {
 	Settings   household.Settings
 	Recent     []string
 	Candidates []Candidate
-	SwapDay    int
-	Keep       []string
+	Only       map[int]bool // the days to plan; nil plans every planned day
+	Keep       []string     // dinners that stay this week
 	UseUp      []string
+}
+
+// plans reports whether this call picks a dinner for d.
+func (r Request) plans(d weekplan.DaySpec) bool {
+	return d.Planned && (r.Only == nil || r.Only[d.Day])
 }
 
 // Proposal is the model's answer, shaped by Schema.

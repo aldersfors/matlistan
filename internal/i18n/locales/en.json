@@ -169,8 +169,10 @@
   "week.status.approved": "Approved",
   "week.generate": "Plan the week",
   "week.regenerate": "Plan the whole week again",
+  "week.regenerate_unlocked": "Plan the unlocked days again",
+  "week.all_locked": "Every dinner is locked",
+  "week.lock": "Lock {day}'s dinner",
   "week.generating": "Planning the week. This takes a minute or two.",
-  "week.swap": "Swap {day}'s dinner",
   "week.approve": "Approve the week",
   "week.no_dinner": "No dinner at home",
   "week.not_configured": "Planning is not set up on this server.",
@@ -249,6 +251,5 @@
   "cook.timer": {"one": "Start a {n} minute timer", "other": "Start a {n} minute timer"},
   "cook.timer_done": "Time is up",
   "cook.timer_line": "Step {n}: {left}",
-  "week.plan_day": "Plan this day",
   "app.description": "Dinner plans and the shopping list for the week."
 }
