@@ -194,3 +194,21 @@ func TestCarryTicks(t *testing.T) {
 		}
 	}
 }
+
+// Review focus: a pinch of saffron or a scaled-down spice stays an amount on the list, not
+// "to taste".
+func TestBuildKeepsSmallAmounts(t *testing.T) {
+	items, _ := Build([]Use{
+		use(1, 1, 4, "saffran", 0.5, "g", "pantry"),       // 0.125 g
+		use(1, 1, 4, "kardemumma", 0.01, "tsp", "pantry"), // 0.0025 tsk
+		use(1, 1, 4, "vaniljsocker", 1, "ml", "pantry"),   // 0.25 ml
+	}, nil)
+	for _, c := range []struct {
+		name, unit string
+		q          float64
+	}{{"saffran", "g", 0.13}, {"kardemumma", "tsp", 0.01}, {"vaniljsocker", "ml", 0.25}} {
+		if it := find(t, items, c.name, c.unit); it.Quantity != c.q {
+			t.Errorf("%s = %v %s, want %v", c.name, it.Quantity, it.Unit, c.q)
+		}
+	}
+}

@@ -18,7 +18,7 @@ func TestPlanLifecycle(t *testing.T) {
 	}
 	c := weekplan.DefaultContext(7)
 	c.Days[2].Busy = true
-	if err := s.SaveContext(ctx, _w40, c); err != nil {
+	if err := s.SaveContext(ctx, _w40, c, [7]int{}); err != nil {
 		t.Fatal(err)
 	}
 	libID, _ := s.CreateRecipe(ctx, soup())
@@ -65,7 +65,7 @@ func TestPlanLifecycle(t *testing.T) {
 	if p, _ = s.GetPlan(ctx, _w40); p.Status != weekplan.StatusApproved || p.ApprovedBy != "sub-anna" {
 		t.Fatalf("approved %+v", p)
 	}
-	if err := s.SaveContext(ctx, _w40, c); !errors.Is(err, ErrApproved) {
+	if err := s.SaveContext(ctx, _w40, c, [7]int{}); !errors.Is(err, ErrApproved) {
 		t.Fatalf("context on approved: %v", err)
 	}
 	if err := s.SavePicks(ctx, _w40, c, picks, true); !errors.Is(err, ErrApproved) {
@@ -81,7 +81,7 @@ func TestPlanLifecycle(t *testing.T) {
 
 func TestApproveNeedsEntries(t *testing.T) {
 	s, ctx := newTestStore(t), context.Background()
-	if err := s.SaveContext(ctx, _w40, weekplan.DefaultContext(7)); err != nil {
+	if err := s.SaveContext(ctx, _w40, weekplan.DefaultContext(7), [7]int{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.ApprovePlan(ctx, _w40, "x", nil, 0); !errors.Is(err, ErrNotFound) {
@@ -126,7 +126,7 @@ func TestPlanningKeepsNewerConditions(t *testing.T) {
 	old := weekplan.DefaultContext(7)
 	newer := weekplan.DefaultContext(7)
 	newer.Days[2].Guests = 3
-	if err := s.SaveContext(ctx, _w40, newer); err != nil {
+	if err := s.SaveContext(ctx, _w40, newer, [7]int{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.SavePicks(ctx, _w40, old, []weekplan.Pick{{Day: 1, RecipeID: id, Servings: 4}},
@@ -151,11 +151,31 @@ func TestSkippingADayDropsItsDinner(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.Days[3].Skip = true
-	if err := s.SaveContext(ctx, _w40, c); err != nil {
+	if err := s.SaveContext(ctx, _w40, c, [7]int{}); err != nil {
 		t.Fatal(err)
 	}
 	p, _ := s.GetPlan(ctx, _w40)
 	if len(p.Entries) != 1 || p.Entries[0].Day != 1 {
+		t.Fatalf("entries = %+v", p.Entries)
+	}
+}
+
+// New conditions change a planned dinner's servings in the same save, so the shopping list
+// and the recipe scale follow guests and away days; a zero keeps the day as it is.
+func TestConditionsUpdateServings(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	id, _ := s.CreateRecipe(ctx, soup())
+	c := weekplan.DefaultContext(7)
+	if err := s.SavePicks(ctx, _w40, c, []weekplan.Pick{{Day: 1, RecipeID: id, Servings: 4},
+		{Day: 2, RecipeID: id, Servings: 4}}, true); err != nil {
+		t.Fatal(err)
+	}
+	c.Days[0].Guests = 2
+	if err := s.SaveContext(ctx, _w40, c, [7]int{6}); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := s.GetPlan(ctx, _w40)
+	if len(p.Entries) != 2 || p.Entries[0].Servings != 6 || p.Entries[1].Servings != 4 {
 		t.Fatalf("entries = %+v", p.Entries)
 	}
 }

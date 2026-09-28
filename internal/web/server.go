@@ -55,7 +55,7 @@ type Store interface {
 	UpdateRecipe(ctx context.Context, r recipes.Recipe) error
 	ArchiveRecipe(ctx context.Context, id int64) error
 	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
-	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error
+	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context, servings [7]int) error
 	ApprovePlan(ctx context.Context, k weekplan.Key, subject string, items []shopping.Item,
 		excluded int) error
 	PlanIngredients(ctx context.Context, k weekplan.Key) ([]shopping.Use, error)

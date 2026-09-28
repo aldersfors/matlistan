@@ -28,7 +28,11 @@ func (c *Catalog) WeekLabel(week int) string { return c.T("week.label", "n", wee
 
 // Quantity renders q with at most two decimals and the locale's decimal separator.
 func (c *Catalog) Quantity(q float64) string {
-	s := strconv.FormatFloat(math.Round(q*100)/100, 'f', -1, 64)
+	r := math.Round(q*100) / 100
+	if q > 0 && r == 0 {
+		r = 0.01 // a small amount is still an amount; 0 would read, and save, as "to taste"
+	}
+	s := strconv.FormatFloat(r, 'f', -1, 64)
 	return strings.Replace(s, ".", c.T("format.decimal_separator"), 1)
 }
 

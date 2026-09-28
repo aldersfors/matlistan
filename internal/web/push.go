@@ -65,8 +65,21 @@ func (s *server) subscribePush(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.fail(w, r, err)
 	default:
-		w.WriteHeader(http.StatusNoContent)
+		s.writeDevices(w, r)
 	}
+}
+
+// writeDevices answers with the new device count as shown in Settings, so the page can
+// update it in place.
+func (s *server) writeDevices(w http.ResponseWriter, r *http.Request) {
+	n, err := s.Store.CountPushSubscriptions(r.Context())
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(map[string]string{"devices": s.Catalog.N("push.devices", n)})
 }
 
 // unsubscribePush removes this device; removing one that is already gone is fine.
@@ -80,5 +93,5 @@ func (s *server) unsubscribePush(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	s.writeDevices(w, r)
 }

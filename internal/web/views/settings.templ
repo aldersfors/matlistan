@@ -123,11 +123,12 @@ templ SettingsPage(v Settings) {
 				<section id="push" data-key={ v.PushKey } data-state="loading" class="push flex flex-col gap-3 rounded-2xl bg-panel p-4">
 					<h2 class="font-display text-2xl font-bold">{ i18n.T(ctx, "push.title") }</h2>
 					<p class="text-muted">{ i18n.T(ctx, "push.hint") }</p>
-					<p class="text-sm">{ v.PushDevices }</p>
+					<p class="text-sm" data-push-devices>{ v.PushDevices }</p>
 					<p class="push-msg push-ios-home-screen text-sm">{ i18n.T(ctx, "push.ios_home_screen") }</p>
 					<p class="push-msg push-unsupported text-sm">{ i18n.T(ctx, "push.unsupported") }</p>
 					<p class="push-msg push-denied text-sm">{ i18n.T(ctx, "push.denied") }</p>
 					<p class="push-msg push-failed text-sm" role="alert">{ i18n.T(ctx, "push.failed") }</p>
+					<p class="push-msg push-too-many text-sm" role="alert">{ i18n.T(ctx, "push.too_many") }</p>
 					<p class="push-msg push-on text-sm font-bold" role="status">{ i18n.T(ctx, "push.on") }</p>
 					<button type="button" data-push-on class="push-btn-on h-12 rounded-xl bg-primary px-4 font-bold text-primary-ink">{ i18n.T(ctx, "push.enable") }</button>
 					<button type="button" data-push-off class="push-btn-off h-12 rounded-xl border-2 border-line px-4 font-bold">{ i18n.T(ctx, "push.disable") }</button>

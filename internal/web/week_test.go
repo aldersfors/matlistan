@@ -118,7 +118,7 @@ func TestSwapAndApprove(t *testing.T) {
 	}
 	c := weekplan.DefaultContext(7)
 	c.Days[2].Skip = true
-	if err := st.SaveContext(t.Context(), _w40, c); err != nil {
+	if err := st.SaveContext(t.Context(), _w40, c, [7]int{}); err != nil {
 		t.Fatal(err)
 	}
 	if rec := post(t, h, "/week/swap", weekForm(url.Values{"day": {"3"}})); rec.Code != http.StatusBadRequest {
@@ -265,5 +265,24 @@ func TestSaveUseUpFirst(t *testing.T) {
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Högst 10 saker") ||
 		!strings.Contains(rec.Body.String(), "sak 10") {
 		t.Fatalf("over the limit: %d %.300s", rec.Code, rec.Body.String())
+	}
+}
+
+// Review focus: guests added after planning change the dinner's servings, so the list and
+// the recipe scale follow; days that did not change are recomputed the same way.
+func TestConditionsUpdatePlannedServings(t *testing.T) {
+	st := newFakeStore()
+	_, _ = st.CreateMember(t.Context(), household.Member{Name: "Anna", BirthYear: 1985})
+	h, s := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	post(t, h, "/week/generate", weekForm(nil))
+	s.jobs.wait()
+	rec := post(t, h, "/week/context", weekForm(url.Values{
+		"days.0.home": {"on"}, "days.0.guests": {"3"}, "days.1.home": {"on"}}))
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status %d body %.200s", rec.Code, rec.Body.String())
+	}
+	p, _ := st.GetPlan(t.Context(), _w40)
+	if len(p.Entries) != 2 || p.Entries[0].Servings != 4 || p.Entries[1].Servings != 1 {
+		t.Fatalf("entries = %+v", p.Entries)
 	}
 }

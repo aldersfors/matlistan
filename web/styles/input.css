@@ -82,6 +82,8 @@
 .push[data-state="denied"] .push-denied,
 .push[data-state="failed"] .push-failed,
 .push[data-state="failed"] .push-btn-on,
+.push[data-state="too-many"] .push-too-many,
+.push[data-state="too-many"] .push-btn-on,
 .push[data-state="on"] .push-on,
 .push[data-state="on"] .push-btn-off,
 .push[data-state="off"] .push-btn-on { display: block; }

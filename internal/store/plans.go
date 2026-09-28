@@ -69,8 +69,10 @@ func upsertDraft(ctx context.Context, tx pgx.Tx, k weekplan.Key, c weekplan.Cont
 	return id, err
 }
 
-// SaveContext stores the week's conditions.
-func (s *Store) SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context) error {
+// SaveContext stores the week's conditions. Servings holds each day's servings under them,
+// Monday first: a planned dinner takes its day's value, and 0 leaves that dinner as it is.
+func (s *Store) SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context,
+	servings [7]int) error {
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		id, err := upsertDraft(ctx, tx, k, c, true)
 		if err != nil {
@@ -83,9 +85,20 @@ func (s *Store) SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Cont
 			}
 		}
 		// A day without dinner at home keeps no dinner, so it is neither approved nor cooked.
-		_, err = tx.Exec(ctx, `DELETE FROM plan_entries WHERE plan_id = $1 AND day = ANY($2)`,
-			id, skipped)
-		return err
+		if _, err = tx.Exec(ctx, `DELETE FROM plan_entries WHERE plan_id = $1 AND day = ANY($2)`,
+			id, skipped); err != nil {
+			return err
+		}
+		for i, n := range servings {
+			if n <= 0 {
+				continue
+			}
+			if _, err := tx.Exec(ctx, `UPDATE plan_entries SET servings = $3
+				WHERE plan_id = $1 AND day = $2`, id, i+1, n); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	return wrapPlanErr("save context", err)
 }

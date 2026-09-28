@@ -25,10 +25,35 @@ function subscriptionMatches(appServerKey, pageKey) {
   return !!appServerKey && b64url(appServerKey) === pageKey;
 }
 
+// post sends JSON and answers with the HTTP status (0 when the network failed). A save or
+// delete answers with the new device count, which updates the section in place.
 async function post(url, body) {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body), credentials: "same-origin" });
-  return res.ok;
+  let res;
+  try {
+    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body), credentials: "same-origin" });
+  } catch {
+    return 0;
+  }
+  if (res.ok) {
+    try {
+      const { devices } = await res.json();
+      const el = document.querySelector("[data-push-devices]");
+      if (el && devices) el.textContent = devices;
+    } catch { /* the count is a nicety */ }
+  }
+  return res.status;
+}
+
+// saved turns the server's answer to a save into the section's state. At the limit the
+// browser's subscription is dropped again, so the page and the server agree.
+async function saved(status, sub) {
+  if (status === 200) return "on";
+  if (status === 409) {
+    await sub.unsubscribe();
+    return "too-many";
+  }
+  return "failed";
 }
 
 function subscribe(reg, key) {
@@ -51,14 +76,14 @@ async function syncOnLoad(reg, key, permission, post) {
     }
   }
   if (!sub) return "off";
-  return (await post("/settings/push", sub.toJSON())) ? "on" : "failed";
+  return saved(await post("/settings/push", sub.toJSON()), sub);
 }
 
 async function turnOn(reg, key, requestPermission, post) {
   if (await requestPermission() !== "granted") return "denied";
   try {
     const sub = await subscribe(reg, key);
-    return (await post("/settings/push", sub.toJSON())) ? "on" : "failed";
+    return await saved(await post("/settings/push", sub.toJSON()), sub);
   } catch {
     return "failed";
   }

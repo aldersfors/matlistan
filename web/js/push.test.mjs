@@ -46,9 +46,10 @@ function fakeReg({ existingKey = null, subscribeThrows = false } = {}) {
   return { reg, calls };
 }
 
-function recorder(ok = true) {
+// post answers with an HTTP status, as the page's post does: 200, or the error the server gave.
+function recorder(ok = true, status = ok ? 200 : 500) {
   const posts = [];
-  const post = async (url, body) => { posts.push({ url, endpoint: body.endpoint }); return ok; };
+  const post = async (url, body) => { posts.push({ url, endpoint: body.endpoint }); return status; };
   return { posts, post };
 }
 
@@ -91,4 +92,17 @@ test("turnOn reports denial, a failed subscribe and success", async () => {
   assert.equal(await ctx.turnOn(fakeReg({ subscribeThrows: true }).reg, "BAECAw", async () => "granted", recorder().post), "failed");
   assert.equal(await ctx.turnOn(fakeReg().reg, "BAECAw", async () => "granted", recorder().post), "on");
   assert.equal(await ctx.turnOn(fakeReg().reg, "BAECAw", async () => "granted", recorder(false).post), "failed");
+});
+
+// At the device limit the browser's subscription is dropped again, so the page and the
+// server agree, and the limit message shows instead of the generic failure.
+test("turnOn at the device limit", async () => {
+  const { reg, calls } = fakeReg();
+  assert.equal(await ctx.turnOn(reg, "BAECAw", async () => "granted", recorder(false, 409).post), "too-many");
+  assert.equal(calls.subscribed, 1);
+});
+
+test("syncOnLoad at the device limit", async () => {
+  const { reg } = fakeReg({ existingKey: [4, 1, 2, 3] });
+  assert.equal(await ctx.syncOnLoad(reg, "BAECAw", "granted", recorder(false, 409).post), "too-many");
 });

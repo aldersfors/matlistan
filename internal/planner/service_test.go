@@ -43,8 +43,18 @@ func (m *memStore) GetPlan(context.Context, weekplan.Key) (weekplan.Plan, error)
 	}
 	return *m.plan, nil
 }
-func (m *memStore) CookedSince(context.Context, weekplan.Key, weekplan.Key) ([]weekplan.Cooked, error) {
-	return m.cooked, nil
+
+// CookedSince keeps the store's contract, from <= week < until, so tests catch a planner
+// that asks for the wrong range.
+func (m *memStore) CookedSince(_ context.Context, from, until weekplan.Key) ([]weekplan.Cooked,
+	error) {
+	var out []weekplan.Cooked
+	for _, c := range m.cooked {
+		if !c.Key.Less(from) && c.Key.Less(until) {
+			out = append(out, c)
+		}
+	}
+	return out, nil
 }
 func (m *memStore) ListCandidates(context.Context, i18n.Locale) ([]recipes.Recipe, error) {
 	var out []recipes.Recipe
@@ -251,5 +261,28 @@ func TestGenerateSendsUseUpFirst(t *testing.T) {
 	}
 	if !strings.Contains(llm.sent[0], `"use_up_first":["halv grädde"]`) {
 		t.Fatalf("prompt: %s", llm.sent[0])
+	}
+}
+
+// An approved later week counts too: planning week 40 after week 41 was approved must not
+// repeat week 41's dinners. A later week says nothing about how long ago a dish was cooked.
+func TestLaterApprovedWeeksCountAsRecent(t *testing.T) {
+	st := baseStore()
+	st.cooked = []weekplan.Cooked{{Key: _k.AddWeeks(1), RecipeID: 7, Title: "Ärtsoppa"}}
+	llm := &scripted{replies: []string{good, good}}
+	_ = newTestService(st, llm).Generate(context.Background(), _k)
+	if strings.Contains(llm.sent[0], `"id":7`) || !strings.Contains(llm.sent[0], `"recent":["Ärtsoppa"]`) {
+		t.Fatalf("prompt = %s", llm.sent[0])
+	}
+}
+
+func TestWeeksOutsideTheWindowDoNotCount(t *testing.T) {
+	st := baseStore()
+	far := household.DefaultSettings().RepeatWindowWeeks + 1
+	st.cooked = []weekplan.Cooked{{Key: _k.AddWeeks(far), RecipeID: 7, Title: "Ärtsoppa"}}
+	llm := &scripted{replies: []string{good, good}}
+	_ = newTestService(st, llm).Generate(context.Background(), _k)
+	if !strings.Contains(llm.sent[0], `"id":7`) || strings.Contains(llm.sent[0], `"weeks_since_cooked"`) {
+		t.Fatalf("prompt = %s", llm.sent[0])
 	}
 }
