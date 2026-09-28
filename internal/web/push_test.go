@@ -44,7 +44,7 @@ func TestSubscribeAndUnsubscribe(t *testing.T) {
 		!strings.Contains(body, `src="/static/push.js"`) {
 		t.Fatalf("section: %.500s", body)
 	}
-	if rec := postJSON(t, h, "/settings/push", _goodSub); rec.Code != http.StatusNoContent {
+	if rec := postJSON(t, h, "/settings/push", _goodSub); rec.Code != http.StatusOK {
 		t.Fatalf("subscribe: %d %s", rec.Code, rec.Body.String())
 	}
 	if n, _ := st.CountPushSubscriptions(t.Context()); n != 1 {
@@ -53,10 +53,10 @@ func TestSubscribeAndUnsubscribe(t *testing.T) {
 	if _, body := get(t, h, "/settings"); !strings.Contains(body, "1 enhet") {
 		t.Fatal("device count not shown")
 	}
-	if rec := postJSON(t, h, "/settings/push/delete", `{"endpoint":"https://web.push.apple.com/abc"}`); rec.Code != http.StatusNoContent {
+	if rec := postJSON(t, h, "/settings/push/delete", `{"endpoint":"https://web.push.apple.com/abc"}`); rec.Code != http.StatusOK {
 		t.Fatalf("delete: %d", rec.Code)
 	}
-	if rec := postJSON(t, h, "/settings/push/delete", `{"endpoint":"https://web.push.apple.com/abc"}`); rec.Code != http.StatusNoContent {
+	if rec := postJSON(t, h, "/settings/push/delete", `{"endpoint":"https://web.push.apple.com/abc"}`); rec.Code != http.StatusOK {
 		t.Fatalf("delete again: %d", rec.Code)
 	}
 }
@@ -124,4 +124,24 @@ func newPushServer(t *testing.T, st *fakeStore, key string) http.Handler {
 	return New(Deps{Catalog: c, Auth: fakeAuth{signedIn: true}, Store: st,
 		Now:     func() time.Time { return time.Date(2026, 9, 27, 8, 0, 0, 0, sthlm) },
 		BaseURL: "https://matlistan.example.lan", Log: zerolog.Nop(), PushKey: key})
+}
+
+// Turning a device on or off answers with the new count, so the section updates without a
+// reload; the limit has its own message.
+func TestSubscribeAnswersWithTheDeviceCount(t *testing.T) {
+	st := newFakeStore()
+	h := newPushServer(t, st, _pageKey)
+	rec := postJSON(t, h, "/settings/push", _goodSub)
+	if rec.Code != http.StatusOK || !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/json") ||
+		!strings.Contains(rec.Body.String(), `"devices":"1 enhet har aviseringar på"`) {
+		t.Fatalf("subscribe: %d %q %s", rec.Code, rec.Header().Get("Content-Type"), rec.Body.String())
+	}
+	rec = postJSON(t, h, "/settings/push/delete", `{"endpoint":"https://web.push.apple.com/abc"}`)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"devices":"0 enheter har aviseringar på"`) {
+		t.Fatalf("delete: %d %s", rec.Code, rec.Body.String())
+	}
+	_, body := get(t, h, "/settings")
+	if !strings.Contains(body, `data-push-devices`) || !strings.Contains(body, "Högst 20 enheter") {
+		t.Fatal("section lacks the count hook or the limit message")
+	}
 }
