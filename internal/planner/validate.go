@@ -40,7 +40,7 @@ func Resolve(r Request, p Proposal, library map[int64]recipes.Recipe) ([]weekpla
 	}
 	planned := map[int]weekplan.DaySpec{}
 	for _, d := range r.Days {
-		if d.Planned && (r.SwapDay == 0 || r.SwapDay == d.Day) {
+		if r.plans(d) {
 			planned[d.Day] = d
 		}
 	}

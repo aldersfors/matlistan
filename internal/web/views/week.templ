@@ -12,9 +12,9 @@ import (
 type WeekDay struct {
 	Index                               int
 	Name, Date, Title, Why, Meta        string
-	SwapLabel, Href                     string
+	LockLabel, Href                     string
 	RecipeID                            int64
-	Planned                             bool
+	Planned, Locked                     bool
 }
 
 // ContextDay is one row of the conditions form.
@@ -32,6 +32,7 @@ type Week struct {
 	PrevHref, NextHref, StatusHref, RateHref         string
 	Configured, Plannable, Generating, Approved      bool
 	HasEntries                                       bool
+	Locked, Open                                     int // locked dinners; planned days left to plan
 	Days                                             []WeekDay
 	Context                                          []ContextDay
 	Launch                                           bool
@@ -40,6 +41,13 @@ type Week struct {
 }
 
 func (w Week) hidden() templ.Component { return weekFields(w.Year, w.Number) }
+
+func lockValue(lock bool) string {
+	if lock {
+		return "1"
+	}
+	return "0"
+}
 
 templ weekFields(year, number int) {
 	<input type="hidden" name="y" value={ strconv.Itoa(year) }/>
@@ -100,13 +108,6 @@ templ WeekPage(w Week) {
 								<span class="text-muted italic">{ i18n.T(ctx, "week.no_dinner") }</span>
 							} else if d.Title == "" {
 								<span class="text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</span>
-								if w.Configured && w.Plannable && w.HasEntries && !w.Approved && !w.Generating {
-									<form method="post" action="/week/swap" class="mt-1">
-										@weekFields(w.Year, w.Number)
-										<input type="hidden" name="day" value={ strconv.Itoa(d.Index) }/>
-										<button type="submit" class="min-h-11 rounded-full border border-line px-3 text-sm font-bold">{ i18n.T(ctx, "week.plan_day") }</button>
-									</form>
-								}
 							} else {
 								<a class="font-bold" href={ templ.URL(d.Href) }>{ d.Title }</a>
 								<span class="text-sm text-muted italic">{ d.Why }</span>
@@ -114,11 +115,18 @@ templ WeekPage(w Week) {
 							}
 						</div>
 						if d.Planned && d.Title != "" && w.Configured && w.Plannable && !w.Approved && !w.Generating {
-							<form method="post" action="/week/swap" class="flex">
+							// htmx posts and swaps in the redirected page's <main>, so the scroll
+							// position stays; without JavaScript it is a plain form post.
+							<form method="post" action="/week/lock" hx-post="/week/lock" hx-select="main" hx-target="main" hx-swap="outerHTML" class="flex">
 								@w.hidden()
 								<input type="hidden" name="day" value={ strconv.Itoa(d.Index) }/>
-								<button type="submit" class="w-12 text-muted" aria-label={ d.SwapLabel }>
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v14M7 4L3 8M7 4l4 4M17 20V6M17 20l-4-4M17 20l4-4"></path></svg>
+								<input type="hidden" name="locked" value={ lockValue(!d.Locked) }/>
+								<button type="submit" class={ "w-12", templ.KV("text-muted", !d.Locked) } aria-label={ d.LockLabel } aria-pressed={ strconv.FormatBool(d.Locked) }>
+									if d.Locked {
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path fill="none" d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+									} else {
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 7.5-2"></path></svg>
+									}
 								</button>
 							</form>
 						}
@@ -137,7 +145,11 @@ templ WeekPage(w Week) {
 				}
 				<form method="post" action="/week/generate">
 					@w.hidden()
-					if w.HasEntries {
+					if w.HasEntries && w.Open == 0 {
+						<button type="submit" disabled class="h-12 w-full rounded-2xl border border-line font-bold text-muted">{ i18n.T(ctx, "week.all_locked") }</button>
+					} else if w.Locked > 0 {
+						<button type="submit" class="h-12 w-full rounded-2xl border border-line font-bold">{ i18n.T(ctx, "week.regenerate_unlocked") }</button>
+					} else if w.HasEntries {
 						<button type="submit" class="h-12 w-full rounded-2xl border border-line font-bold">{ i18n.T(ctx, "week.regenerate") }</button>
 					} else {
 						@primaryButton(i18n.T(ctx, "week.generate"))

@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "matlistan.labels" . | nindent 4 }}
 spec:
-  # One replica by design: generation and swap jobs run in-process. Migrations and a week's
+  # One replica by design: planning jobs run in-process. Migrations and a week's
   # generation are idempotent, so the brief overlap of a rolling update is safe.
   replicas: 1
   strategy:

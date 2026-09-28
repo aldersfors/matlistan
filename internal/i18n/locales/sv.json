@@ -169,8 +169,10 @@
   "week.status.approved": "Godkänd",
   "week.generate": "Planera veckan",
   "week.regenerate": "Planera om hela veckan",
+  "week.regenerate_unlocked": "Planera om olåsta",
+  "week.all_locked": "Alla middagar är låsta",
+  "week.lock": "Lås middagen på {day}",
   "week.generating": "Planerar veckan. Det tar en minut eller två.",
-  "week.swap": "Byt middag på {day}",
   "week.approve": "Godkänn veckan",
   "week.no_dinner": "Ingen middag hemma",
   "week.not_configured": "Planeringen är inte inställd på den här servern.",
@@ -249,6 +251,5 @@
   "cook.timer": {"one": "Starta timer {n} minut", "other": "Starta timer {n} minuter"},
   "cook.timer_done": "Tiden är ute",
   "cook.timer_line": "Steg {n}: {left}",
-  "week.plan_day": "Planera dagen",
   "app.description": "Veckans middagar och inköpslista."
 }

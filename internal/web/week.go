@@ -109,12 +109,18 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 		d := views.WeekDay{Index: i + 1, Name: c.WeekdayShort(day.Weekday()),
 			Date: strconv.Itoa(day.Day()), Planned: !dc.Skip}
 		if en, ok := plan.Entry(i + 1); ok {
-			d.RecipeID, d.Title, d.Why = en.RecipeID, en.Title, en.Why
+			d.RecipeID, d.Title, d.Why, d.Locked = en.RecipeID, en.Title, en.Why, en.Locked
 			d.Href = fmt.Sprintf("/recipes/%d?servings=%d&day=%d", en.RecipeID, en.Servings, i+1)
 			d.Meta = c.T("recipes.minutes", "n", en.TotalMinutes) + ", " +
 				c.N("recipes.servings", en.Servings)
 		}
-		d.SwapLabel = c.T("week.swap", "day", d.Name)
+		d.LockLabel = c.T("week.lock", "day", d.Name)
+		switch {
+		case d.Locked:
+			v.Locked++
+		case d.Planned:
+			v.Open++
+		}
 		v.Days = append(v.Days, d)
 		cd := views.ContextDay{Index: i, Name: d.Name, Home: !dc.Skip, Busy: dc.Busy,
 			Guests: strconv.Itoa(dc.Guests)}
@@ -259,25 +265,24 @@ func (s *server) generateWeek(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
 }
 
-func (s *server) swapDinner(w http.ResponseWriter, r *http.Request) {
-	k, plan, ok := s.editableWeek(w, r)
+// lockDinner locks or unlocks one dinner of a draft week; planning again keeps locked ones.
+func (s *server) lockDinner(w http.ResponseWriter, r *http.Request) {
+	k, _, ok := s.editableWeek(w, r)
 	if !ok {
 		return
 	}
 	day, err := strconv.Atoi(r.PostFormValue("day"))
-	if err != nil || day < 1 || day > 7 || plan.Context.Days[day-1].Skip || !s.plannable(k) {
+	if err != nil || day < 1 || day > 7 {
 		s.badRequest(w, r)
 		return
 	}
-	if s.Planner == nil {
-		s.notFound(w, r)
+	err = s.Store.SetEntryLocked(r.Context(), k, day, r.PostFormValue("locked") == "1")
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		s.badRequest(w, r)
 		return
-	}
-	// The job must outlive this request, so it gets its own bounded context, not r.Context().
-	//nolint:contextcheck // detached on purpose, see above
-	started := s.jobs.start(k, func(ctx context.Context) error { return s.Planner.Swap(ctx, k, day) })
-	if !started && !s.jobs.running(k) {
-		s.plannerBusy(w, r, k)
+	case err != nil:
+		s.fail(w, r, err)
 		return
 	}
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)

@@ -58,7 +58,7 @@ func TestGenerateShowsProgressThenThePlan(t *testing.T) {
 	}
 	_, body = get(t, h, "/week?y=2026&w=40")
 	for _, want := range []string{"Pumpasoppa", "Pumpan är i säsong.", "Förslag",
-		"Godkänn veckan", "Byt middag på Mån", "30 min, 4 portioner"} {
+		"Godkänn veckan", "Lås middagen på Mån", "30 min, 4 portioner"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("draft lacks %q", want)
 		}
@@ -99,30 +99,41 @@ func TestSaveConditions(t *testing.T) {
 	}
 }
 
-// Review focus 4: swap and approve; approved weeks refuse changes.
-func TestSwapAndApprove(t *testing.T) {
+// Review focus 4: lock and approve; approved weeks refuse changes.
+func TestLockAndApprove(t *testing.T) {
 	st := newFakeStore()
 	pl := &fakePlanner{st: st}
 	h, s := newPlanningServer(t, i18n.SV, st, pl)
 	post(t, h, "/week/generate", weekForm(nil))
 	s.jobs.wait()
-	if rec := post(t, h, "/week/swap", weekForm(url.Values{"day": {"2"}})); rec.Code != http.StatusSeeOther {
-		t.Fatalf("swap: %d", rec.Code)
+	if _, body := get(t, h, "/week?y=2026&w=40"); !strings.Contains(body, "Planera om hela veckan") ||
+		strings.Count(body, `aria-pressed="false"`) != 2 {
+		t.Fatalf("unlocked week:\n%s", body)
 	}
-	s.jobs.wait()
-	if len(pl.swapped) != 1 || pl.swapped[0] != 2 {
-		t.Fatalf("swapped %v", pl.swapped)
+	lock := func(day, locked string) int {
+		return post(t, h, "/week/lock", weekForm(url.Values{"day": {day}, "locked": {locked}})).Code
 	}
-	if rec := post(t, h, "/week/swap", weekForm(url.Values{"day": {"9"}})); rec.Code != http.StatusBadRequest {
-		t.Fatalf("swap day 9: %d", rec.Code)
+	if code := lock("2", "1"); code != http.StatusSeeOther {
+		t.Fatalf("lock: %d", code)
 	}
-	c := weekplan.DefaultContext(7)
-	c.Days[2].Skip = true
-	if err := st.SaveContext(t.Context(), _w40, c, [7]int{}); err != nil {
-		t.Fatal(err)
+	if e, _ := st.plans[_w40].Entry(2); !e.Locked {
+		t.Fatal("day 2 not locked")
 	}
-	if rec := post(t, h, "/week/swap", weekForm(url.Values{"day": {"3"}})); rec.Code != http.StatusBadRequest {
-		t.Fatalf("swap a day without dinner: %d", rec.Code)
+	_, body := get(t, h, "/week?y=2026&w=40")
+	if !strings.Contains(body, "Planera om olåsta") || !strings.Contains(body, "Lås middagen på Tis") ||
+		strings.Count(body, `aria-pressed="true"`) != 1 {
+		t.Fatalf("one locked:\n%s", body)
+	}
+	for _, day := range []string{"9", "3", "x"} { // day 3 has no dinner in the fake
+		if code := lock(day, "1"); code != http.StatusBadRequest {
+			t.Errorf("lock day %s: %d", day, code)
+		}
+	}
+	if code := lock("2", "0"); code != http.StatusSeeOther {
+		t.Fatalf("unlock: %d", code)
+	}
+	if e, _ := st.plans[_w40].Entry(2); e.Locked {
+		t.Fatal("day 2 still locked")
 	}
 	if rec := post(t, h, "/week/approve", weekForm(nil)); rec.Code != http.StatusSeeOther {
 		t.Fatalf("approve: %d", rec.Code)
@@ -131,13 +142,13 @@ func TestSwapAndApprove(t *testing.T) {
 	if p.Status != weekplan.StatusApproved || p.ApprovedBy != "sub-anna" {
 		t.Fatalf("plan = %+v", p)
 	}
-	for _, path := range []string{"/week/swap", "/week/generate", "/week/context"} {
-		if rec := post(t, h, path, weekForm(url.Values{"day": {"1"}})); rec.Code != http.StatusConflict {
+	for _, path := range []string{"/week/lock", "/week/generate", "/week/context"} {
+		if rec := post(t, h, path, weekForm(url.Values{"day": {"1"}, "locked": {"1"}})); rec.Code != http.StatusConflict {
 			t.Errorf("%s on approved week: %d", path, rec.Code)
 		}
 	}
-	_, body := get(t, h, "/week?y=2026&w=40")
-	if !strings.Contains(body, "Godkänd") || strings.Contains(body, "Byt middag") {
+	_, body = get(t, h, "/week?y=2026&w=40")
+	if !strings.Contains(body, "Godkänd") || strings.Contains(body, "Lås middagen") {
 		t.Fatal("approved week still editable")
 	}
 }
@@ -221,22 +232,27 @@ func TestBusyPlannerSaysSo(t *testing.T) {
 	s.jobs.wait()
 }
 
-func TestPlanAnEmptyDay(t *testing.T) {
+// With every planned dinner locked there is nothing left to plan, and the button says so.
+func TestEveryDinnerLocked(t *testing.T) {
 	st := newFakeStore()
 	pl := &fakePlanner{st: st}
 	h, s := newPlanningServer(t, i18n.SV, st, pl)
 	post(t, h, "/week/generate", weekForm(nil))
 	s.jobs.wait()
+	c := weekplan.DefaultContext(7)
+	for i := 2; i < 7; i++ { // the fake plans days 1 and 2
+		c.Days[i].Skip = true
+	}
+	if err := st.SaveContext(t.Context(), _w40, c, [7]int{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, day := range []string{"1", "2"} {
+		post(t, h, "/week/lock", weekForm(url.Values{"day": {day}, "locked": {"1"}}))
+	}
 	_, body := get(t, h, "/week?y=2026&w=40")
-	if strings.Count(body, "Planera dagen") != 5 { // days 3-7 have no dinner in the fake
-		t.Fatalf("plan-day buttons: %d", strings.Count(body, "Planera dagen"))
-	}
-	if rec := post(t, h, "/week/swap", weekForm(url.Values{"day": {"3"}})); rec.Code != http.StatusSeeOther {
-		t.Fatalf("plan day 3: %d", rec.Code)
-	}
-	s.jobs.wait()
-	if len(pl.swapped) != 1 || pl.swapped[0] != 3 {
-		t.Fatalf("swapped %v", pl.swapped)
+	if !strings.Contains(body, "Alla middagar är låsta") || !strings.Contains(body, "disabled") ||
+		strings.Contains(body, "Planera om") {
+		t.Fatalf("all locked:\n%s", body)
 	}
 }
 

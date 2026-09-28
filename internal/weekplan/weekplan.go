@@ -134,6 +134,7 @@ type Entry struct {
 	Title                  string
 	TotalMinutes, Servings int
 	Why                    string
+	Locked                 bool // kept when the rest of the draft is planned again
 }
 
 // Plan is a week with its conditions and dinners.

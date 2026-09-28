@@ -271,6 +271,22 @@ func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Co
 	return nil
 }
 
+func (f *fakeStore) SetEntryLocked(_ context.Context, k weekplan.Key, day int, locked bool) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.plans[k]
+	if !ok || p.Status != weekplan.StatusDraft {
+		return store.ErrNotFound
+	}
+	for i := range p.Entries {
+		if p.Entries[i].Day == day {
+			p.Entries[i].Locked = locked
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
 func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject string,
 	items []shopping.Item, excluded int) error {
 	f.mu.Lock()
@@ -415,10 +431,9 @@ func (f *fakeStore) RemoveManualItem(_ context.Context, id int64) error {
 }
 
 type fakePlanner struct {
-	st      *fakeStore
-	err     error
-	gate    chan struct{} // when set, Generate waits for it (to observe "planning")
-	swapped []int
+	st   *fakeStore
+	err  error
+	gate chan struct{} // when set, Generate waits for it (to observe "planning")
 }
 
 func (p *fakePlanner) Generate(_ context.Context, k weekplan.Key) error {
@@ -444,11 +459,6 @@ func (p *fakePlanner) Generate(_ context.Context, k weekplan.Key) error {
 		Servings: 4, Why: "Pumpan är i säsong."}, {Day: 2, RecipeID: 2, Title: "Köttbullar",
 		TotalMinutes: 40, Servings: 4, Why: "Alla fyra gav den fem av fem."}}
 	p.st.plans[k] = pl
-	return nil
-}
-
-func (p *fakePlanner) Swap(_ context.Context, _ weekplan.Key, day int) error {
-	p.swapped = append(p.swapped, day)
 	return nil
 }
 

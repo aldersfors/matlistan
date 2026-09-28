@@ -26,7 +26,7 @@ const (
 var (
 	ErrInvalid     = errors.New("no valid plan after one retry")
 	ErrUnavailable = errors.New("the model could not be reached")
-	ErrNotPlanned  = errors.New("that day has no dinner planned")
+	ErrAllLocked   = errors.New("every planned dinner is locked")
 )
 
 const (
@@ -47,7 +47,7 @@ type Store interface {
 	SetPlanError(ctx context.Context, k weekplan.Key, c weekplan.Context, key string) error
 }
 
-// Service plans weeks and swaps dinners.
+// Service plans weeks.
 type Service struct {
 	st       Store
 	llm      LLM
@@ -63,31 +63,33 @@ func NewService(st Store, llm LLM, l i18n.Locale, loc *time.Location, log zerolo
 	return &Service{st: st, llm: llm, locale: l, loc: loc, log: log, notFound: notFound}
 }
 
-// Generate plans every planned day of week k, replacing its dinners.
+// Generate plans week k's planned days again, keeping the dinners the family locked. With
+// every planned dinner locked there is nothing to plan: ErrAllLocked, and nothing recorded.
 func (s *Service) Generate(ctx context.Context, k weekplan.Key) error {
 	req, plan, err := s.request(ctx, k)
 	if err != nil {
 		return s.record(ctx, k, plan.Context, err)
 	}
-	return s.record(ctx, k, plan.Context, s.run(ctx, "week", req, plan, true))
-}
-
-// Swap plans day again, keeping the other days.
-func (s *Service) Swap(ctx context.Context, k weekplan.Key, day int) error {
-	req, plan, err := s.request(ctx, k)
-	if err != nil {
-		return s.record(ctx, k, plan.Context, err)
-	}
-	if day < 1 || day > 7 || !req.Days[day-1].Planned {
-		return ErrNotPlanned
-	}
-	req.SwapDay = day
+	locked := map[int]bool{}
 	for _, e := range plan.Entries {
-		if e.Day != day {
+		if e.Locked && req.Days[e.Day-1].Planned {
+			locked[e.Day] = true
 			req.Keep = append(req.Keep, e.Title)
 		}
 	}
-	return s.record(ctx, k, plan.Context, s.run(ctx, "swap", req, plan, false))
+	if len(locked) > 0 {
+		req.Only = map[int]bool{}
+		for _, d := range req.Days {
+			if d.Planned && !locked[d.Day] {
+				req.Only[d.Day] = true
+			}
+		}
+		if len(req.Only) == 0 {
+			return ErrAllLocked
+		}
+	}
+	// replaceAll clears the unlocked dinners; the store never touches locked ones.
+	return s.record(ctx, k, plan.Context, s.run(ctx, "week", req, plan, true))
 }
 
 // _recordTimeout bounds writing a failure after the job's own context may have ended.

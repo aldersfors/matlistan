@@ -178,11 +178,13 @@ func TestRecentDishesAreExcluded(t *testing.T) {
 	}
 }
 
-func TestSwapReplacesOneDay(t *testing.T) {
+// Locked dinners stay; only the other planned days go to the model, with the locked
+// dinners as the rest of the week.
+func TestGenerateKeepsLockedDinners(t *testing.T) {
 	st := baseStore()
 	st.plan = &weekplan.Plan{Key: _k, Status: weekplan.StatusDraft,
 		Context: weekplan.DefaultContext(2),
-		Entries: []weekplan.Entry{{Day: 1, RecipeID: 7, Title: "Ärtsoppa"},
+		Entries: []weekplan.Entry{{Day: 1, RecipeID: 7, Title: "Ärtsoppa", Locked: true},
 			{Day: 2, RecipeID: 8, Title: "Tacos"}}}
 	reply := `{"days":[{"day":2,"why":"Omväxling.","library_recipe_id":null,"new_recipe":` +
 		`{"title":"Pumpasoppa","description":"","servings":2,"active_minutes":10,` +
@@ -190,15 +192,27 @@ func TestSwapReplacesOneDay(t *testing.T) {
 		`"ingredients":[{"name":"pumpa","quantity":1,"unit":"kg","section":"produce",` +
 		`"optional":false}]}}]}`
 	llm := &scripted{replies: []string{reply}}
-	if err := newTestService(st, llm).Swap(context.Background(), _k, 2); err != nil {
+	if err := newTestService(st, llm).Generate(context.Background(), _k); err != nil {
 		t.Fatal(err)
 	}
-	if st.replaced || len(st.saved) != 1 || st.saved[0].Day != 2 ||
-		!strings.Contains(llm.sent[0], `"other_days_this_week":["Ärtsoppa"]`) {
+	if len(st.saved) != 1 || st.saved[0].Day != 2 ||
+		!strings.Contains(llm.sent[0], `"other_days_this_week":["Ärtsoppa"]`) ||
+		!strings.Contains(llm.sent[0], `{"day":1,"weekday":"Monday","planned":false`) {
 		t.Fatalf("saved %+v prompt %s", st.saved, llm.sent[0])
 	}
-	if err := newTestService(st, llm).Swap(context.Background(), _k, 5); !errors.Is(err, ErrNotPlanned) {
-		t.Fatalf("swap skipped day: %v", err)
+}
+
+// With every planned dinner locked there is nothing to plan, and the model is not asked.
+func TestGenerateWithEverythingLocked(t *testing.T) {
+	st := baseStore()
+	st.plan = &weekplan.Plan{Key: _k, Status: weekplan.StatusDraft,
+		Context: weekplan.DefaultContext(2),
+		Entries: []weekplan.Entry{{Day: 1, RecipeID: 7, Title: "Ärtsoppa", Locked: true},
+			{Day: 2, RecipeID: 8, Title: "Tacos", Locked: true}}}
+	llm := &scripted{}
+	err := newTestService(st, llm).Generate(context.Background(), _k)
+	if !errors.Is(err, ErrAllLocked) || len(llm.sent) != 0 || st.errKey != "" {
+		t.Fatalf("err %v, sent %d, error key %q", err, len(llm.sent), st.errKey)
 	}
 }
 

@@ -35,7 +35,7 @@ func (s *Store) GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, err
 		return weekplan.Plan{}, fmt.Errorf("get plan context: %w", err)
 	}
 	rows, err := s.pool.Query(ctx, `SELECT e.day, e.recipe_id, r.title, r.total_minutes,
-		e.servings, e.why FROM plan_entries e JOIN recipes r ON r.id = e.recipe_id
+		e.servings, e.why, e.locked FROM plan_entries e JOIN recipes r ON r.id = e.recipe_id
 		WHERE e.plan_id = $1 ORDER BY e.day`, p.ID)
 	if err != nil {
 		return weekplan.Plan{}, fmt.Errorf("get plan entries: %w", err)
@@ -117,7 +117,8 @@ func (s *Store) SavePicks(ctx context.Context, k weekplan.Key, c weekplan.Contex
 			return err
 		}
 		if replaceAll {
-			if _, err := tx.Exec(ctx, `DELETE FROM plan_entries WHERE plan_id = $1`, id); err != nil {
+			if _, err := tx.Exec(ctx, `DELETE FROM plan_entries WHERE plan_id = $1 AND NOT locked`,
+				id); err != nil {
 				return err
 			}
 		}
@@ -131,7 +132,7 @@ func (s *Store) SavePicks(ctx context.Context, k weekplan.Key, c weekplan.Contex
 			if _, err := tx.Exec(ctx, `INSERT INTO plan_entries
 				(plan_id, day, recipe_id, servings, why) VALUES ($1, $2, $3, $4, $5)
 				ON CONFLICT (plan_id, day) DO UPDATE SET recipe_id = EXCLUDED.recipe_id,
-				servings = EXCLUDED.servings, why = EXCLUDED.why`,
+				servings = EXCLUDED.servings, why = EXCLUDED.why WHERE NOT plan_entries.locked`,
 				id, p.Day, recipeID, p.Servings, p.Why); err != nil {
 				return err
 			}
@@ -139,6 +140,21 @@ func (s *Store) SavePicks(ctx context.Context, k weekplan.Key, c weekplan.Contex
 		return nil
 	})
 	return wrapPlanErr("save picks", err)
+}
+
+// SetEntryLocked locks or unlocks the dinner on day in week k's draft. A locked dinner is
+// kept when the week is planned again; ErrNotFound when the draft has no dinner that day.
+func (s *Store) SetEntryLocked(ctx context.Context, k weekplan.Key, day int, locked bool) error {
+	tag, err := s.pool.Exec(ctx, `UPDATE plan_entries e SET locked = $4 FROM week_plans p
+		WHERE e.plan_id = p.id AND p.iso_year = $1 AND p.iso_week = $2 AND p.status = 'draft'
+		AND e.day = $3`, k.Year, k.Week, day, locked)
+	if err != nil {
+		return fmt.Errorf("lock dinner: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // SetPlanError records why the last generation failed; the dinners stay as they were.
