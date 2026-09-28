@@ -24,7 +24,7 @@ func (s *server) manifest(w http.ResponseWriter, _ *http.Request) {
 	m := map[string]any{
 		"name": c.T("app.name"), "short_name": c.T("app.name"),
 		"description": c.T("app.description"), "lang": string(c.Locale()),
-		"start_url": "/week", "scope": "/", "display": "standalone",
+		"start_url": "/week?launch=1", "scope": "/", "display": "standalone",
 		"background_color": _manifestBackground, "theme_color": _manifestTheme,
 		"icons": []manifestIcon{
 			{Src: "/static/icons/icon-192.png", Sizes: "192x192", Type: "image/png"},

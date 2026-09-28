@@ -104,8 +104,8 @@ description = "Call the real Claude API once (needs ANTHROPIC_API_KEY)"
 run = "MATLISTAN_LIVE=1 go test -run TestLive -v ./internal/planner/claude/"
 
 [tasks.icons]
-description = "Make the app icons in internal/web/static/icons from hack/icons/app-icon-2048.png"
-run = "go run ./hack/icons hack/icons/app-icon-2048.png internal/web/static/icons"
+description = "Make the app icons and iOS launch images in internal/web/static from hack/icons"
+run = "go run ./hack/icons hack/icons internal/web/static"
 
 [tasks."dev:seed"]
 description = "Load the made-up household into the dev database"

@@ -1,6 +1,9 @@
 package views
 
-import "github.com/aldersfors/matlistan/internal/i18n"
+import (
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/splash"
+)
 
 templ Layout(title, active string) {
 	<!DOCTYPE html>
@@ -16,6 +19,9 @@ templ Layout(title, active string) {
 			<link rel="icon" href="/favicon.ico" sizes="any"/>
 			<link rel="manifest" href="/manifest.webmanifest"/>
 			<link rel="apple-touch-icon" href="/static/icons/icon-180.png"/>
+			for _, s := range splash.Screens {
+				<link rel="apple-touch-startup-image" media={ s.Media() } href={ "/static/splash/" + s.File() }/>
+			}
 			<meta name="htmx-config" content='{"includeIndicatorStyles":false}'/>
 			<title>{ title } - { i18n.T(ctx, "app.name") }</title>
 			<link rel="stylesheet" href="/static/app.css"/>

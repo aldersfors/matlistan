@@ -49,3 +49,23 @@ func TestMaskableKeepsTheArtInTheSafeZone(t *testing.T) {
 		t.Fatalf("art missing: %v %v", img.RGBAAt(256, 256), img.RGBAAt(100, 256))
 	}
 }
+
+// A launch image is the screen's size in navy, with the art centred at ArtShare of its width.
+func TestSplashCentresTheArt(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 2048, 2048))
+	draw.Draw(src, src.Bounds(), &image.Uniform{_red}, image.Point{}, draw.Src)
+	img := splashImage(src, 750, 1334, _blue)
+	if img.Bounds().Dx() != 750 || img.Bounds().Dy() != 1334 {
+		t.Fatalf("size %v", img.Bounds())
+	}
+	if img.RGBAAt(0, 0) != _blue || img.RGBAAt(749, 1333) != _blue || img.RGBAAt(375, 400) != _blue {
+		t.Fatalf("background: %v %v %v", img.RGBAAt(0, 0), img.RGBAAt(749, 1333), img.RGBAAt(375, 400))
+	}
+	if img.RGBAAt(375, 667) != _red {
+		t.Fatalf("centre is not the art: %v", img.RGBAAt(375, 667))
+	}
+	// 36% of 750 is 270 px wide, so the art spans x 240 to 509.
+	if img.RGBAAt(245, 667) != _red || img.RGBAAt(235, 667) != _blue {
+		t.Fatalf("art edges: %v %v", img.RGBAAt(245, 667), img.RGBAAt(235, 667))
+	}
+}

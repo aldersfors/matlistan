@@ -1,6 +1,7 @@
-// Command icons makes the app icons from the source artwork, app-icon-2048.png (drawn from
-// app-icon.svg in this directory). Run it with `mise run icons` after changing the artwork;
-// the PNGs are committed. It uses the standard library only, so it averages the source
+// Command icons makes the app icons and the iOS launch images from the source artwork,
+// app-icon-2048.png (drawn from app-icon.svg in this directory), and copies the SVG for the
+// in-app launch overlay. Run it with `mise run icons` after changing the artwork; the output
+// is committed. It uses the standard library only, so it averages the source
 // area behind each output pixel instead of using a resampling filter.
 package main
 
@@ -12,6 +13,8 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+
+	"github.com/aldersfors/matlistan/internal/splash"
 )
 
 // resize scales src down to size x size by averaging the source area each output pixel
@@ -61,9 +64,20 @@ func icon(src image.Image, size int, scale float64, bg color.RGBA) *image.RGBA {
 	return out
 }
 
+// splashImage is a w x h launch image: the art centred at splash.ArtShare of the width, on
+// the art's own background colour.
+func splashImage(src image.Image, w, h int, bg color.RGBA) *image.RGBA {
+	out := image.NewRGBA(image.Rect(0, 0, w, h))
+	draw.Draw(out, out.Bounds(), &image.Uniform{bg}, image.Point{}, draw.Src)
+	art := int(float64(w)*splash.ArtShare + 0.5)
+	x, y := (w-art)/2, (h-art)/2
+	draw.Draw(out, image.Rect(x, y, x+art, y+art), resize(src, art), image.Point{}, draw.Over)
+	return out
+}
+
 func main() {
 	if len(os.Args) != 3 {
-		fmt.Fprintln(os.Stderr, "usage: icons <source png> <output dir>")
+		fmt.Fprintln(os.Stderr, "usage: icons <artwork dir> <static dir>")
 		os.Exit(2)
 	}
 	if err := run(os.Args[1], os.Args[2]); err != nil {
@@ -72,37 +86,61 @@ func main() {
 	}
 }
 
-func run(source, dir string) error {
-	f, err := os.Open(source) //nolint:gosec // build tool input path
+func run(artDir, static string) error {
+	//nolint:gosec // build tool input
+	f, err := os.Open(filepath.Join(artDir, "app-icon-2048.png"))
 	if err != nil {
 		return err
 	}
 	src, err := png.Decode(f)
 	_ = f.Close()
 	if err != nil {
-		return fmt.Errorf("%s: %w", source, err)
+		return fmt.Errorf("app-icon-2048.png: %w", err)
 	}
-	// The artwork's background fills the whole square; the maskable margin uses the same colour.
+	// The artwork's background fills the whole square; margins and launch images use it too.
 	bg := color.RGBAModel.Convert(src.At(src.Bounds().Min.X, src.Bounds().Min.Y)).(color.RGBA)
-	if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // build tool output dir
-		return err
+	icons, splashes := filepath.Join(static, "icons"), filepath.Join(static, "splash")
+	for _, d := range []string{icons, splashes} {
+		if err := os.MkdirAll(d, 0o755); err != nil { //nolint:gosec // build tool output dir
+			return err
+		}
 	}
 	for name, spec := range map[string]struct {
 		size  int
 		scale float64
 	}{"icon-180.png": {180, 1}, "icon-192.png": {192, 1}, "icon-512.png": {512, 1},
 		"icon-maskable-512.png": {512, 0.7}} {
-		out, err := os.Create(filepath.Join(dir, name)) //nolint:gosec // build tool output path
-		if err != nil {
+		img := icon(src, spec.size, spec.scale, bg)
+		if err := writePNG(filepath.Join(icons, name), img); err != nil {
 			return err
 		}
-		err = png.Encode(out, icon(src, spec.size, spec.scale, bg))
-		if cerr := out.Close(); err == nil {
-			err = cerr
+	}
+	for _, s := range splash.Screens {
+		p := s.Pixels()
+		img := splashImage(src, p[0], p[1], bg)
+		if err := writePNG(filepath.Join(splashes, s.File()), img); err != nil {
+			return err
 		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", name, err)
-		}
+	}
+	svg, err := os.ReadFile(filepath.Join(artDir, "app-icon.svg")) //nolint:gosec // build tool input
+	if err != nil {
+		return err
+	}
+	//nolint:gosec // a public asset, served as-is
+	return os.WriteFile(filepath.Join(splashes, "app-icon.svg"), svg, 0o644)
+}
+
+func writePNG(path string, img image.Image) error {
+	out, err := os.Create(path) //nolint:gosec // build tool output path
+	if err != nil {
+		return err
+	}
+	err = png.Encode(out, img)
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", filepath.Base(path), err)
 	}
 	return nil
 }
