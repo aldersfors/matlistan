@@ -169,7 +169,7 @@ func amount(g *group) (float64, string) {
 		if g.base >= 1000 {
 			return round2(g.base / 1000), "kg"
 		}
-		return math.Round(g.base), "g"
+		return whole(g.base), "g"
 	case dimVolume:
 		switch {
 		case g.base >= 1000:
@@ -177,9 +177,25 @@ func amount(g *group) (float64, string) {
 		case g.base >= 100:
 			return round2(g.base / 100), "dl"
 		}
-		return math.Round(g.base), "ml"
+		return whole(g.base), "ml"
 	}
 	return math.Ceil(g.base - 1e-9), "pcs"
 }
 
-func round2(q float64) float64 { return math.Round(q*100) / 100 }
+// round2 rounds to two decimals, but a positive amount never becomes 0, which the list
+// would read as "to taste".
+func round2(q float64) float64 {
+	r := math.Round(q*100) / 100
+	if q > 0 && r == 0 {
+		return 0.01
+	}
+	return r
+}
+
+// whole shows grams and millilitres as whole numbers, and amounts under one with decimals.
+func whole(q float64) float64 {
+	if q < 1 {
+		return round2(q)
+	}
+	return math.Round(q)
+}

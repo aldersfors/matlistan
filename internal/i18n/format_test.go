@@ -59,3 +59,14 @@ func TestUnitAndSectionLabels(t *testing.T) {
 		t.Errorf("labels: %q %q %q", sv.Unit("tbsp"), sv.Unit(""), sv.Section("produce"))
 	}
 }
+
+// A small positive amount never reads as 0: the recipe form would save it back as "to
+// taste".
+func TestQuantityKeepsSmallAmounts(t *testing.T) {
+	sv, _ := Load(SV)
+	for q, want := range map[float64]string{0.004: "0,01", 0.01: "0,01", 0.125: "0,13", 0: "0"} {
+		if got := sv.Quantity(q); got != want {
+			t.Errorf("Quantity(%v) = %q, want %q", q, got, want)
+		}
+	}
+}
