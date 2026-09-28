@@ -17,6 +17,7 @@ import (
 	"github.com/aldersfors/matlistan/internal/planner"
 	"github.com/aldersfors/matlistan/internal/planner/claude"
 	"github.com/aldersfors/matlistan/internal/planner/openai"
+	"github.com/aldersfors/matlistan/internal/push"
 	"github.com/aldersfors/matlistan/internal/store"
 	"github.com/aldersfors/matlistan/internal/web"
 	"github.com/aldersfors/matlistan/internal/week"
@@ -52,6 +53,11 @@ func generate(ctx context.Context, e env, args []string) int {
 		return 1
 	}
 	defer db.Close()
+	vapid, err := loadVAPID(cfg.Push) // before planning, so a bad key costs no model tokens
+	if err != nil {
+		log.Error().Err(err).Msg("push")
+		return 1
+	}
 	svc, _, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
 	if err != nil {
 		log.Error().Err(err).Msg("planner")
@@ -65,6 +71,15 @@ func generate(ctx context.Context, e env, args []string) int {
 	if err := svc.Generate(ctx, k); err != nil {
 		log.Error().Err(err).Str("week", k.String()).Msg("generate")
 		return 1
+	}
+	if vapid != nil {
+		catalog, err := i18n.Load(cfg.Locale)
+		if err != nil {
+			log.Error().Err(err).Msg("catalog")
+			return 1
+		}
+		notifyDraft(ctx, push.Notifier{Store: db, Sender: push.NewSender(vapid), Now: time.Now,
+			Log: log}, catalog, k, log)
 	}
 	log.Info().Str("week", k.String()).Msg("week planned")
 	return 0
