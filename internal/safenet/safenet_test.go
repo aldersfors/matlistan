@@ -3,6 +3,7 @@ package safenet
 import (
 	"context"
 	"errors"
+	"net"
 	"net/netip"
 	"testing"
 )
@@ -39,5 +40,34 @@ func TestDialerRefusesPrivateAnswers(t *testing.T) {
 	}
 	if _, err := d.DialContext(context.Background(), "tcp", "localhost:443"); !errors.Is(err, ErrNotAllowed) {
 		t.Fatalf("localhost dial: %v", err)
+	}
+}
+
+// A dual-stack name whose first address cannot be reached (an IPv6 address the network
+// policy drops) must still connect through the next checked address.
+func TestDialerTriesEachCheckedAddress(t *testing.T) {
+	var lc net.ListenConfig
+	ln, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = ln.Close() }()
+	go func() {
+		if c, err := ln.Accept(); err == nil {
+			_ = c.Close()
+		}
+	}()
+	_, port, _ := net.SplitHostPort(ln.Addr().String())
+	d := Dialer{Allow: func(netip.Addr) bool { return true },
+		lookup: func(context.Context, string) ([]netip.Addr, error) {
+			return []netip.Addr{netip.MustParseAddr("::1"), netip.MustParseAddr("127.0.0.1")}, nil
+		}}
+	c, err := d.DialContext(t.Context(), "tcp", "push.example.org:"+port)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer func() { _ = c.Close() }()
+	if got := c.RemoteAddr().String(); got != "127.0.0.1:"+port {
+		t.Fatalf("connected to %s", got)
 	}
 }

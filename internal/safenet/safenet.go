@@ -50,7 +50,10 @@ func CheckHost(host string) error {
 
 // Dialer resolves the host itself, refuses the name when any of its addresses is not
 // allowed, and connects to a checked address. A nil Allow means PublicAddr.
-type Dialer struct{ Allow func(netip.Addr) bool }
+type Dialer struct {
+	Allow  func(netip.Addr) bool
+	lookup func(ctx context.Context, host string) ([]netip.Addr, error) // tests only
+}
 
 // DialContext is for http.Transport.DialContext.
 func (d Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -65,7 +68,13 @@ func (d Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn
 	if err := CheckHost(host); err != nil {
 		return nil, err
 	}
-	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+	lookup := d.lookup
+	if lookup == nil {
+		lookup = func(ctx context.Context, host string) ([]netip.Addr, error) {
+			return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+		}
+	}
+	ips, err := lookup(ctx, host)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrUnreachable, err)
 	}
@@ -78,6 +87,19 @@ func (d Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn
 			return nil, ErrNotAllowed
 		}
 	}
+	// Try each checked address in order, so an unreachable first one (an IPv6 address a
+	// network policy drops, for example) does not fail the whole dial.
 	var nd net.Dialer
-	return nd.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
+	var last error
+	for _, ip := range ips {
+		c, err := nd.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+		if err == nil {
+			return c, nil
+		}
+		last = err
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, fmt.Errorf("%w: %w", ErrUnreachable, last)
 }
