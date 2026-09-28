@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/aldersfors/matlistan/compare/v0.2.0...v0.3.0) (2026-09-28)
+
+
+### Features
+
+* **planner:** prefer dinners that use up what is at home ([#19](https://github.com/aldersfors/matlistan/issues/19)) ([aa00c4f](https://github.com/aldersfors/matlistan/commit/aa00c4f343dee8f4375bf16d755721c13a338db0))
+* **shopping:** update the list without approving the week again ([#17](https://github.com/aldersfors/matlistan/issues/17)) ([9cd8438](https://github.com/aldersfors/matlistan/commit/9cd84382772c5eb957de9d115837c525e2913199))
+
+
+### Bug fixes
+
+* **release:** label the image with its source repository ([#16](https://github.com/aldersfors/matlistan/issues/16)) ([1c1f22e](https://github.com/aldersfors/matlistan/commit/1c1f22e7a4aa0f2fd23a61c5a179fc8f89280bae))
+
 ## [0.2.0](https://github.com/aldersfors/matlistan/compare/v0.1.0...v0.2.0) (2026-09-27)
 
 
