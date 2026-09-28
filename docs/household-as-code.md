@@ -92,7 +92,8 @@ after it starts, the same way "Importera från länk" does, and locks it. A page
 imported again once it has a recipe, so restarts cost nothing. If the page redirects, the
 recipe keeps the link you wrote.
 
-- A page that cannot be reached is tried again an hour later.
+- A page that cannot be reached, or where the model fails, is tried again an hour later, up
+  to three tries; after that it waits for the next start.
 - A page without a recipe, or whose recipe misses something (for example the cooking time),
   is tried again only after the next start. The log says which fields were missing.
 - The log names the site, never the full link.

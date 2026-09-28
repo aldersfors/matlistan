@@ -3,6 +3,7 @@ package declared
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -169,5 +170,20 @@ func TestLinksStopWithTheServer(t *testing.T) {
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("Run did not stop")
+	}
+}
+
+// Review focus 3: a page the model always fails on (bad JSON, a context-length error) is
+// tried a few times, then waits for the next start instead of costing a model call hourly.
+func TestLinksGiveUpAfterAFewAttempts(t *testing.T) {
+	bad := fmt.Errorf("%w: answer is not the expected JSON", importer.ErrModelUnavailable)
+	imp := &fakeImporter{fail: map[string][]error{"https://a.example/r": {bad, bad, bad, bad, bad, bad}}}
+	st := &fakeLinkStore{}
+	log := run(t, imp, st, "https://a.example/r")
+	if imp.calls["https://a.example/r"] != 3 || len(st.saved) != 0 {
+		t.Fatalf("calls %v, saved %d", imp.calls, len(st.saved))
+	}
+	if !strings.Contains(log, `"retry":false`) {
+		t.Fatalf("last attempt should say retry=false:\n%s", log)
 	}
 }

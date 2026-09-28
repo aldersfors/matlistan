@@ -36,16 +36,20 @@ type Links struct {
 	Timeout  time.Duration // for one link; two minutes in production
 }
 
+// _attemptsMax bounds the tries per link and start: a page the model always fails on must
+// not cost a model call every hour for as long as the pod runs.
+const _attemptsMax = 3
+
 // Run returns when every link is imported or dropped, or when ctx ends.
 func (l Links) Run(ctx context.Context, links []string) {
 	pending := append([]string(nil), links...)
-	for len(pending) > 0 {
+	for round := 1; len(pending) > 0; round++ {
 		var again []string
 		for _, link := range pending {
 			if ctx.Err() != nil {
 				return
 			}
-			if l.one(ctx, link) {
+			if l.one(ctx, link, round < _attemptsMax) {
 				again = append(again, link)
 			}
 		}
@@ -61,14 +65,15 @@ func (l Links) Run(ctx context.Context, links []string) {
 	}
 }
 
-// one imports link and reports whether to try again later.
-func (l Links) one(ctx context.Context, link string) bool {
+// one imports link and reports whether to try again later; mayRetry is false on the last
+// attempt.
+func (l Links) one(ctx context.Context, link string, mayRetry bool) bool {
 	host := hostOf(link)
 	ctx, cancel := context.WithTimeout(ctx, l.Timeout)
 	defer cancel()
 	r, _, err := l.Importer.Import(ctx, link)
 	if err != nil {
-		retry := transient(err)
+		retry := mayRetry && transient(err)
 		l.Log.Warn().Str("host", host).Str("reason", reason(err)).Bool("retry", retry).
 			Msg("recipe link import failed")
 		return retry
@@ -89,9 +94,9 @@ func (l Links) one(ctx context.Context, link string) bool {
 		err = l.Store.AdoptLink(ctx, link)
 	}
 	if err != nil {
-		l.Log.Warn().Str("host", host).Str("reason", "store").Bool("retry", true).
+		l.Log.Warn().Str("host", host).Str("reason", "store").Bool("retry", mayRetry).
 			Msg("recipe link import failed")
-		return true
+		return mayRetry
 	}
 	l.Log.Info().Str("host", host).Msg("recipe link imported")
 	return false
