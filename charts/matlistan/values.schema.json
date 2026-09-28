@@ -390,7 +390,7 @@
               },
               "sourceURL": {
                 "type": "string",
-                "pattern": "^https://"
+                "pattern": "^(https://.*)?$"
               },
               "steps": {
                 "type": "array",

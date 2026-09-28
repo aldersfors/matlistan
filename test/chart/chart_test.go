@@ -817,3 +817,29 @@ func TestHouseholdSchemaEnumsMatchTheApp(t *testing.T) {
 		}
 	}
 }
+
+// The example in docs/household-as-code.md is what people paste first: it must render.
+func TestHouseholdDocsExampleRenders(t *testing.T) {
+	doc, err := os.ReadFile("../../docs/household-as-code.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(doc)
+	start := strings.Index(s, "```yaml\nhousehold:")
+	if start < 0 {
+		t.Fatal("no household example in the docs")
+	}
+	s = s[start+len("```yaml\n"):]
+	end := strings.Index(s, "```")
+	if end < 0 {
+		t.Fatal("household example is not closed")
+	}
+	example := s[:end]
+	f := t.TempDir() + "/example.yaml"
+	if err := os.WriteFile(f, []byte(example), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := helmTemplate(t, "-f", f); err != nil {
+		t.Fatalf("docs example does not render: %v\n%s", err, out)
+	}
+}
