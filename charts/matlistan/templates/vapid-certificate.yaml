@@ -1,0 +1,36 @@
+{{- /* Rendered without checking .Capabilities: ArgoCD does not pass CRD APIs to Helm.
+Without cert-manager, the apply fails with "no matches for kind Certificate". */}}
+{{- if include "matlistan.pushCertManaged" . }}
+{{- $name := include "matlistan.pushKeySecret" . }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+# Only the private key is used, as the VAPID key. rotationPolicy: Never keeps it across
+# renewals: every device's subscription is bound to it.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "matlistan.labels" . | nindent 4 }}
+spec:
+  secretName: {{ $name }}
+  commonName: {{ printf "%s VAPID" (include "matlistan.fullname" .) | quote }}
+  duration: 87600h
+  usages:
+    - digital signature
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: {{ $name }}
+    kind: Issuer
+{{- end }}

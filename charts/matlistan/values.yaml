@@ -95,6 +95,19 @@ generate:
   enabled: true
   schedule: "0 7 * * 0"
 
+# Web push when the Sunday draft is ready. Off by default; set enabled: true to turn it on.
+# The VAPID key: with vapidKeySecret.name empty, cert-manager makes one (a self-signed
+# Certificate that never rotates its key); or name an existing Secret holding the private
+# key as PEM or as the base64url form `matlistan vapid-keys` prints. Do not delete the
+# key's Secret: a new key makes every device subscribe again.
+push:
+  enabled: false
+  vapidKeySecret:
+    name: ""
+    key: tls.key
+  # VAPID contact: a mailto: or https: URL. Empty uses baseURL.
+  subject: ""
+
 resources:
   requests:
     cpu: 20m

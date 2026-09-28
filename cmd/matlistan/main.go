@@ -31,9 +31,10 @@ var _commands = map[string]func(ctx context.Context, e env, args []string) int{
 		_, _ = fmt.Fprintln(e.stdout, release.Version())
 		return 0
 	},
-	"generate": generate,
-	"migrate":  migrate,
-	"serve":    serve,
+	"generate":   generate,
+	"migrate":    migrate,
+	"serve":      serve,
+	"vapid-keys": vapidKeys,
 }
 
 func migrate(ctx context.Context, e env, _ []string) int {

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/aldersfors/matlistan/internal/safenet"
 )
 
 // testFetcher trusts the httptest TLS server and treats 127.0.0.1 as public, so tests
@@ -17,7 +19,7 @@ func testFetcher(t *testing.T, srv *httptest.Server) *safeFetcher {
 	t.Helper()
 	tr := srv.Client().Transport.(*http.Transport).Clone()
 	return newFetcher("Matlistan/test", func(a netip.Addr) bool {
-		return a == netip.MustParseAddr("127.0.0.1") || publicAddr(a)
+		return a == netip.MustParseAddr("127.0.0.1") || safenet.PublicAddr(a)
 	}, tr)
 }
 

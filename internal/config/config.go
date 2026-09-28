@@ -29,6 +29,7 @@ type Config struct {
 	Location                                              *time.Location
 	OIDC                                                  OIDC
 	Planner                                               Planner
+	Push                                                  Push
 }
 
 // RedirectURL is the OIDC callback under BaseURL.
@@ -77,6 +78,7 @@ func Parse(getenv func(string) string) (Config, error) {
 		},
 	}
 	c.Planner = parsePlanner(get, &errs)
+	c.Push = parsePush(get, c.BaseURL, &errs)
 	var err error
 	if c.Locale, err = i18n.ParseLocale(get("MATLISTAN_LOCALE")); err != nil {
 		errs = append(errs, fmt.Errorf("MATLISTAN_LOCALE: %w", err))
@@ -222,6 +224,8 @@ type Generate struct {
 	Locale   i18n.Locale
 	Location *time.Location
 	Planner  Planner
+	BaseURL  string // optional; the default VAPID subject
+	Push     Push
 }
 
 // ParseGenerate reads the database, locale, timezone and planner settings; the key is
@@ -243,8 +247,39 @@ func ParseGenerate(getenv func(string) string) (Generate, error) {
 	if g.Location, err = time.LoadLocation(or(get("MATLISTAN_TIMEZONE"), "UTC")); err != nil {
 		errs = append(errs, fmt.Errorf("MATLISTAN_TIMEZONE: %w", err))
 	}
+	if g.BaseURL = get("MATLISTAN_BASE_URL"); g.BaseURL != "" {
+		if err := checkBaseURL(g.BaseURL); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	g.Push = parsePush(get, g.BaseURL, &errs)
 	if err := errors.Join(errs...); err != nil {
 		return Generate{}, err
 	}
 	return g, nil
+}
+
+// Push is web push: on when KeyFile is set. Subject is the VAPID contact.
+type Push struct{ KeyFile, Subject string }
+
+// Enabled reports whether web push is configured.
+func (p Push) Enabled() bool { return p.KeyFile != "" }
+
+func parsePush(get func(string) string, baseURL string, errs *[]error) Push {
+	p := Push{KeyFile: get("MATLISTAN_VAPID_KEY_FILE"),
+		Subject: or(get("MATLISTAN_VAPID_SUBJECT"), baseURL)}
+	if !p.Enabled() {
+		return Push{}
+	}
+	u, err := url.Parse(p.Subject)
+	https := err == nil && u.Scheme == "https" && u.Host != ""
+	mailto := err == nil && u.Scheme == "mailto" && u.Opaque != ""
+	switch {
+	case p.Subject == "":
+		*errs = append(*errs, errors.New("MATLISTAN_VAPID_SUBJECT or MATLISTAN_BASE_URL is "+
+			"required with MATLISTAN_VAPID_KEY_FILE"))
+	case !https && !mailto:
+		*errs = append(*errs, errors.New("MATLISTAN_VAPID_SUBJECT: must be a mailto: or https: URL"))
+	}
+	return p
 }

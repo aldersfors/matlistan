@@ -123,12 +123,20 @@ anthropic values. */}}
 - name: MATLISTAN_API_KEY_FILE
   value: /etc/matlistan/secrets/llm-api-key
 {{- end }}
+{{- if include "matlistan.pushKeySecret" . }}
+- name: MATLISTAN_VAPID_KEY_FILE
+  value: /etc/matlistan/secrets/vapid-key
+{{- with $v.push.subject }}
+- name: MATLISTAN_VAPID_SUBJECT
+  value: {{ . | quote }}
+{{- end }}
+{{- end }}
 {{- end -}}
 
 {{/* Projected secret volume; mode 0440 with fsGroup 65532 lets only the app read it. */}}
 {{- define "matlistan.secretVolume" -}}
 {{- $v := .Values -}}
-{{- if or (not .jobOnly) .llmKey }}
+{{- if or (not .jobOnly) .llmKey .pushKey }}
 - name: secrets
   projected:
     defaultMode: 0440
@@ -139,6 +147,13 @@ anthropic values. */}}
           items:
             - key: {{ $.llmKeyKey }}
               path: llm-api-key
+      {{- end }}
+      {{- with .pushKey }}
+      - secret:
+          name: {{ . }}
+          items:
+            - key: {{ $v.push.vapidKeySecret.key }}
+              path: vapid-key
       {{- end }}
       {{- if not .jobOnly }}
       - secret:
@@ -181,4 +196,18 @@ securityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop: ["ALL"]
+{{- end -}}
+
+{{/* The Secret holding the VAPID key: the named one, or the Certificate's. Empty when
+push is off. */}}
+{{- define "matlistan.pushKeySecret" -}}
+{{- if .Values.push.enabled -}}
+{{- if .Values.push.vapidKeySecret.name -}}{{ .Values.push.vapidKeySecret.name }}
+{{- else -}}{{ printf "%s-vapid" (include "matlistan.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "matlistan.pushCertManaged" -}}
+{{- if and .Values.push.enabled (not .Values.push.vapidKeySecret.name) -}}true{{- end -}}
 {{- end -}}

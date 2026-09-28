@@ -645,3 +645,96 @@ func TestModelServerPortNeedsDestinations(t *testing.T) {
 		t.Error("networkPolicy.llm.port rendered without cidrs")
 	}
 }
+func TestPushOffByDefault(t *testing.T) {
+	objs := render(t)
+	if len(find(objs, "Certificate")) != 0 || len(find(objs, "Issuer")) != 0 {
+		t.Error("push objects without push.enabled")
+	}
+	for _, env := range []map[string]string{envOf(container(t, podSpec(t, objs))),
+		envOf(container(t, cronPod(t, objs)))} {
+		if env["MATLISTAN_VAPID_KEY_FILE"] != "" || env["MATLISTAN_VAPID_SUBJECT"] != "" {
+			t.Errorf("push env with push off: %v", env)
+		}
+	}
+}
+
+// Review focus 5: a renewal keeps the key, since every subscription is bound to it.
+func TestPushCertificateKeepsTheKey(t *testing.T) {
+	objs := render(t, "--set", "push.enabled=true")
+	certs, issuers := find(objs, "Certificate"), find(objs, "Issuer")
+	if len(certs) != 1 || len(issuers) != 1 {
+		t.Fatalf("certificates %d issuers %d", len(certs), len(issuers))
+	}
+	spec := certs[0]["spec"].(obj)
+	pk := spec["privateKey"].(obj)
+	if pk["algorithm"] != "ECDSA" || pk["size"] != float64(256) || pk["encoding"] != "PKCS8" ||
+		pk["rotationPolicy"] != "Never" {
+		t.Errorf("privateKey = %v", pk)
+	}
+	if spec["secretName"] != "ml-matlistan-vapid" || spec["duration"] != "87600h0m0s" && spec["duration"] != "87600h" {
+		t.Errorf("spec = %v", spec)
+	}
+	if ref := spec["issuerRef"].(obj); ref["kind"] != "Issuer" || ref["name"] != issuers[0]["metadata"].(obj)["name"] {
+		t.Errorf("issuerRef = %v", ref)
+	}
+	if _, ok := issuers[0]["spec"].(obj)["selfSigned"]; !ok {
+		t.Errorf("issuer = %v", issuers[0]["spec"])
+	}
+	for name, pod := range map[string]any{"web": podSpec(t, objs), "job": cronPod(t, objs)} {
+		env := envOf(container(t, pod))
+		if env["MATLISTAN_VAPID_KEY_FILE"] != "/etc/matlistan/secrets/vapid-key" {
+			t.Errorf("%s env = %v", name, env)
+		}
+		raw, _ := json.Marshal(pod)
+		if !strings.Contains(string(raw), `"name":"ml-matlistan-vapid"`) ||
+			!strings.Contains(string(raw), `"key":"tls.key","path":"vapid-key"`) {
+			t.Errorf("%s: key not mounted: %s", name, raw)
+		}
+	}
+	jobEnv := envOf(container(t, cronPod(t, objs)))
+	if _, err := config.ParseGenerate(func(k string) string { return jobEnv[k] }); err != nil {
+		t.Fatalf("job config: %v", err)
+	}
+	if jobEnv["MATLISTAN_BASE_URL"] == "" {
+		t.Error("job lacks MATLISTAN_BASE_URL")
+	}
+}
+
+func TestPushWithOwnSecret(t *testing.T) {
+	objs := render(t, "--set", "push.enabled=true", "--set", "push.vapidKeySecret.name=matlistan-vapid",
+		"--set", "push.vapidKeySecret.key=private-key", "--set", "push.subject=mailto:admin@example.org")
+	if len(find(objs, "Certificate")) != 0 || len(find(objs, "Issuer")) != 0 {
+		t.Error("certificate rendered although a Secret is named")
+	}
+	for name, pod := range map[string]any{"web": podSpec(t, objs), "job": cronPod(t, objs)} {
+		raw, _ := json.Marshal(pod)
+		if !strings.Contains(string(raw), `"name":"matlistan-vapid"`) ||
+			!strings.Contains(string(raw), `"key":"private-key","path":"vapid-key"`) {
+			t.Errorf("%s: own secret not mounted", name)
+		}
+		if env := envOf(container(t, pod)); env["MATLISTAN_VAPID_SUBJECT"] != "mailto:admin@example.org" {
+			t.Errorf("%s subject = %q", name, env["MATLISTAN_VAPID_SUBJECT"])
+		}
+	}
+}
+
+// ArgoCD does not pass CRD APIs to Helm, so the chart must render the Certificate without
+// seeing cert-manager.io/v1; a cluster without cert-manager fails at apply instead.
+func TestPushRendersWithoutTheCertManagerAPI(t *testing.T) {
+	objs := render(t, "--set", "push.enabled=true")
+	if len(find(objs, "Certificate")) != 1 || len(find(objs, "Issuer")) != 1 {
+		t.Fatal("no Certificate or Issuer without the cert-manager API")
+	}
+}
+
+// A keyless model server leaves the job without a secrets volume, but a push key needs it.
+func TestPushKeyMountsTheJobSecretsAlone(t *testing.T) {
+	objs := render(t, "--set", "llm.apiKeySecret.name=", "--set", "llm.provider=openai",
+		"--set", "llm.model=llama4", "--set", "llm.baseURL=http://ollama.ml.svc:11434/v1",
+		"--set", "push.enabled=true")
+	raw, _ := json.Marshal(cronPod(t, objs))
+	if !strings.Contains(string(raw), `"path":"vapid-key"`) ||
+		!strings.Contains(string(raw), `"mountPath":"/etc/matlistan/secrets"`) {
+		t.Fatalf("job: %s", raw)
+	}
+}

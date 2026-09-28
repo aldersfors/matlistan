@@ -38,11 +38,13 @@ spec:
               args: ["generate"]
               env:
                 {{- include "matlistan.env" . | nindent 16 }}
+                - name: MATLISTAN_BASE_URL
+                  value: {{ .Values.baseURL | quote }}
               resources:
                 {{- toYaml $v.resources | nindent 16 }}
               {{- include "matlistan.containerSecurity" . | nindent 14 }}
               volumeMounts:
-                {{- if include "matlistan.llmKeySecret" . }}
+                {{- if or (include "matlistan.llmKeySecret" .) (include "matlistan.pushKeySecret" .) }}
                 - name: secrets
                   mountPath: /etc/matlistan/secrets
                   readOnly: true
@@ -53,5 +55,5 @@ spec:
                   readOnly: true
                 {{- end }}
           volumes:
-            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true "caSecret" (include "matlistan.dbCASecret" .) "llmKey" (include "matlistan.llmKeySecret" .) "llmKeyKey" (include "matlistan.llmKeyKey" .)) | nindent 12 }}
+            {{- include "matlistan.secretVolume" (dict "Values" .Values "jobOnly" true "caSecret" (include "matlistan.dbCASecret" .) "llmKey" (include "matlistan.llmKeySecret" .) "llmKeyKey" (include "matlistan.llmKeyKey" .) "pushKey" (include "matlistan.pushKeySecret" .)) | nindent 12 }}
 {{- end }}

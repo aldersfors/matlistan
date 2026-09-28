@@ -7,20 +7,21 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net"
 	"net/http"
 	"net/netip"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/aldersfors/matlistan/internal/safenet"
 )
 
 // Fetch errors; the web layer maps each to a message.
 var (
 	ErrInvalidURL  = errors.New("not a valid URL")
 	ErrNotHTTPS    = errors.New("only https pages can be imported")
-	ErrNotAllowed  = errors.New("that address is not allowed")
-	ErrUnreachable = errors.New("the page could not be fetched")
+	ErrNotAllowed  = safenet.ErrNotAllowed
+	ErrUnreachable = safenet.ErrUnreachable
 	ErrTooLarge    = errors.New("the page is too large")
 	ErrNotHTML     = errors.New("the address is not a web page")
 )
@@ -29,8 +30,6 @@ const (
 	_bodyMax      = 2 << 20
 	_redirectsMax = 5
 )
-
-var _blockedSuffixes = []string{".svc", ".cluster.local", ".local", ".lan", ".internal"}
 
 // Page is a fetched HTML page; URL is where it ended up after redirects.
 type Page struct {
@@ -45,7 +44,6 @@ type Fetcher interface {
 
 type safeFetcher struct {
 	ua      string
-	allow   func(netip.Addr) bool
 	client  *http.Client
 	timeout time.Duration
 }
@@ -53,21 +51,21 @@ type safeFetcher struct {
 // NewFetcher fetches public https pages only. It resolves each host itself and dials the
 // checked address, so neither a DNS answer nor a redirect can reach an internal address.
 func NewFetcher(userAgent string) Fetcher {
-	return newFetcher(userAgent, publicAddr, &http.Transport{
+	return newFetcher(userAgent, safenet.PublicAddr, &http.Transport{
 		TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 8 * time.Second,
 		MaxIdleConns: 4, IdleConnTimeout: 30 * time.Second, ForceAttemptHTTP2: true,
 	})
 }
 
 func newFetcher(ua string, allow func(netip.Addr) bool, tr *http.Transport) *safeFetcher {
-	f := &safeFetcher{ua: ua, allow: allow, timeout: 10 * time.Second}
+	f := &safeFetcher{ua: ua, timeout: 10 * time.Second}
 	tr.Proxy = nil // never route through an ambient proxy
-	tr.DialContext = f.dial
+	tr.DialContext = safenet.Dialer{Allow: allow}.DialContext
 	f.client = &http.Client{Transport: tr, CheckRedirect: checkRedirect}
 	return f
 }
 
-// checkRedirect allows up to _redirectsMax https redirects to hosts checkHost allows; the
+// checkRedirect allows up to _redirectsMax https redirects to hosts safenet allows; the
 // dialer then checks the address again.
 func checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= _redirectsMax {
@@ -76,60 +74,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 	if req.URL.Scheme != "https" {
 		return ErrNotHTTPS
 	}
-	return checkHost(req.URL.Hostname())
-}
-
-// publicAddr is true for addresses on the public internet.
-func publicAddr(a netip.Addr) bool {
-	a = a.Unmap()
-	if !a.IsValid() || a.IsLoopback() || a.IsPrivate() || a.IsLinkLocalUnicast() ||
-		a.IsLinkLocalMulticast() || a.IsMulticast() || a.IsUnspecified() ||
-		a.IsInterfaceLocalMulticast() {
-		return false
-	}
-	return !netip.MustParsePrefix("100.64.0.0/10").Contains(a) &&
-		!netip.MustParsePrefix("192.0.0.0/24").Contains(a) &&
-		!netip.MustParsePrefix("198.18.0.0/15").Contains(a)
-}
-
-func checkHost(host string) error {
-	h := strings.ToLower(strings.TrimSuffix(host, "."))
-	if h == "" || h == "localhost" || !strings.Contains(h, ".") && net.ParseIP(h) == nil {
-		return ErrNotAllowed
-	}
-	for _, s := range _blockedSuffixes {
-		if strings.HasSuffix(h, s) {
-			return ErrNotAllowed
-		}
-	}
-	return nil
-}
-
-// dial resolves the host, refuses non-public addresses and connects to a checked address.
-func (f *safeFetcher) dial(ctx context.Context, network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-	if err := checkHost(host); err != nil {
-		return nil, err
-	}
-	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrUnreachable, err)
-	}
-	if len(ips) == 0 {
-		return nil, ErrUnreachable
-	}
-	// Every address the name has must be public: a name that also points inside is refused.
-	for i, ip := range ips {
-		ips[i] = ip.Unmap()
-		if !f.allow(ips[i]) {
-			return nil, ErrNotAllowed
-		}
-	}
-	var d net.Dialer
-	return d.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
+	return safenet.CheckHost(req.URL.Hostname())
 }
 
 // Fetch implements Fetcher.
@@ -145,7 +90,7 @@ func (f *safeFetcher) Fetch(ctx context.Context, rawURL string) (Page, error) {
 	default:
 		return Page{}, ErrNotHTTPS
 	}
-	if err := checkHost(u.Hostname()); err != nil {
+	if err := safenet.CheckHost(u.Hostname()); err != nil {
 		return Page{}, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, f.timeout)

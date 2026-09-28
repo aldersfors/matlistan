@@ -59,6 +59,14 @@ func (s *server) settingsView(w http.ResponseWriter, r *http.Request, st househo
 			RevokeLabel: c.T("tokens.revoke", "name", t.Name)})
 	}
 	v.ExportURL = strings.TrimSuffix(s.BaseURL, "/") + "/api/v1/shopping-list/current.md"
+	if s.PushKey != "" {
+		n, err := s.Store.CountPushSubscriptions(r.Context())
+		if err != nil {
+			s.fail(w, r, err)
+			return views.Settings{}, false
+		}
+		v.PushKey, v.PushDevices = s.PushKey, c.N("push.devices", n)
+	}
 	return v, true
 }
 

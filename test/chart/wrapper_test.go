@@ -37,6 +37,7 @@ func TestHomelabValuesRender(t *testing.T) {
 	if err := os.WriteFile(f, sub, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	// No --api-versions: ArgoCD renders without the cluster's CRD APIs, so this must too.
 	out, err := exec.CommandContext(t.Context(), "helm", "template", "matlistan", _chart,
 		"-n", "matlistan", "-f", f).CombinedOutput()
 	if err != nil {

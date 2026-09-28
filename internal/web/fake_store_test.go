@@ -20,6 +20,7 @@ import (
 	"github.com/aldersfors/matlistan/internal/apitoken"
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/push"
 	"github.com/aldersfors/matlistan/internal/recipes"
 	"github.com/aldersfors/matlistan/internal/shopping"
 	"github.com/aldersfors/matlistan/internal/store"
@@ -39,6 +40,8 @@ type fakeStore struct {
 	ingredients map[weekplan.Key][]shopping.Use
 	tokens      map[int64]fakeToken
 	ratings     map[weekplan.Key]map[int]map[int64]int
+	push        map[string]push.Subscription
+	pushLimit   int
 }
 
 func newFakeStore() *fakeStore {
@@ -46,7 +49,8 @@ func newFakeStore() *fakeStore {
 		recipes: map[int64]recipes.Recipe{}, settings: household.DefaultSettings(),
 		plans: map[weekplan.Key]weekplan.Plan{}, lists: map[weekplan.Key]shopping.List{},
 		ingredients: map[weekplan.Key][]shopping.Use{}, tokens: map[int64]fakeToken{},
-		ratings: map[weekplan.Key]map[int]map[int64]int{}}
+		ratings: map[weekplan.Key]map[int]map[int64]int{}, push: map[string]push.Subscription{},
+		pushLimit: 20}
 }
 
 func (f *fakeStore) id() int64 { f.nextID++; return f.nextID }
@@ -553,4 +557,30 @@ func (f *fakeStore) FindRecipeBySourceURL(_ context.Context, u string) (int64, e
 		}
 	}
 	return 0, store.ErrNotFound
+}
+
+func (f *fakeStore) SavePushSubscription(_ context.Context, _ string, sub push.Subscription) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.push[sub.Endpoint]; !ok && len(f.push) >= f.pushLimit {
+		return store.ErrTooMany
+	}
+	f.push[sub.Endpoint] = sub
+	return nil
+}
+
+func (f *fakeStore) DeletePushSubscription(_ context.Context, endpoint string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.push[endpoint]; !ok {
+		return store.ErrNotFound
+	}
+	delete(f.push, endpoint)
+	return nil
+}
+
+func (f *fakeStore) CountPushSubscriptions(context.Context) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.push), nil
 }

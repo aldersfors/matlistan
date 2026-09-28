@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/aldersfors/matlistan/internal/push"
 )
 
 func noEnv(string) string { return "" }
@@ -23,7 +25,7 @@ func TestRunWithoutCommandPrintsUsage(t *testing.T) {
 	if code := run([]string{"matlistan"}, &out, &errOut, noEnv); code != 2 {
 		t.Fatalf("exit %d, want 2", code)
 	}
-	if !strings.Contains(errOut.String(), "usage: matlistan <generate|migrate|serve|version>") {
+	if !strings.Contains(errOut.String(), "usage: matlistan <generate|migrate|serve|vapid-keys|version>") {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }
@@ -79,5 +81,19 @@ func TestGenerateRejectsABadWeek(t *testing.T) {
 	if code := run([]string{"matlistan", "generate", "--week", "2027-W53"}, &out, &errOut,
 		env); code != 2 {
 		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+}
+func TestVAPIDKeysPrintsAPair(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"matlistan", "vapid-keys"}, &out, &errOut, noEnv); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut.String())
+	}
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "private-key: ") || !strings.HasPrefix(lines[1], "public-key: ") {
+		t.Fatalf("output %q", out.String())
+	}
+	priv := strings.TrimPrefix(lines[0], "private-key: ")
+	if _, err := push.ParseKey(priv, "https://a.example"); err != nil {
+		t.Fatalf("printed key does not parse: %v", err)
 	}
 }

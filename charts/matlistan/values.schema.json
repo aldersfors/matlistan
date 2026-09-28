@@ -220,6 +220,22 @@
         }
       }
     },
+    "push": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "vapidKeySecret": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string" },
+            "key": { "type": "string", "minLength": 1 }
+          }
+        },
+        "subject": { "type": "string", "pattern": "^(|mailto:.+|https://.+)$" }
+      }
+    },
     "generate": {
       "type": "object",
       "additionalProperties": false,
