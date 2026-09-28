@@ -224,3 +224,40 @@ func TestMaxOutputTokens(t *testing.T) {
 		}
 	}
 }
+func TestPushConfig(t *testing.T) {
+	env := valid()
+	c, err := Parse(func(k string) string { return env[k] })
+	if err != nil || c.Push.Enabled() {
+		t.Fatalf("push on without a key: %+v %v", c.Push, err)
+	}
+	env["MATLISTAN_VAPID_KEY_FILE"] = "/etc/matlistan/secrets/vapid-key"
+	c, err = Parse(func(k string) string { return env[k] })
+	if err != nil || !c.Push.Enabled() || c.Push.Subject != env["MATLISTAN_BASE_URL"] {
+		t.Fatalf("subject should default to the base URL: %+v %v", c.Push, err)
+	}
+	env["MATLISTAN_VAPID_SUBJECT"] = "ftp://nope"
+	if _, err := Parse(func(k string) string { return env[k] }); err == nil {
+		t.Fatal("ftp subject accepted")
+	}
+	env["MATLISTAN_VAPID_SUBJECT"] = "mailto:admin@example.org"
+	if c, err := Parse(func(k string) string { return env[k] }); err != nil || c.Push.Subject != "mailto:admin@example.org" {
+		t.Fatalf("mailto subject: %+v %v", c.Push, err)
+	}
+}
+
+func TestGeneratePushConfig(t *testing.T) {
+	env := map[string]string{"MATLISTAN_DATABASE_URL": "postgres://x", "MATLISTAN_API_KEY_FILE": "/k",
+		"MATLISTAN_LOCALE": "sv"}
+	get := func(k string) string { return env[k] }
+	if g, err := ParseGenerate(get); err != nil || g.Push.Enabled() {
+		t.Fatalf("off by default: %+v %v", g.Push, err)
+	}
+	env["MATLISTAN_VAPID_KEY_FILE"] = "/v"
+	if _, err := ParseGenerate(get); err == nil {
+		t.Fatal("key without a subject or base URL accepted")
+	}
+	env["MATLISTAN_BASE_URL"] = "https://matlistan.example.org"
+	if g, err := ParseGenerate(get); err != nil || g.Push.Subject != "https://matlistan.example.org" {
+		t.Fatalf("base URL as subject: %+v %v", g.Push, err)
+	}
+}
