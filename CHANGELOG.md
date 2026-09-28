@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/aldersfors/matlistan/compare/v0.4.0...v0.5.0) (2026-09-28)
+
+
+### Features
+
+* **week:** lock dinners to keep when planning again ([#25](https://github.com/aldersfors/matlistan/issues/25)) ([d494b03](https://github.com/aldersfors/matlistan/commit/d494b0342abc796253e450f5e08ab4eb6ed9146d))
+
 ## [0.4.0](https://github.com/aldersfors/matlistan/compare/v0.3.0...v0.4.0) (2026-09-28)
 
 
