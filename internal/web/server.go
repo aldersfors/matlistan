@@ -16,6 +16,7 @@ import (
 	"github.com/aldersfors/matlistan/internal/apitoken"
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/push"
 	"github.com/aldersfors/matlistan/internal/recipes"
 	"github.com/aldersfors/matlistan/internal/release"
 	"github.com/aldersfors/matlistan/internal/shopping"
@@ -65,6 +66,9 @@ type Store interface {
 	RemoveManualItem(ctx context.Context, id int64) error
 	RebuildShoppingList(ctx context.Context, k weekplan.Key, items []shopping.Item,
 		excluded int) error
+	SavePushSubscription(ctx context.Context, subject string, sub push.Subscription) error
+	DeletePushSubscription(ctx context.Context, endpoint string) error
+	CountPushSubscriptions(ctx context.Context) (int, error)
 	CreateAPIToken(ctx context.Context, subject, name string, hash []byte) error
 	ListAPITokens(ctx context.Context) ([]apitoken.Token, error)
 	RevokeAPIToken(ctx context.Context, id int64) error
@@ -94,6 +98,8 @@ type Deps struct {
 	Provider Provider
 	// Importer reads a recipe from a link; nil hides import.
 	Importer RecipeImporter
+	// PushKey is the base64url VAPID public key; empty turns web push off.
+	PushKey string
 }
 
 // RecipeImporter reads a recipe page into an unsaved recipe plus note keys for the form.
@@ -147,6 +153,16 @@ func (s *server) handler() http.Handler {
 		_, _ = w.Write(themeCSS)
 	})
 	mux.HandleFunc("GET /healthz", s.healthz)
+	sw, err := fs.ReadFile(static, "sw.js")
+	if err != nil {
+		panic("invariant violated: embedded sw.js: " + err.Error())
+	}
+	// The service worker is public and at the root, so it covers the whole site.
+	mux.HandleFunc("GET /sw.js", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(sw)
+	})
 	mux.HandleFunc("GET /manifest.webmanifest", s.manifest)
 	favicon, err := fs.ReadFile(static, "favicon.ico")
 	if err != nil {
@@ -199,6 +215,8 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("POST /shopping/items/{id}/delete", s.removeItem)
 	app.HandleFunc("POST /shopping/rebuild", s.rebuildList)
 	app.HandleFunc("POST /settings/tokens", s.createToken)
+	app.HandleFunc("POST /settings/push", s.subscribePush)
+	app.HandleFunc("POST /settings/push/delete", s.unsubscribePush)
 	app.HandleFunc("POST /settings/tokens/{id}/delete", s.revokeToken)
 	app.HandleFunc("GET /week/rate", s.rateWeek)
 	app.HandleFunc("POST /fragments/ratings", s.rate)

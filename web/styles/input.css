@@ -72,3 +72,14 @@
   .day-6 { background: var(--ml-day6); color: var(--ml-day6-ink); }
   .day-7 { background: var(--ml-day7); color: var(--ml-day7-ink); }
 }
+
+/* Web push section: what shows depends on the device's state, set by push.js. */
+.push .push-msg, .push .push-btn-on, .push .push-btn-off { display: none; }
+.push[data-state="ios-home-screen"] .push-ios-home-screen,
+.push[data-state="unsupported"] .push-unsupported,
+.push[data-state="denied"] .push-denied,
+.push[data-state="failed"] .push-failed,
+.push[data-state="failed"] .push-btn-on,
+.push[data-state="on"] .push-on,
+.push[data-state="on"] .push-btn-off,
+.push[data-state="off"] .push-btn-on { display: block; }
