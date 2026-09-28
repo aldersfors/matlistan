@@ -12,17 +12,23 @@ function load() {
   const shown = [];
   const opened = [];
   const windows = [];
+  const fetched = [];
   const self = {
     location: { origin: "https://matlistan.example.org" },
     addEventListener: (type, fn) => { handlers[type] = fn; },
-    registration: { showNotification: async (title, opts) => { shown.push({ title, opts }); } },
+    registration: {
+      showNotification: async (title, opts) => { shown.push({ title, opts }); },
+      pushManager: { subscribe: async () => ({ toJSON: () => ({ endpoint: "https://web.push.apple.com/rotated", keys: {} }) }) },
+    },
     clients: {
       matchAll: async () => windows,
       openWindow: async (url) => { opened.push(url); },
+      claim: async () => {},
     },
   };
-  vm.runInNewContext(_source, { self, URL });
-  return { handlers, shown, opened, windows };
+  const fetch = async (url, opts) => { fetched.push({ url, opts }); return { ok: true }; };
+  vm.runInNewContext(_source, { self, URL, fetch });
+  return { handlers, shown, opened, windows, fetched, self };
 }
 
 function event(data) {
@@ -68,4 +74,36 @@ test("a click focuses an open window instead of opening another", async () => {
   await e.p;
   assert.deepEqual(sw.opened, []);
   assert.deepEqual(nav, ["https://matlistan.example.org/week?y=2026&w=41"]);
+});
+
+test("the worker takes control of open pages when it activates", async () => {
+  const sw = load();
+  let claimed = false;
+  sw.self.clients.claim = async () => { claimed = true; };
+  const e = { waitUntil(p) { this.p = p; } };
+  sw.handlers.activate(e);
+  await e.p;
+  assert.ok(claimed);
+});
+
+// An uncontrolled window cannot be navigated: open the week in a new window instead.
+test("a click still opens the week when navigate fails", async () => {
+  const sw = load();
+  sw.windows.push({ url: "https://matlistan.example.org/settings", focus: async function () { return this; },
+    navigate: async () => { throw new TypeError("not controlled"); } });
+  const e = { notification: { data: { url: "/week?y=2026&w=41" }, close() {} }, waitUntil(p) { this.p = p; } };
+  sw.handlers.notificationclick(e);
+  await e.p;
+  assert.deepEqual(sw.opened, ["https://matlistan.example.org/week?y=2026&w=41"]);
+});
+
+// A browser that rotates the subscription gets the new one saved on the server.
+test("pushsubscriptionchange subscribes again and saves it", async () => {
+  const sw = load();
+  const e = { oldSubscription: { options: { applicationServerKey: new Uint8Array([4, 1]).buffer } }, waitUntil(p) { this.p = p; } };
+  sw.handlers.pushsubscriptionchange(e);
+  await e.p;
+  assert.equal(sw.fetched.length, 1);
+  assert.equal(sw.fetched[0].url, "/settings/push");
+  assert.equal(JSON.parse(sw.fetched[0].opts.body).endpoint, "https://web.push.apple.com/rotated");
 });

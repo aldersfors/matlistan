@@ -31,6 +31,48 @@ async function post(url, body) {
   return res.ok;
 }
 
+function subscribe(reg, key) {
+  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(key) });
+}
+
+// syncOnLoad brings this device in line with the server when Settings opens. A
+// subscription made with an old key is replaced, and a matching one is saved again, since
+// the server's row may be gone (a failed save, a restore). "on" only after the server has it.
+async function syncOnLoad(reg, key, permission, post) {
+  let sub = await reg.pushManager.getSubscription();
+  if (sub && !subscriptionMatches(sub.options.applicationServerKey, key)) {
+    await post("/settings/push/delete", { endpoint: sub.endpoint });
+    await sub.unsubscribe();
+    if (permission !== "granted") return "off";
+    try {
+      sub = await subscribe(reg, key);
+    } catch {
+      return "off"; // some browsers only subscribe after a tap
+    }
+  }
+  if (!sub) return "off";
+  return (await post("/settings/push", sub.toJSON())) ? "on" : "failed";
+}
+
+async function turnOn(reg, key, requestPermission, post) {
+  if (await requestPermission() !== "granted") return "denied";
+  try {
+    const sub = await subscribe(reg, key);
+    return (await post("/settings/push", sub.toJSON())) ? "on" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+async function turnOff(reg, post) {
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) {
+    await post("/settings/push/delete", { endpoint: sub.endpoint });
+    await sub.unsubscribe();
+  }
+  return "off";
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const root = document.getElementById("push");
   if (!root) return;
@@ -44,23 +86,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   const state = pushState(env);
   if (state !== "ready") { show(state); return; }
-  const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-  let sub = await reg.pushManager.getSubscription();
-  if (sub && !subscriptionMatches(sub.options.applicationServerKey, key)) {
-    await post("/settings/push/delete", { endpoint: sub.endpoint });
-    await sub.unsubscribe();
-    sub = null;
-    show("off");
+  let reg;
+  try {
+    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    reg = await navigator.serviceWorker.ready; // subscribe needs an active worker
+    show(await syncOnLoad(reg, key, env.permission, post));
+  } catch {
+    show("failed");
   }
-  show(sub ? "on" : "off");
-  root.querySelector("[data-push-on]").addEventListener("click", async () => {
-    if (await Notification.requestPermission() !== "granted") { show("denied"); return; }
-    const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(key) });
-    show(await post("/settings/push", s.toJSON()) ? "on" : "failed");
-  });
-  root.querySelector("[data-push-off]").addEventListener("click", async () => {
-    const s = await reg.pushManager.getSubscription();
-    if (s) { await post("/settings/push/delete", { endpoint: s.endpoint }); await s.unsubscribe(); }
-    show("off");
-  });
+  const run = (fn) => async () => {
+    try {
+      if (!reg) reg = await navigator.serviceWorker.ready;
+      show(await fn());
+    } catch {
+      show("failed");
+    }
+  };
+  root.querySelector("[data-push-on]").addEventListener("click",
+    run(() => turnOn(reg, key, () => Notification.requestPermission(), post)));
+  root.querySelector("[data-push-off]").addEventListener("click", run(() => turnOff(reg, post)));
 });

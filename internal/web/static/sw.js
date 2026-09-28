@@ -17,6 +17,24 @@ self.addEventListener("push", (event) => {
   }));
 });
 
+// Take control of the page that registered the worker, so the first notification's tap can
+// navigate it.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// A browser that rotates the subscription gives us a new one to save; without this the
+// server keeps the old endpoint, which then answers 410 and is deleted.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  const old = event.oldSubscription;
+  event.waitUntil((async () => {
+    const sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true,
+      applicationServerKey: old && old.options.applicationServerKey });
+    await fetch("/settings/push", { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
+  })());
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = sameSite(event.notification.data && event.notification.data.url);
@@ -24,8 +42,12 @@ self.addEventListener("notificationclick", (event) => {
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const w of wins) {
       if (new URL(w.url).origin === self.location.origin) {
-        const f = await w.focus();
-        return (f || w).navigate(url);
+        try {
+          const f = await w.focus();
+          return await (f || w).navigate(url);
+        } catch {
+          break; // an uncontrolled window cannot be navigated: open a new one
+        }
       }
     }
     return self.clients.openWindow(url);
