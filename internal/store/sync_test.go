@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/aldersfors/matlistan/internal/household"
@@ -164,5 +165,28 @@ func TestCreateAndAdoptLinkRecipes(t *testing.T) {
 	}
 	if err := s.AdoptLink(ctx, "https://a.example/none/"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("adopt missing: %v", err)
+	}
+}
+
+// Declared again after its link was imported in the app meanwhile: the sync names the entry
+// instead of failing on the database's unique link.
+func TestSyncNamesALinkHeldByAnotherRecipe(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	k := gitRecipe("soppa", "Soppa")
+	k.SourceURL, k.Source = "https://a.example/soppa", "imported"
+	if _, err := s.SyncHousehold(ctx, nil, []recipes.Recipe{k}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SyncHousehold(ctx, nil, nil, nil); err != nil { // removed from git: archived
+		t.Fatal(err)
+	}
+	app := soup()
+	app.Source, app.SourceURL = "imported", k.SourceURL
+	if _, err := s.CreateRecipe(ctx, app); err != nil { // imported again in the app
+		t.Fatal(err)
+	}
+	_, err := s.SyncHousehold(ctx, nil, []recipes.Recipe{k}, nil)
+	if err == nil || !strings.Contains(err.Error(), "recipes[soppa].sourceURL") {
+		t.Fatalf("err = %v", err)
 	}
 }

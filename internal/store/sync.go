@@ -114,6 +114,19 @@ func syncRecipe(ctx context.Context, tx pgx.Tx, r recipes.Recipe) error {
 	if err != nil {
 		return err
 	}
+	if r.SourceURL != "" {
+		// Another live recipe may hold the link, for example one imported in the app after
+		// this one was removed from git: the unique link would fail with no pointer.
+		var taken bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM recipes WHERE source_url = $1
+			AND archived_at IS NULL AND id <> $2)`, r.SourceURL, id).Scan(&taken); err != nil {
+			return err
+		}
+		if taken {
+			return fmt.Errorf("recipes[%s].sourceURL: another recipe already has this link; "+
+				"archive it in the app or declare that recipe instead", r.Key)
+		}
+	}
 	if _, err := tx.Exec(ctx, `UPDATE recipes SET key = $2, managed = 'inline', title = $3,
 		title_key = $4, description = $5, lang = $6, servings = $7, active_minutes = $8,
 		total_minutes = $9, tags = $10, steps = $11, diets = $12, allergens = $13,
