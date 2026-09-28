@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/aldersfors/matlistan/compare/v0.3.0...v0.4.0) (2026-09-28)
+
+
+### Features
+
+* declare family members and recipes in git ([#23](https://github.com/aldersfors/matlistan/issues/23)) ([ec3e9c6](https://github.com/aldersfors/matlistan/commit/ec3e9c648deca50aaa06e59f31fd478d62c0f1ff))
+
 ## [0.3.0](https://github.com/aldersfors/matlistan/compare/v0.2.0...v0.3.0) (2026-09-28)
 
 
