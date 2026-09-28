@@ -211,3 +211,8 @@ push is off. */}}
 {{- define "matlistan.pushCertManaged" -}}
 {{- if and .Values.push.enabled (not .Values.push.vapidKeySecret.name) -}}true{{- end -}}
 {{- end -}}
+
+{{/* The household file as the app reads it. */}}
+{{- define "matlistan.householdFile" -}}
+{{- toYaml (dict "members" .Values.household.members "recipes" .Values.household.recipes "recipeURLs" .Values.household.recipeURLs) -}}
+{{- end -}}
