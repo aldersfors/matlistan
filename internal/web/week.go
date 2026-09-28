@@ -123,6 +123,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 		}
 		v.Context = append(v.Context, cd)
 	}
+	v.UseUp = strings.Join(plan.Context.UseUp, "\n")
 	return v, true
 }
 
@@ -206,12 +207,14 @@ func (s *server) saveWeekContext(w http.ResponseWriter, r *http.Request) {
 		}
 		c.Days[i] = d
 	}
+	c.UseUp = weekplan.ParseUseUp(r.PostFormValue("use_up"))
 	e.Merge(c.Validate(ids))
 	if len(e) > 0 {
 		v, ok := s.weekView(w, r, k, e)
 		if !ok {
 			return
 		}
+		v.UseUp = r.PostFormValue("use_up") // what was typed, so nothing is lost
 		s.render(w, r, http.StatusUnprocessableEntity, views.WeekPage(v))
 		return
 	}

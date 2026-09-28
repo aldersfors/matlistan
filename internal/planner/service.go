@@ -223,7 +223,8 @@ func (s *Service) request(ctx context.Context, k weekplan.Key) (Request, weekpla
 	}
 	monday := k.Monday(s.loc)
 	req := Request{Key: k, Locale: s.locale, Month: monday.Month(), Settings: settings,
-		Days: weekplan.Specs(k, s.loc, plan.Context, members, settings)}
+		Days:  weekplan.Specs(k, s.loc, plan.Context, members, settings),
+		UseUp: plan.Context.UseUp}
 	for _, m := range members {
 		req.Members = append(req.Members, Member{Age: household.Age(m.BirthYear, monday),
 			Diets: m.Diets, Allergens: m.Allergens, Likes: m.Likes, Dislikes: m.Dislikes})

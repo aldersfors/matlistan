@@ -1,6 +1,8 @@
 package weekplan
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,5 +83,35 @@ func TestSpecs(t *testing.T) {
 	}
 	if s[0].Date.Format(time.DateOnly) != "2026-09-28" {
 		t.Errorf("monday = %s", s[0].Date)
+	}
+}
+
+func TestParseUseUp(t *testing.T) {
+	got := ParseUseUp("  halv grädde \n\n Ris,   kokt\nhalv GRÄDDE\r\n")
+	if strings.Join(got, "|") != "halv grädde|Ris, kokt" {
+		t.Fatalf("got %q", got)
+	}
+	if got := ParseUseUp(" \n "); got != nil {
+		t.Fatalf("blank = %q", got)
+	}
+}
+
+// Review focus: the list stays small, so the prompt stays small.
+func TestUseUpLimits(t *testing.T) {
+	c := DefaultContext(7)
+	c.UseUp = make([]string, 11)
+	for i := range c.UseUp {
+		c.UseUp[i] = fmt.Sprintf("sak %d", i)
+	}
+	if e := c.Validate(nil); e["use_up"] == "" {
+		t.Errorf("11 items accepted: %v", e)
+	}
+	c.UseUp = []string{strings.Repeat("a", 61)}
+	if e := c.Validate(nil); e["use_up"] == "" {
+		t.Errorf("61 characters accepted: %v", e)
+	}
+	c.UseUp = []string{strings.Repeat("ö", 60)}
+	if e := c.Validate(nil); len(e) != 0 {
+		t.Errorf("60 characters refused: %v", e)
 	}
 }

@@ -181,6 +181,8 @@
   "week.context.busy": "Snabb kväll",
   "week.context.guests": "Gäster",
   "week.context.away": "Borta",
+  "week.context.use_up": "Använd först, en sak per rad",
+  "week.use_up_too_many": "Högst 10 saker.",
   "week.context.save": "Spara förutsättningar",
   "plan.error.invalid": "Planeraren hittade ingen vecka som följer alla era regler. Försök igen, eller lätta på veckans förutsättningar.",
   "plan.error.unavailable": "Planeraren gick inte att nå. Försök igen om en stund.",

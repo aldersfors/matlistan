@@ -50,6 +50,7 @@ type Request struct {
 	Candidates []Candidate
 	SwapDay    int
 	Keep       []string
+	UseUp      []string
 }
 
 // Proposal is the model's answer, shaped by Schema.

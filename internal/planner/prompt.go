@@ -35,6 +35,9 @@ Rules. Every rule is checked by a program; an answer that breaks one is rejected
   "carrot", not "carrots". Use quantity 0 and unit "" for "to taste". Every quantity above 0
   needs a unit.
 - Prefer seasonal produce for the given month and simple weeknight cooking.
+- "use_up_first" lists food already at home, as the family wrote it. Prefer dinners that use
+  it up, and when that is why you chose one, say so in "why". It never overrides allergens,
+  diets or time limits.
 - "why" is one short, friendly sentence telling the family why this dinner was chosen, using
   the week's facts: history, season, the day's conditions, likes and dislikes. Never mention
   allergies by name and never address a family member by name.
@@ -63,6 +66,7 @@ type promptDoc struct {
 	Days         []promptDay `json:"days"`
 	Recent       []string    `json:"recent"`
 	Candidates   []Candidate `json:"candidates"`
+	UseUpFirst   []string    `json:"use_up_first"`
 	Task         string      `json:"task"`
 	KeepOtherDay []string    `json:"other_days_this_week,omitempty"`
 }
@@ -72,6 +76,7 @@ func UserPrompt(r Request) (string, error) {
 	doc := promptDoc{Week: r.Key.String(), Month: r.Month.String(), Household: r.Members,
 		Allergens: orEmpty(r.Allergens), Diets: orEmpty(r.Diets),
 		LibraryShare: r.Settings.LibraryShare, Recent: orEmpty(r.Recent),
+		UseUpFirst: orEmpty(r.UseUp),
 		Candidates: r.Candidates, Task: "Plan every planned day of the week."}
 	if doc.Candidates == nil {
 		doc.Candidates = []Candidate{}

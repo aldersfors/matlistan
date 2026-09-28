@@ -239,3 +239,31 @@ func TestPlanAnEmptyDay(t *testing.T) {
 		t.Fatalf("swapped %v", pl.swapped)
 	}
 }
+
+// Review focus: the "use up first" lines are saved tidy, shown again, and limited.
+func TestSaveUseUpFirst(t *testing.T) {
+	st := newFakeStore()
+	h, _ := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	rec := post(t, h, "/week/context", weekForm(url.Values{"days.0.home": {"on"},
+		"use_up": {" halv grädde \r\n\r\nris, kokt\nHalv grädde"}}))
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status %d body %.200s", rec.Code, rec.Body.String())
+	}
+	p, _ := st.GetPlan(t.Context(), _w40)
+	if strings.Join(p.Context.UseUp, "|") != "halv grädde|ris, kokt" {
+		t.Fatalf("use up = %q", p.Context.UseUp)
+	}
+	if _, body := get(t, h, "/week?y=2026&w=40"); !strings.Contains(body, "Använd först") ||
+		!strings.Contains(body, ">halv grädde\nris, kokt</textarea>") {
+		t.Fatalf("not shown again: %.300s", body)
+	}
+	many := strings.Repeat("sak\n", 1)
+	for i := range 11 {
+		many += "sak " + itoa(int64(i)) + "\n"
+	}
+	rec = post(t, h, "/week/context", weekForm(url.Values{"days.0.home": {"on"}, "use_up": {many}}))
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Högst 10 saker") ||
+		!strings.Contains(rec.Body.String(), "sak 10") {
+		t.Fatalf("over the limit: %d %.300s", rec.Code, rec.Body.String())
+	}
+}

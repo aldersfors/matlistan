@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/aldersfors/matlistan/internal/household"
@@ -72,9 +73,29 @@ type DayContext struct {
 // Context holds the seven days, Monday first.
 type Context struct {
 	Days [7]DayContext `json:"days"`
+	// UseUp is what is already at home and should be cooked first, as the household wrote it.
+	UseUp []string `json:"use_up,omitempty"`
 }
 
-const guestsMax = 20
+const (
+	guestsMax  = 20
+	useUpMax   = 10
+	useUpChars = 60
+)
+
+// ParseUseUp reads one item per line, tidies spaces and drops blank and repeated lines.
+func ParseUseUp(text string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for line := range strings.Lines(text) {
+		item := strings.Join(strings.Fields(line), " ")
+		if key := strings.ToLower(item); item != "" && !seen[key] {
+			seen[key] = true
+			out = append(out, item)
+		}
+	}
+	return out
+}
 
 // DefaultContext plans dinnersPerWeek days and marks the rest of the week as no dinner.
 func DefaultContext(dinnersPerWeek int) Context {
@@ -96,6 +117,12 @@ func (c Context) Validate(memberIDs []int64) validate.Errors {
 				e.Add(validate.Field("days", i, "away"), "form.unknown_option")
 			}
 		}
+	}
+	if len(c.UseUp) > useUpMax {
+		e.Add("use_up", "week.use_up_too_many")
+	}
+	for _, item := range c.UseUp {
+		e.Text("use_up", item, 1, useUpChars)
 	}
 	return e
 }

@@ -34,6 +34,7 @@ type Week struct {
 	HasEntries                                       bool
 	Days                                             []WeekDay
 	Context                                          []ContextDay
+	UseUp                                            string
 	Errors                                           validate.Errors
 }
 
@@ -156,6 +157,9 @@ templ WeekPage(w Week) {
 								}
 							</fieldset>
 						}
+						<div class="border-t border-line pt-3">
+							@textArea(i18n.T(ctx, "week.context.use_up"), "use_up", w.UseUp, w.Errors)
+						</div>
 						<button type="submit" class="h-12 rounded-2xl border border-line font-bold">{ i18n.T(ctx, "week.context.save") }</button>
 					</form>
 				</details>
