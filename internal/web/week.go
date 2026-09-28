@@ -219,7 +219,17 @@ func (s *server) saveWeekContext(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, http.StatusUnprocessableEntity, views.WeekPage(v))
 		return
 	}
-	if err := s.Store.SaveContext(r.Context(), k, c); err != nil {
+	settings, err := s.Store.GetSettings(r.Context())
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	// Planned dinners follow the new guests and away days, as planning would have counted.
+	var servings [7]int
+	for i, d := range weekplan.Specs(k, s.Now().Location(), c, members, settings) {
+		servings[i] = d.Servings
+	}
+	if err := s.Store.SaveContext(r.Context(), k, c, servings); err != nil {
 		s.fail(w, r, err)
 		return
 	}

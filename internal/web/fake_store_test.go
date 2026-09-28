@@ -245,7 +245,8 @@ func (f *fakeStore) GetPlan(_ context.Context, k weekplan.Key) (weekplan.Plan, e
 	return p, nil
 }
 
-func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Context) error {
+func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Context,
+	servings [7]int) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	p, ok := f.plans[k]
@@ -259,6 +260,9 @@ func (f *fakeStore) SaveContext(_ context.Context, k weekplan.Key, c weekplan.Co
 	kept := p.Entries[:0:0]
 	for _, e := range p.Entries {
 		if !c.Days[e.Day-1].Skip {
+			if n := servings[e.Day-1]; n > 0 {
+				e.Servings = n
+			}
 			kept = append(kept, e)
 		}
 	}
