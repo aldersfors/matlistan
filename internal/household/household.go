@@ -25,6 +25,8 @@ type Member struct {
 	Subject          string // OIDC subject of the linked login, "" when none
 	Diets, Allergens []string
 	Likes, Dislikes  string
+	Key              string // stable identity, also used in git
+	Managed          string // "" (the app owns it) or "inline" (declared in git)
 }
 
 // Clean trims text and sorts and de-duplicates choices. Forms call it before Validate.
