@@ -86,3 +86,22 @@ func TestSystemPromptAsksForSingularNames(t *testing.T) {
 		t.Fatalf("no singular rule in:\n%s", p)
 	}
 }
+
+// Review focus: what is at home goes to the model as a preference, as the household wrote it.
+func TestUserPromptCarriesUseUpFirst(t *testing.T) {
+	r := sampleRequest()
+	if p, _ := UserPrompt(r); !strings.Contains(p, `"use_up_first":[]`) {
+		t.Errorf("no empty list: %s", p)
+	}
+	r.UseUp = []string{"halv grädde", "ris, kokt"}
+	if p, _ := UserPrompt(r); !strings.Contains(p, `"use_up_first":["halv grädde","ris, kokt"]`) {
+		t.Errorf("prompt lacks use_up_first: %s", p)
+	}
+	r.SwapDay = 3
+	if p, _ := UserPrompt(r); !strings.Contains(p, `"use_up_first":["halv grädde","ris, kokt"]`) {
+		t.Errorf("swap prompt lacks use_up_first: %s", p)
+	}
+	if !strings.Contains(SystemPrompt(i18n.SV), `"use_up_first"`) {
+		t.Error("system prompt does not explain use_up_first")
+	}
+}

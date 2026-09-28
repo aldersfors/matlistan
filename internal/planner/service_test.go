@@ -240,3 +240,16 @@ func TestLowRatedDishesRest(t *testing.T) {
 		t.Fatalf("prompt = %s", p)
 	}
 }
+
+func TestGenerateSendsUseUpFirst(t *testing.T) {
+	st, llm := baseStore(), &scripted{replies: []string{good}}
+	c := weekplan.DefaultContext(2) // the two days the canned reply plans
+	c.UseUp = []string{"halv grädde"}
+	st.plan = &weekplan.Plan{Key: _k, Status: weekplan.StatusDraft, Context: c}
+	if err := newTestService(st, llm).Generate(context.Background(), _k); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(llm.sent[0], `"use_up_first":["halv grädde"]`) {
+		t.Fatalf("prompt: %s", llm.sent[0])
+	}
+}
