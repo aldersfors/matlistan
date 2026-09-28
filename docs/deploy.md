@@ -198,6 +198,15 @@ notification does not reach it.
 The chart's egress on 443 already reaches the push services (`web.push.apple.com`,
 `fcm.googleapis.com`, `updates.push.services.mozilla.com`, `*.notify.windows.com`).
 
+## Family members and recipes in git (optional)
+
+Set `household.enabled: true` and list `household.members`, `household.recipes` and
+`household.recipeURLs` in the values. The chart renders them into a Secret,
+`<release>-household`, mounted into the web pod only; a checksum annotation restarts the pod
+when the list changes. At startup the app checks the file, syncs it into the database and
+locks those rows in the UI. See [household-as-code.md](household-as-code.md) for the format
+and for moving existing data into git.
+
 ## Network
 
 The chart's NetworkPolicy (on by default) admits traffic from the Gateway and the metrics
