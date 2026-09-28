@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aldersfors/matlistan/internal/auth"
+	"github.com/aldersfors/matlistan/internal/declared"
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/validate"
 	"github.com/aldersfors/matlistan/internal/web/views"
@@ -22,7 +23,12 @@ func (s *server) family(w http.ResponseWriter, r *http.Request) {
 	var page views.Family
 	for _, m := range members {
 		row := views.MemberRow{ID: m.ID, Name: m.Name, Age: household.Age(m.BirthYear, s.Now()),
-			IsMe: me.Subject != "" && m.Subject == me.Subject}
+			IsMe: me.Subject != "" && m.Subject == me.Subject, Managed: m.Managed != ""}
+		if y, err := declared.MemberYAML(m); err == nil {
+			row.YAML = y
+		} else {
+			s.Log.Warn().Err(err).Int64("member", m.ID).Msg("member as YAML")
+		}
 		for _, d := range m.Diets {
 			row.Chips = append(row.Chips, s.Catalog.Diet(d))
 		}
@@ -49,6 +55,10 @@ func (s *server) editMember(w http.ResponseWriter, r *http.Request) {
 	m, err := s.Store.GetMember(r.Context(), id)
 	if err != nil {
 		s.fail(w, r, err)
+		return
+	}
+	if m.Managed != "" {
+		s.locked(w, r)
 		return
 	}
 	f := s.memberForm(m, strconv.Itoa(m.BirthYear), nil)
@@ -80,6 +90,9 @@ func (s *server) updateMember(w http.ResponseWriter, r *http.Request) {
 	if !readForm(w, r) {
 		return
 	}
+	if !s.memberEditable(w, r, id) {
+		return
+	}
 	m, year, e := s.parseMember(r)
 	m.ID = id
 	if len(e) > 0 {
@@ -97,6 +110,9 @@ func (s *server) archiveMember(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {
 		s.notFound(w, r)
+		return
+	}
+	if !s.memberEditable(w, r, id) {
 		return
 	}
 	if err := s.Store.ArchiveMember(r.Context(), id); err != nil {
@@ -161,4 +177,19 @@ func (s *server) providerName() string {
 	default:
 		return s.Catalog.T("provider.anthropic")
 	}
+}
+
+// memberEditable reports whether the app may change member id; false means the answer
+// (not found, locked) is written.
+func (s *server) memberEditable(w http.ResponseWriter, r *http.Request, id int64) bool {
+	m, err := s.Store.GetMember(r.Context(), id)
+	if err != nil {
+		s.fail(w, r, err)
+		return false
+	}
+	if m.Managed != "" {
+		s.locked(w, r)
+		return false
+	}
+	return true
 }

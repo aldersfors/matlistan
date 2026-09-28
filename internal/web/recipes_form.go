@@ -37,6 +37,10 @@ func (s *server) editRecipe(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	if rec.Managed != "" {
+		s.locked(w, r)
+		return
+	}
 	s.render(w, r, http.StatusOK, views.RecipeFormPage(s.recipeForm(rec, nil)))
 }
 
@@ -69,6 +73,13 @@ func (s *server) updateRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !readForm(w, r) {
+		return
+	}
+	if cur, err := s.Store.GetRecipe(r.Context(), id); err != nil {
+		s.fail(w, r, err)
+		return
+	} else if cur.Managed != "" {
+		s.locked(w, r)
 		return
 	}
 	rec, e := s.parseRecipe(r)
