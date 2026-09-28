@@ -25,8 +25,9 @@ type ShoppingSection struct {
 // Shopping is the shopping page. HasList false shows the empty state.
 type Shopping struct {
 	ListID                    int64
+	Year, Week                int
 	Label, Range, Left, AtHome string
-	HasList                   bool
+	HasList, Updated          bool
 	Sections                  []ShoppingSection
 	Errors                    validate.Errors
 }
@@ -71,6 +72,9 @@ templ ShoppingPage(v Shopping) {
 			if !v.HasList {
 				<p class="px-2 text-muted">{ i18n.T(ctx, "shopping.none") }</p>
 			} else {
+				if v.Updated {
+					<p role="status" class="px-2 text-sm font-bold">{ i18n.T(ctx, "shopping.updated") }</p>
+				}
 				<p class="flex justify-between px-2 text-sm text-muted"><span>{ v.Left }</span><span>{ v.AtHome }</span></p>
 				if len(v.Sections) == 0 {
 					<p class="px-2 text-muted">{ i18n.T(ctx, "shopping.empty") }</p>
@@ -91,6 +95,12 @@ templ ShoppingPage(v Shopping) {
 						@textField(i18n.T(ctx, "shopping.add_label"), "name", "", v.Errors)
 					</div>
 					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "shopping.add") }</button>
+				</form>
+				<form method="post" action="/shopping/rebuild" class="flex flex-col gap-1 px-2 pt-4 pb-8">
+					<input type="hidden" name="y" value={ strconv.Itoa(v.Year) }/>
+					<input type="hidden" name="w" value={ strconv.Itoa(v.Week) }/>
+					<button type="submit" class="h-12 rounded-xl border-2 border-line px-4 font-bold">{ i18n.T(ctx, "shopping.rebuild") }</button>
+					<span class="text-sm text-muted">{ i18n.T(ctx, "shopping.rebuild_help") }</span>
 				</form>
 			}
 		</main>

@@ -343,6 +343,32 @@ func (f *fakeStore) SetItemChecked(_ context.Context, id int64, checked bool) (s
 	return l.Items[i], nil
 }
 
+func (f *fakeStore) RebuildShoppingList(_ context.Context, k weekplan.Key, built []shopping.Item,
+	excluded int) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	l, ok := f.lists[k]
+	if !ok {
+		return store.ErrNotFound
+	}
+	var old, manual []shopping.Item
+	for _, it := range l.Items {
+		if it.Manual {
+			manual = append(manual, it)
+		} else {
+			old = append(old, it)
+		}
+	}
+	l.Items, l.Excluded = nil, excluded
+	for _, it := range shopping.CarryTicks(old, built) {
+		it.ID = f.id()
+		l.Items = append(l.Items, it)
+	}
+	l.Items = append(l.Items, manual...)
+	f.lists[k] = l
+	return nil
+}
+
 func (f *fakeStore) AddManualItem(_ context.Context, listID int64, name string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()

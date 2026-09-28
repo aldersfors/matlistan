@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -136,5 +137,66 @@ func TestTickingSetsTheState(t *testing.T) {
 	}
 	if !strings.Contains(body, `name="checked" value="0"`) {
 		t.Error("a ticked row does not offer to untick")
+	}
+}
+
+// Review focus: "Uppdatera listan" rebuilds from the approved week and the staples as they
+// are now, keeps hand-added items and carries ticks.
+func TestRebuildTheList(t *testing.T) {
+	h, st := approvedWeek(t)
+	_, body := get(t, h, "/shopping")
+	if !strings.Contains(body, `action="/shopping/rebuild"`) || !strings.Contains(body, "Uppdatera listan") {
+		t.Fatalf("no rebuild button: %.600s", body)
+	}
+	l, _ := st.GetShoppingList(t.Context(), _w40)
+	if err := st.AddManualItem(t.Context(), l.ID, "tandkräm"); err != nil {
+		t.Fatal(err)
+	}
+	for _, it := range l.Items {
+		if it.Name == "pumpa" {
+			_, _ = st.SetItemChecked(t.Context(), it.ID, true)
+		}
+	}
+	_ = st.AddStaple(t.Context(), "Vispgrädde")
+	rec := post(t, h, "/shopping/rebuild", weekForm(nil))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/shopping?y=2026&w=40&updated=1" {
+		t.Fatalf("rebuild: %d %q", rec.Code, rec.Header().Get("Location"))
+	}
+	got, _ := st.GetShoppingList(t.Context(), _w40)
+	var names []string
+	for _, it := range got.Items {
+		names = append(names, it.Name)
+		if it.Name == "pumpa" && !it.Checked {
+			t.Error("pumpa lost its tick")
+		}
+	}
+	if strings.Join(names, ",") != "pumpa,tandkräm" || got.Excluded != 2 {
+		t.Fatalf("items = %v, excluded %d", names, got.Excluded)
+	}
+	if _, body := get(t, h, "/shopping?y=2026&w=40&updated=1"); !strings.Contains(body, "Listan är uppdaterad.") {
+		t.Fatal("no confirmation")
+	}
+	if rec := post(t, h, "/shopping/rebuild", url.Values{"y": {"2026"}, "w": {"41"}}); rec.Code != http.StatusNotFound {
+		t.Fatalf("week without a list: %d", rec.Code)
+	}
+}
+
+func TestNoRebuildButtonWithoutAList(t *testing.T) {
+	_, body := get(t, newServer(t, i18n.SV, true, newFakeStore()), "/shopping")
+	if strings.Contains(body, "/shopping/rebuild") {
+		t.Fatal("rebuild button without a list")
+	}
+}
+
+func TestCrossSiteRebuildIsRefused(t *testing.T) {
+	h, _ := approvedWeek(t)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/shopping/rebuild",
+		strings.NewReader(weekForm(nil).Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status %d, want 403", rec.Code)
 	}
 }

@@ -137,3 +137,55 @@ func TestAPITokens(t *testing.T) {
 		t.Fatal("revoked key accepted")
 	}
 }
+
+// Review focus: a rebuild replaces the planned lines, carries ticks by base name, keeps
+// hand-added items with their ticks, and updates the staple count.
+func TestRebuildShoppingList(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	if err := s.RebuildShoppingList(ctx, _w40, nil, 0); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("no list yet: %v", err)
+	}
+	plannedWeek(t, s, _w40)
+	if err := s.ApprovePlan(ctx, _w40, "x", []shopping.Item{
+		{Name: "morötter", Section: "produce", Quantity: 10, Unit: "pcs"},
+		{Name: "salt", Section: "pantry"},
+		{Name: "grädde", Section: "dairy", Quantity: 2, Unit: "dl"}}, 1); err != nil {
+		t.Fatal(err)
+	}
+	l, _ := s.GetShoppingList(ctx, _w40)
+	if err := s.AddManualItem(ctx, l.ID, "tandkräm"); err != nil {
+		t.Fatal(err)
+	}
+	l, _ = s.GetShoppingList(ctx, _w40)
+	for _, it := range l.Items {
+		if it.Name == "morötter" || it.Name == "tandkräm" {
+			if _, err := s.SetItemChecked(ctx, it.ID, true); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	built := []shopping.Item{
+		{Name: "morot", Section: "produce", Quantity: 12, Unit: "pcs", Days: []int{1, 2}},
+		{Name: "grädde", Section: "dairy", Quantity: 4, Unit: "dl"}}
+	if err := s.RebuildShoppingList(ctx, _w40, built, 2); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetShoppingList(ctx, _w40)
+	if err != nil || got.ID != l.ID || got.Excluded != 2 || len(got.Items) != 3 {
+		t.Fatalf("list = %+v, %v", got, err)
+	}
+	want := []struct {
+		name    string
+		checked bool
+		manual  bool
+	}{{"morot", true, false}, {"grädde", false, false}, {"tandkräm", true, true}}
+	for i, w := range want {
+		it := got.Items[i]
+		if it.Name != w.name || it.Checked != w.checked || it.Manual != w.manual {
+			t.Errorf("item %d = %+v, want %+v", i, it, w)
+		}
+	}
+	if got.Items[0].Quantity != 12 || len(got.Items[0].Days) != 2 {
+		t.Errorf("morot = %+v", got.Items[0])
+	}
+}
