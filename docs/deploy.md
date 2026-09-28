@@ -171,6 +171,36 @@ kubectl create job -n matlistan --from=cronjob/matlistan-generate generate-now
 The job name is `<release>-matlistan-generate`, or `<release>-generate` when the release
 name already contains `matlistan`.
 
+## Web push (optional)
+
+Set `push.enabled: true`. The chart then needs a VAPID key, the private key that signs the
+notifications. Pick one of three routes:
+
+1. **cert-manager (default on Kubernetes).** With `push.vapidKeySecret.name` empty, the
+   chart creates a self-signed Issuer and a Certificate whose Secret holds a P-256 key.
+   Only the key is used. The Certificate keeps its key when it renews
+   (`rotationPolicy: Never`). The chart fails to render when cert-manager is not
+   installed.
+2. **Your own Secret.** Set `push.vapidKeySecret.name` (and `.key`, default `tls.key`) to
+   a Secret you manage, for example from a secret store through an ExternalSecret. The key
+   may be PEM or the base64url form from `matlistan vapid-keys`.
+3. **Without Kubernetes.** Run `matlistan vapid-keys`, save the `private-key:` value in a
+   file only the app can read, and set `MATLISTAN_VAPID_KEY_FILE` to its path.
+
+`push.subject` (`MATLISTAN_VAPID_SUBJECT`) is the contact push services see; empty uses
+`baseURL`. Both the web pod and the CronJob read the key.
+
+Do not delete the key's Secret. A new key means every device has to turn notifications on
+again, which happens by itself the next time it opens Settings; until then the Sunday
+notification does not reach it.
+
+The chart's egress on 443 already reaches the push services (`web.push.apple.com`,
+`fcm.googleapis.com`, `updates.push.services.mozilla.com`, `*.notify.windows.com`).
+
+`helm lint` cannot be told which APIs the cluster has, so linting with
+`push.enabled: true` and no named Secret fails on the cert-manager check. Render with
+`helm template --api-versions cert-manager.io/v1` instead, as ArgoCD does.
+
 ## Network
 
 The chart's NetworkPolicy (on by default) admits traffic from the Gateway and the metrics
@@ -197,6 +227,13 @@ data concerning health under GDPR Article 9 (Regulation (EU) 2016/679, applicabl
 A purely private household use may fall under the household exemption in GDPR
 Article 2(2)(c), but that has not been verified.
 **VERIFY WITH LEGAL COUNSEL** before anyone outside your own household uses the app.
+
+With web push on, each device that turns notifications on stores a push endpoint, which
+identifies the device and is likely personal data under GDPR Article 4(1). The Sunday
+message carries no personal data and is encrypted for the device, but the push service
+(Apple, Google, Mozilla or Microsoft, several of them in the United States) sees that the
+server sent something to that device and when: again a GDPR Chapter V question. Turning
+notifications off deletes the endpoint.
 
 Everything else (names, history, ratings, shopping lists) stays in your database.
 
