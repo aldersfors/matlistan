@@ -645,13 +645,8 @@ func TestModelServerPortNeedsDestinations(t *testing.T) {
 		t.Error("networkPolicy.llm.port rendered without cidrs")
 	}
 }
-func renderWithCertManager(t *testing.T, extra ...string) []obj {
-	t.Helper()
-	return render(t, append([]string{"--api-versions", "cert-manager.io/v1"}, extra...)...)
-}
-
 func TestPushOffByDefault(t *testing.T) {
-	objs := renderWithCertManager(t)
+	objs := render(t)
 	if len(find(objs, "Certificate")) != 0 || len(find(objs, "Issuer")) != 0 {
 		t.Error("push objects without push.enabled")
 	}
@@ -665,7 +660,7 @@ func TestPushOffByDefault(t *testing.T) {
 
 // Review focus 5: a renewal keeps the key, since every subscription is bound to it.
 func TestPushCertificateKeepsTheKey(t *testing.T) {
-	objs := renderWithCertManager(t, "--set", "push.enabled=true")
+	objs := render(t, "--set", "push.enabled=true")
 	certs, issuers := find(objs, "Certificate"), find(objs, "Issuer")
 	if len(certs) != 1 || len(issuers) != 1 {
 		t.Fatalf("certificates %d issuers %d", len(certs), len(issuers))
@@ -723,16 +718,18 @@ func TestPushWithOwnSecret(t *testing.T) {
 	}
 }
 
-func TestPushNeedsCertManagerOrASecret(t *testing.T) {
-	out, err := helmTemplate(t, "--set", "push.enabled=true") // no cert-manager API
-	if err == nil || !strings.Contains(out, "cert-manager") {
-		t.Fatalf("rendered without cert-manager or a Secret:\n%s", out)
+// ArgoCD does not pass CRD APIs to Helm, so the chart must render the Certificate without
+// seeing cert-manager.io/v1; a cluster without cert-manager fails at apply instead.
+func TestPushRendersWithoutTheCertManagerAPI(t *testing.T) {
+	objs := render(t, "--set", "push.enabled=true")
+	if len(find(objs, "Certificate")) != 1 || len(find(objs, "Issuer")) != 1 {
+		t.Fatal("no Certificate or Issuer without the cert-manager API")
 	}
 }
 
 // A keyless model server leaves the job without a secrets volume, but a push key needs it.
 func TestPushKeyMountsTheJobSecretsAlone(t *testing.T) {
-	objs := renderWithCertManager(t, "--set", "llm.apiKeySecret.name=", "--set", "llm.provider=openai",
+	objs := render(t, "--set", "llm.apiKeySecret.name=", "--set", "llm.provider=openai",
 		"--set", "llm.model=llama4", "--set", "llm.baseURL=http://ollama.ml.svc:11434/v1",
 		"--set", "push.enabled=true")
 	raw, _ := json.Marshal(cronPod(t, objs))

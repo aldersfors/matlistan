@@ -37,10 +37,9 @@ func TestHomelabValuesRender(t *testing.T) {
 	if err := os.WriteFile(f, sub, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	// The homelab cluster runs cert-manager, and ArgoCD passes the cluster's APIs to Helm;
-	// render the same way so push.enabled can make its VAPID key.
+	// No --api-versions: ArgoCD renders without the cluster's CRD APIs, so this must too.
 	out, err := exec.CommandContext(t.Context(), "helm", "template", "matlistan", _chart,
-		"-n", "matlistan", "-f", f, "--api-versions", "cert-manager.io/v1").CombinedOutput()
+		"-n", "matlistan", "-f", f).CombinedOutput()
 	if err != nil {
 		t.Fatalf("homelab values do not render: %v\n%s", err, out)
 	}

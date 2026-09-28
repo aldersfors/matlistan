@@ -41,9 +41,6 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 {{- if not .Values.auth.allowed -}}
 {{- fail "auth.allowed must list at least one claim value" -}}
 {{- end -}}
-{{- if and (include "matlistan.pushCertManaged" .) (not (.Capabilities.APIVersions.Has "cert-manager.io/v1")) -}}
-{{- fail "push.enabled needs cert-manager (cert-manager.io/v1) to make the VAPID key, or set push.vapidKeySecret.name to an existing Secret" -}}
-{{- end -}}
 {{- end -}}
 
 {{/* The CNPG cluster's name, and the database secrets: explicit names win, otherwise

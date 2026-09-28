@@ -1,3 +1,5 @@
+{{- /* Rendered without checking .Capabilities: ArgoCD does not pass CRD APIs to Helm.
+Without cert-manager, the apply fails with "no matches for kind Certificate". */}}
 {{- if include "matlistan.pushCertManaged" . }}
 {{- $name := include "matlistan.pushKeySecret" . }}
 apiVersion: cert-manager.io/v1

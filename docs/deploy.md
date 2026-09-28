@@ -179,8 +179,9 @@ notifications. Pick one of three routes:
 1. **cert-manager (default on Kubernetes).** With `push.vapidKeySecret.name` empty, the
    chart creates a self-signed Issuer and a Certificate whose Secret holds a P-256 key.
    Only the key is used. The Certificate keeps its key when it renews
-   (`rotationPolicy: Never`). The chart fails to render when cert-manager is not
-   installed.
+   (`rotationPolicy: Never`). This route needs cert-manager in the cluster. The chart
+   does not check for it at render time, because ArgoCD does not pass CRD APIs to Helm;
+   without cert-manager the sync fails with "no matches for kind Certificate".
 2. **Your own Secret.** Set `push.vapidKeySecret.name` (and `.key`, default `tls.key`) to
    a Secret you manage, for example from a secret store through an ExternalSecret. The key
    may be PEM or the base64url form from `matlistan vapid-keys`.
@@ -196,10 +197,6 @@ notification does not reach it.
 
 The chart's egress on 443 already reaches the push services (`web.push.apple.com`,
 `fcm.googleapis.com`, `updates.push.services.mozilla.com`, `*.notify.windows.com`).
-
-`helm lint` cannot be told which APIs the cluster has, so linting with
-`push.enabled: true` and no named Secret fails on the cert-manager check. Render with
-`helm template --api-versions cert-manager.io/v1` instead, as ArgoCD does.
 
 ## Network
 
