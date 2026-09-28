@@ -10,10 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"sigs.k8s.io/yaml"
 
 	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/declared"
+	"github.com/aldersfors/matlistan/internal/household"
+	"github.com/aldersfors/matlistan/internal/recipes"
 	"github.com/aldersfors/matlistan/internal/theme"
 )
 
@@ -736,5 +740,106 @@ func TestPushKeyMountsTheJobSecretsAlone(t *testing.T) {
 	if !strings.Contains(string(raw), `"path":"vapid-key"`) ||
 		!strings.Contains(string(raw), `"mountPath":"/etc/matlistan/secrets"`) {
 		t.Fatalf("job: %s", raw)
+	}
+}
+func TestHouseholdOffByDefault(t *testing.T) {
+	objs := render(t)
+	for _, o := range find(objs, "Secret") {
+		if strings.HasSuffix(path(o, "metadata", "name").(string), "-household") {
+			t.Fatal("household secret without household.enabled")
+		}
+	}
+	if env := envOf(container(t, podSpec(t, objs))); env["MATLISTAN_HOUSEHOLD_FILE"] != "" {
+		t.Fatalf("env = %v", env)
+	}
+}
+
+func TestHouseholdRendersASecret(t *testing.T) {
+	objs := render(t, "-f", "testdata/household.yaml")
+	var secret obj
+	for _, o := range find(objs, "Secret") {
+		if path(o, "metadata", "name") == "ml-matlistan-household" {
+			secret = o
+		}
+	}
+	if secret == nil {
+		t.Fatal("no household secret")
+	}
+	file := path(secret, "stringData", "household.yaml").(string)
+	h, err := declared.Parse([]byte(file), "sv", time.Now(), func(s string) string { return s })
+	if err != nil || len(h.Members) != 1 || len(h.Recipes) != 1 || len(h.RecipeURLs) != 1 {
+		t.Fatalf("file does not parse: %v\n%s", err, file)
+	}
+	spec := podSpec(t, objs)
+	if env := envOf(container(t, spec)); env["MATLISTAN_HOUSEHOLD_FILE"] != "/etc/matlistan/household/household.yaml" {
+		t.Fatalf("env = %v", env)
+	}
+	raw, _ := json.Marshal(spec)
+	if !strings.Contains(string(raw), `"secretName":"ml-matlistan-household"`) ||
+		!strings.Contains(string(raw), `"mountPath":"/etc/matlistan/household"`) {
+		t.Fatalf("not mounted: %s", raw)
+	}
+	cronRaw, _ := json.Marshal(cronPod(t, objs))
+	if strings.Contains(string(cronRaw), "household") {
+		t.Fatal("the CronJob mounts the household")
+	}
+}
+
+func TestHouseholdChecksumFollowsTheContent(t *testing.T) {
+	a := render(t, "-f", "testdata/household.yaml")
+	b := render(t, "-f", "testdata/household.yaml", "--set", "household.members[0].name=Anna J")
+	sum := func(objs []obj) any {
+		return path(one(t, objs, "Deployment"), "spec", "template", "metadata", "annotations", "checksum/household")
+	}
+	if sum(a) == nil || sum(a) == sum(b) {
+		t.Fatalf("checksum %v vs %v", sum(a), sum(b))
+	}
+}
+
+func TestHouseholdSchemaRejects(t *testing.T) {
+	for _, set := range []string{"household.members[0].key=Bad Key",
+		"household.recipes[0].ingredients[0].unit=bucket", "household.members[0].allergens[0]=dust"} {
+		if out, err := helmTemplate(t, "-f", "testdata/household.yaml", "--set", set); err == nil {
+			t.Errorf("%s accepted:\n%.300s", set, out)
+		}
+	}
+}
+
+// The schema's enums must be the app's own lists.
+func TestHouseholdSchemaEnumsMatchTheApp(t *testing.T) {
+	raw, _ := os.ReadFile(_chart + "/values.schema.json")
+	s := string(raw)
+	for _, list := range [][]string{recipes.Units, recipes.Sections, household.Diets, household.Allergens} {
+		for _, v := range list {
+			if !strings.Contains(s, `"`+v+`"`) {
+				t.Errorf("schema lacks %q", v)
+			}
+		}
+	}
+}
+
+// The example in docs/household-as-code.md is what people paste first: it must render.
+func TestHouseholdDocsExampleRenders(t *testing.T) {
+	doc, err := os.ReadFile("../../docs/household-as-code.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(doc)
+	start := strings.Index(s, "```yaml\nhousehold:")
+	if start < 0 {
+		t.Fatal("no household example in the docs")
+	}
+	s = s[start+len("```yaml\n"):]
+	end := strings.Index(s, "```")
+	if end < 0 {
+		t.Fatal("household example is not closed")
+	}
+	example := s[:end]
+	f := t.TempDir() + "/example.yaml"
+	if err := os.WriteFile(f, []byte(example), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := helmTemplate(t, "-f", f); err != nil {
+		t.Fatalf("docs example does not render: %v\n%s", err, out)
 	}
 }

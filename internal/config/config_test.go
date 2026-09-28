@@ -261,3 +261,11 @@ func TestGeneratePushConfig(t *testing.T) {
 		t.Fatalf("base URL as subject: %+v %v", g.Push, err)
 	}
 }
+func TestHouseholdFile(t *testing.T) {
+	env := valid()
+	env["MATLISTAN_HOUSEHOLD_FILE"] = " /etc/matlistan/household/household.yaml "
+	c, err := Parse(getenv(env))
+	if err != nil || c.HouseholdFile != "/etc/matlistan/household/household.yaml" {
+		t.Fatalf("household file = %q, %v", c.HouseholdFile, err)
+	}
+}

@@ -50,6 +50,8 @@ type Recipe struct {
 	SourceURL                             string // https page it was imported from; "" otherwise
 	Ingredients                           []Ingredient
 	Rating                                Rating
+	Key                                   string // stable identity, also used in git
+	Managed                               string // "", "inline" (recipes:) or "url" (recipeURLs)
 }
 
 // Summary is a recipe as the library list shows it.

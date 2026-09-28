@@ -1,0 +1,13 @@
+household:
+  enabled: true
+  members:
+    - {key: anna, name: Anna, birthYear: 1985, allergens: [peanuts]}
+  recipes:
+    - key: pumpasoppa
+      title: Pumpasoppa
+      servings: 4
+      totalMinutes: 40
+      steps: ["Koka."]
+      ingredients:
+        - {name: pumpa, quantity: 1, unit: kg, section: produce}
+  recipeURLs: ["https://www.arla.se/recept/pannkaka/"]

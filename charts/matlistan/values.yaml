@@ -100,6 +100,15 @@ generate:
 # Certificate that never rotates its key); or name an existing Secret holding the private
 # key as PEM or as the base64url form `matlistan vapid-keys` prints. Do not delete the
 # key's Secret: a new key makes every device subscribe again.
+# Family members and recipes declared in git: synced at startup and locked in the UI. See
+# docs/household-as-code.md for the format. Rendered as a Secret, since members carry
+# allergies.
+household:
+  enabled: false
+  members: []
+  recipes: []
+  recipeURLs: []
+
 push:
   enabled: false
   vapidKeySecret:

@@ -220,6 +220,250 @@
         }
       }
     },
+    "household": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "name",
+              "birthYear"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,59}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "birthYear": {
+                "type": "integer",
+                "minimum": 1900,
+                "maximum": 2100
+              },
+              "diets": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "vegetarian",
+                    "vegan",
+                    "pescatarian",
+                    "no_pork"
+                  ]
+                }
+              },
+              "allergens": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "gluten",
+                    "crustaceans",
+                    "eggs",
+                    "fish",
+                    "peanuts",
+                    "soybeans",
+                    "milk",
+                    "nuts",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin",
+                    "molluscs"
+                  ]
+                }
+              },
+              "likes": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "dislikes": {
+                "type": "string",
+                "maxLength": 500
+              }
+            }
+          }
+        },
+        "recipes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "title",
+              "servings",
+              "totalMinutes",
+              "steps",
+              "ingredients"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,59}$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "lang": {
+                "type": "string",
+                "enum": [
+                  "en",
+                  "sv"
+                ]
+              },
+              "servings": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20
+              },
+              "activeMinutes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1440
+              },
+              "totalMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1440
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              },
+              "diets": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "vegetarian",
+                    "vegan",
+                    "pescatarian",
+                    "no_pork"
+                  ]
+                }
+              },
+              "allergens": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "gluten",
+                    "crustaceans",
+                    "eggs",
+                    "fish",
+                    "peanuts",
+                    "soybeans",
+                    "milk",
+                    "nuts",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin",
+                    "molluscs"
+                  ]
+                }
+              },
+              "sourceURL": {
+                "type": "string",
+                "pattern": "^(https://.*)?$"
+              },
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "ingredients": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "section"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "quantity": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "g",
+                        "kg",
+                        "ml",
+                        "dl",
+                        "l",
+                        "pcs",
+                        "tbsp",
+                        "tsp",
+                        "pinch"
+                      ]
+                    },
+                    "section": {
+                      "type": "string",
+                      "enum": [
+                        "produce",
+                        "dairy",
+                        "meat_fish",
+                        "pantry",
+                        "frozen",
+                        "bakery",
+                        "other"
+                      ]
+                    },
+                    "optional": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "recipeURLs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^https://"
+          }
+        }
+      }
+    },
     "push": {
       "type": "object",
       "additionalProperties": false,

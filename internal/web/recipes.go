@@ -7,6 +7,7 @@ import (
 
 	"github.com/aldersfors/matlistan/internal/i18n"
 
+	"github.com/aldersfors/matlistan/internal/declared"
 	"github.com/aldersfors/matlistan/internal/recipes"
 	"github.com/aldersfors/matlistan/internal/shopping"
 	"github.com/aldersfors/matlistan/internal/web/views"
@@ -61,7 +62,12 @@ func (s *server) showRecipe(w http.ResponseWriter, r *http.Request) {
 	v := views.RecipeView{ID: rec.ID, Title: rec.Title, Description: rec.Description,
 		Meta: c.T("recipes.minutes", "n", rec.TotalMinutes) + ", " +
 			c.N("recipes.servings", servings),
-		Steps: rec.Steps, CookHref: cookHref(rec.ID, servings, day)}
+		Steps: rec.Steps, CookHref: cookHref(rec.ID, servings, day), Managed: rec.Managed != ""}
+	if y, err := declared.RecipeYAML(rec); err == nil {
+		v.YAML = y
+	} else {
+		s.Log.Warn().Err(err).Int64("recipe", rec.ID).Msg("recipe as YAML")
+	}
 	if rt := s.ratingText(rec.Rating); rt != "" {
 		v.Meta += ", " + rt
 	}
@@ -99,6 +105,15 @@ func (s *server) archiveRecipe(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {
 		s.notFound(w, r)
+		return
+	}
+	rec, err := s.Store.GetRecipe(r.Context(), id)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	if rec.Managed != "" {
+		s.locked(w, r)
 		return
 	}
 	if err := s.Store.ArchiveRecipe(r.Context(), id); err != nil {

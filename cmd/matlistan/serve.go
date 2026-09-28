@@ -14,6 +14,7 @@ import (
 
 	"github.com/aldersfors/matlistan/internal/auth"
 	"github.com/aldersfors/matlistan/internal/config"
+	"github.com/aldersfors/matlistan/internal/declared"
 	"github.com/aldersfors/matlistan/internal/i18n"
 	"github.com/aldersfors/matlistan/internal/planner"
 	"github.com/aldersfors/matlistan/internal/recipes/importer"
@@ -59,6 +60,11 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	}
 	defer db.Close()
 	now := func() time.Time { return time.Now().In(cfg.Location) }
+	msg := func(key string) string { return catalog.T(key) }
+	missing, err := syncHousehold(ctx, cfg.HouseholdFile, cfg.Locale, now(), msg, db, log)
+	if err != nil {
+		return err
+	}
 	go pruneAuthEvents(ctx, db, now, log)
 	svc, llm, err := newPlanner(cfg.Planner, db, cfg.Locale, cfg.Location, log)
 	if err != nil {
@@ -110,6 +116,10 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	errc := make(chan error, 2)
 	go func() { errc <- srv.ListenAndServe() }()
 	go func() { errc <- metrics.ListenAndServe() }()
+	if len(missing) > 0 {
+		go declared.Links{Importer: newImporter(llm, cfg.Locale), Store: db, Log: log,
+			Retry: time.Hour, Timeout: 2 * time.Minute}.Run(ctx, missing)
+	}
 	log.Info().Str("addr", cfg.Addr).Str("locale", string(cfg.Locale)).Msg("listening")
 	select {
 	case err := <-errc:

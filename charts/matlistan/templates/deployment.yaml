@@ -21,9 +21,14 @@ spec:
       app.kubernetes.io/component: web
   template:
     metadata:
-      {{- if include "matlistan.theme" . }}
+      {{- if or (include "matlistan.theme" .) $v.household.enabled }}
       annotations:
+        {{- if include "matlistan.theme" . }}
         checksum/theme: {{ toYaml $v.theme | sha256sum }}
+        {{- end }}
+        {{- if $v.household.enabled }}
+        checksum/household: {{ include "matlistan.householdFile" . | sha256sum }}
+        {{- end }}
       {{- end }}
       labels:
         {{- include "matlistan.selectorLabels" . | nindent 8 }}
@@ -63,6 +68,10 @@ spec:
             {{- if include "matlistan.theme" . }}
             - name: MATLISTAN_THEME_FILE
               value: /etc/matlistan/theme/theme.yaml
+            {{- end }}
+            {{- if $v.household.enabled }}
+            - name: MATLISTAN_HOUSEHOLD_FILE
+              value: /etc/matlistan/household/household.yaml
             {{- end }}
           ports:
             - name: http
@@ -108,6 +117,11 @@ spec:
               mountPath: /etc/matlistan/theme
               readOnly: true
             {{- end }}
+            {{- if $v.household.enabled }}
+            - name: household
+              mountPath: /etc/matlistan/household
+              readOnly: true
+            {{- end }}
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -124,6 +138,15 @@ spec:
         - name: theme
           configMap:
             name: {{ include "matlistan.fullname" . }}-theme
+        {{- end }}
+        {{- if $v.household.enabled }}
+        - name: household
+          secret:
+            secretName: {{ include "matlistan.fullname" . }}-household
+            defaultMode: 0440
+            items:
+              - key: household.yaml
+                path: household.yaml
         {{- end }}
         - name: tmp
           emptyDir:

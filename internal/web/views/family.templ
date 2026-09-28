@@ -15,6 +15,8 @@ type MemberRow struct {
 	Age   int
 	Chips []string
 	IsMe  bool
+	Managed bool   // owned by git: no Edit
+	YAML    string // the member as a household file entry
 }
 
 // Family is the family page.
@@ -72,7 +74,11 @@ templ FamilyPage(f Family) {
 							</div>
 						}
 						<div class="flex flex-wrap items-center gap-2">
-							<a class="flex h-11 items-center rounded-full border border-line px-4" href={ templ.URL(fmt.Sprintf("/family/%d/edit", m.ID)) }>{ i18n.T(ctx, "family.edit") }</a>
+							if m.Managed {
+								<span class="flex h-11 items-center rounded-full border border-line px-4 text-muted">{ i18n.T(ctx, "household.managed") }</span>
+							} else {
+								<a class="flex h-11 items-center rounded-full border border-line px-4" href={ templ.URL(fmt.Sprintf("/family/%d/edit", m.ID)) }>{ i18n.T(ctx, "family.edit") }</a>
+							}
 							if m.IsMe {
 								<span class="rounded-full bg-primary px-3 py-1 text-sm font-bold text-primary-ink">{ i18n.T(ctx, "family.you") }</span>
 							} else {
@@ -81,10 +87,18 @@ templ FamilyPage(f Family) {
 								</form>
 							}
 						</div>
+						if m.YAML != "" {
+							<details>
+								<summary class="cursor-pointer text-sm text-muted">{ i18n.T(ctx, "household.copy_yaml") }</summary>
+								<pre id={ fmt.Sprintf("yaml-member-%d", m.ID) } class="mt-2 overflow-x-auto text-sm">{ m.YAML }</pre>
+								<button type="button" class="mt-2 h-11 rounded-xl border border-line px-4" data-copy={ fmt.Sprintf("yaml-member-%d", m.ID) } data-done={ i18n.T(ctx, "household.copied") }>{ i18n.T(ctx, "household.copy") }</button>
+							</details>
+						}
 					</li>
 				}
 			</ul>
 			<a class="flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink" href="/family/new">{ i18n.T(ctx, "family.add") }</a>
+			<script src="/static/copy.js" defer></script>
 		</main>
 	}
 }
