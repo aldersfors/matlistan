@@ -24,6 +24,7 @@ type Database struct{ URL, CAFile string }
 // Config is everything serve needs.
 type Config struct {
 	Addr, MetricsAddr, BaseURL, ThemeFile, SessionKeyFile string
+	HouseholdFile                                         string
 	Database                                              Database
 	Locale                                                i18n.Locale
 	Location                                              *time.Location
@@ -67,6 +68,7 @@ func Parse(getenv func(string) string) (Config, error) {
 			CAFile: get("MATLISTAN_DATABASE_CA_FILE"),
 		},
 		ThemeFile:      get("MATLISTAN_THEME_FILE"),
+		HouseholdFile:  get("MATLISTAN_HOUSEHOLD_FILE"),
 		SessionKeyFile: req("MATLISTAN_SESSION_KEY_FILE"),
 		OIDC: OIDC{
 			Issuer:           req("MATLISTAN_OIDC_ISSUER"),
