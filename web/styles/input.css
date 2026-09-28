@@ -47,6 +47,8 @@
     --ml-day5: #1f3058; --ml-day5-ink: #ffffff;
     --ml-day6: #d8b85e; --ml-day6-ink: #0d1b2a;
     --ml-day7: #7a5f10; --ml-day7-ink: #ffffff;
+    /* The launch images' navy, baked into the PNGs: not themeable. */
+    --ml-splash: #0d1c28;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -83,3 +85,14 @@
 .push[data-state="on"] .push-on,
 .push[data-state="on"] .push-btn-off,
 .push[data-state="off"] .push-btn-on { display: block; }
+
+/* Launch overlay: the iOS launch image's navy and art, faded out once the page has painted.
+   36vw matches splash.ArtShare, so the art does not move between the two. */
+.launch {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center;
+  justify-content: center; background: var(--ml-splash); pointer-events: none;
+  animation: launch-out 0.4s ease-out 0.15s forwards;
+}
+.launch img { width: 36vw; height: auto; }
+@keyframes launch-out { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .launch { display: none; } }

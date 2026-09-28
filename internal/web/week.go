@@ -60,6 +60,7 @@ func (s *server) week(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	v.Launch = r.URL.Query().Get("launch") == "1" // the manifest's start_url
 	s.render(w, r, http.StatusOK, views.WeekPage(v))
 }
 

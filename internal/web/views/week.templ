@@ -34,6 +34,7 @@ type Week struct {
 	HasEntries                                       bool
 	Days                                             []WeekDay
 	Context                                          []ContextDay
+	Launch                                           bool
 	UseUp                                            string
 	Errors                                           validate.Errors
 }
@@ -51,6 +52,11 @@ templ WeekStatus(href string) {
 
 templ WeekPage(w Week) {
 	@Layout(w.Label, "week") {
+		if w.Launch {
+			// The Home Screen app just started: carry the navy launch image over into the page,
+			// then fade out (styles in input.css; the art's width matches splash.ArtShare).
+			<div class="launch" aria-hidden="true"><img src="/static/splash/app-icon.svg" alt=""/></div>
+		}
 		<main class="mx-auto flex min-h-dvh max-w-md flex-col gap-3 px-3">
 			<header class="flex flex-col gap-1 px-2 pt-12 pb-2">
 				<div class="flex items-center justify-between text-sm text-muted">
