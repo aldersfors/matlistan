@@ -98,6 +98,9 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 	if plan.Error != "" {
 		v.Error = c.T(plan.Error)
 	}
+	if v.Approved {
+		v.ShoppingHref = shoppingHref(k)
+	}
 	if v.Approved && slices.ContainsFunc(plan.Entries, func(e weekplan.Entry) bool {
 		return s.eaten(k, e.Day)
 	}) {

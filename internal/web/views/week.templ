@@ -30,6 +30,7 @@ type Week struct {
 	Year, Number                                     int
 	Label, Range, Error                              string
 	PrevHref, NextHref, StatusHref, RateHref         string
+	ShoppingHref                                     string // an approved week's list
 	Configured, Plannable, Generating, Approved      bool
 	HasEntries                                       bool
 	Locked, Open                                     int // locked dinners; planned days left to plan
@@ -135,6 +136,9 @@ templ WeekPage(w Week) {
 			</ol>
 			if w.RateHref != "" {
 				<a class="flex h-14 items-center justify-center rounded-2xl bg-primary font-display text-lg font-bold text-primary-ink" href={ templ.URL(w.RateHref) }>{ i18n.T(ctx, "week.rate") }</a>
+			}
+			if w.ShoppingHref != "" {
+				<a class="flex h-12 items-center justify-center rounded-2xl border border-line font-bold" href={ templ.URL(w.ShoppingHref) }>{ i18n.T(ctx, "nav.shopping") }</a>
 			}
 			if w.Configured && w.Plannable && !w.Approved && !w.Generating {
 				if w.HasEntries {

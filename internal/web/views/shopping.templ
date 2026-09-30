@@ -11,6 +11,7 @@ import (
 // ShoppingRow is one item on the list.
 type ShoppingRow struct {
 	ID                             int64
+	Year, Week                     int // the list's week, so a form posts back to it
 	Line, RemoveLabel string
 	Days                           []int
 	Checked, Manual                bool
@@ -22,11 +23,12 @@ type ShoppingSection struct {
 	Items []ShoppingRow
 }
 
-// Shopping is the shopping page. HasList false shows the empty state.
+// Shopping is the shopping page. HasList false shows the empty state, with None.
 type Shopping struct {
 	ListID                    int64
 	Year, Week                int
 	Label, Range, Left, AtHome string
+	PrevHref, NextHref, None  string
 	HasList, Updated          bool
 	Sections                  []ShoppingSection
 	Errors                    validate.Errors
@@ -36,6 +38,7 @@ templ ShoppingRowView(r ShoppingRow) {
 	<li id={ fmt.Sprintf("item-%d", r.ID) } class="flex min-h-12 items-center gap-2">
 		<form method="post" action={ templ.URL(fmt.Sprintf("/fragments/shopping/items/%d/toggle", r.ID)) } hx-post={ fmt.Sprintf("/fragments/shopping/items/%d/toggle", r.ID) } hx-target={ fmt.Sprintf("#item-%d", r.ID) } hx-swap="outerHTML" class="flex flex-grow">
 			<input type="hidden" name="checked" value={ checkedValue(!r.Checked) }/>
+			@weekFields(r.Year, r.Week)
 			<button type="submit" class="flex min-h-12 flex-grow items-center gap-3 text-left" aria-pressed={ strconv.FormatBool(r.Checked) }>
 				<span class={ "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-ink", templ.KV("bg-ink text-page", r.Checked) }>
 					if r.Checked {
@@ -52,6 +55,7 @@ templ ShoppingRowView(r ShoppingRow) {
 		</form>
 		if r.Manual {
 			<form method="post" action={ templ.URL(fmt.Sprintf("/shopping/items/%d/delete", r.ID)) }>
+				@weekFields(r.Year, r.Week)
 				<button type="submit" class="h-11 w-11 text-muted" aria-label={ r.RemoveLabel }>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
 				</button>
@@ -64,13 +68,19 @@ templ ShoppingPage(v Shopping) {
 	@Layout(i18n.T(ctx, "shopping.title"), "shopping") {
 		<main class="mx-auto flex max-w-md flex-col gap-3 px-3">
 			<header class="flex flex-col gap-1 px-2 pt-12 pb-2">
-				if v.HasList {
-					<span class="text-sm text-muted">{ v.Label }, { v.Range }</span>
-				}
+				<div class="flex items-center justify-between text-sm text-muted">
+					<a class="flex h-11 items-center" href={ templ.URL(v.PrevHref) } aria-label={ i18n.T(ctx, "week.prev") }>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+					</a>
+					<span>{ v.Label }, { v.Range }</span>
+					<a class="flex h-11 items-center" href={ templ.URL(v.NextHref) } aria-label={ i18n.T(ctx, "week.next") }>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+					</a>
+				</div>
 				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ i18n.T(ctx, "shopping.title") }</h1>
 			</header>
 			if !v.HasList {
-				<p class="px-2 text-muted">{ i18n.T(ctx, "shopping.none") }</p>
+				<p class="px-2 text-muted">{ v.None }</p>
 			} else {
 				if v.Updated {
 					<p role="status" class="px-2 text-sm font-bold">{ i18n.T(ctx, "shopping.updated") }</p>
@@ -91,14 +101,14 @@ templ ShoppingPage(v Shopping) {
 				}
 				<form method="post" action="/shopping/items" class="flex items-end gap-2">
 					<input type="hidden" name="list" value={ strconv.FormatInt(v.ListID, 10) }/>
+					@weekFields(v.Year, v.Week)
 					<div class="min-w-0 flex-grow">
 						@textField(i18n.T(ctx, "shopping.add_label"), "name", "", v.Errors)
 					</div>
 					<button type="submit" class="h-12 shrink-0 rounded-xl bg-primary px-4 font-bold whitespace-nowrap text-primary-ink">{ i18n.T(ctx, "shopping.add") }</button>
 				</form>
 				<form method="post" action="/shopping/rebuild" class="flex flex-col gap-1 px-2 pt-4 pb-8">
-					<input type="hidden" name="y" value={ strconv.Itoa(v.Year) }/>
-					<input type="hidden" name="w" value={ strconv.Itoa(v.Week) }/>
+					@weekFields(v.Year, v.Week)
 					<button type="submit" class="h-12 rounded-xl border-2 border-line px-4 font-bold">{ i18n.T(ctx, "shopping.rebuild") }</button>
 					<span class="text-sm text-muted">{ i18n.T(ctx, "shopping.rebuild_help") }</span>
 				</form>
