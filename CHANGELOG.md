@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/aldersfors/matlistan/compare/v0.5.0...v0.6.0) (2026-09-30)
+
+
+### Features
+
+* **shopping:** browse earlier weeks' lists ([#27](https://github.com/aldersfors/matlistan/issues/27)) ([7b87545](https://github.com/aldersfors/matlistan/commit/7b8754510d38fae242596476c38d21fc82799b4a))
+
 ## [0.5.0](https://github.com/aldersfors/matlistan/compare/v0.4.0...v0.5.0) (2026-09-28)
 
 
