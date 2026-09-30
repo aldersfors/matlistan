@@ -195,6 +195,7 @@
   "week.busy": "Two other weeks are being planned right now. Try again in a minute.",
   "shopping.title": "Shopping list",
   "shopping.none": "No approved week yet. Approve a week to get its shopping list.",
+  "shopping.none_week": "Week {n} has no shopping list.",
   "shopping.empty": "Everything this week is already at home.",
   "shopping.export.title": "Matlistan week {n}",
   "shopping.export.none": "No approved week yet.",

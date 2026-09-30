@@ -200,3 +200,66 @@ func TestCrossSiteRebuildIsRefused(t *testing.T) {
 		t.Fatalf("status %d, want 403", rec.Code)
 	}
 }
+
+// An earlier week's list stays reachable after the next week is approved.
+func TestShoppingWeekNavigation(t *testing.T) {
+	h, _ := approvedWeek(t)
+	_, body := get(t, h, "/shopping")
+	if !strings.Contains(body, `href="/shopping?y=2026&amp;w=39"`) ||
+		!strings.Contains(body, `href="/shopping?y=2026&amp;w=41"`) {
+		t.Fatalf("navigation: %.600s", body)
+	}
+	_, body = get(t, h, "/shopping?y=2026&w=39")
+	if !strings.Contains(body, "Vecka 39 har ingen inköpslista.") ||
+		!strings.Contains(body, `href="/shopping?y=2026&amp;w=38"`) ||
+		!strings.Contains(body, `href="/shopping?y=2026&amp;w=40"`) {
+		t.Fatalf("week without a list: %.600s", body)
+	}
+	if res, _ := get(t, h, "/shopping?y=2026&w=99"); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("bad week: %d", res.StatusCode)
+	}
+}
+
+// Editing an older list returns to that list, not the current one.
+func TestEditingAnOlderListStaysOnIt(t *testing.T) {
+	h, st := approvedWeek(t)
+	w39 := _w40.AddWeeks(-1)
+	st.lists[w39] = shopping.List{ID: 900, Key: w39, Items: []shopping.Item{
+		{ID: 901, Name: "mjölk", Section: "dairy"}}}
+	week := url.Values{"y": {"2026"}, "w": {"39"}}
+	back := "/shopping?y=2026&w=39"
+
+	add := url.Values{"list": {"900"}, "name": {"tandkräm"}, "y": {"2026"}, "w": {"39"}}
+	if rec := post(t, h, "/shopping/items", add); rec.Code != http.StatusSeeOther ||
+		rec.Header().Get("Location") != back {
+		t.Fatalf("add: %d %q", rec.Code, rec.Header().Get("Location"))
+	}
+	add.Set("name", " ")
+	rec := post(t, h, "/shopping/items", add)
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "mjölk") ||
+		strings.Contains(rec.Body.String(), "pumpa") {
+		t.Fatalf("add blank shows the wrong list: %d", rec.Code)
+	}
+	if rec := post(t, h, "/fragments/shopping/items/901/toggle",
+		url.Values{"checked": {"1"}, "y": {"2026"}, "w": {"39"}}); rec.Header().Get("Location") != back {
+		t.Fatalf("toggle: %q", rec.Header().Get("Location"))
+	}
+	manual := st.lists[w39].Items[len(st.lists[w39].Items)-1]
+	if rec := post(t, h, "/shopping/items/"+itoa(manual.ID)+"/delete", week); rec.Header().Get("Location") != back {
+		t.Fatalf("delete: %q", rec.Header().Get("Location"))
+	}
+	_, body := get(t, h, back)
+	if !strings.Contains(body, `name="w" value="39"`) {
+		t.Fatal("forms do not carry the week")
+	}
+}
+
+func TestApprovedWeekLinksToItsList(t *testing.T) {
+	h, _ := approvedWeek(t)
+	if _, body := get(t, h, "/week?y=2026&w=40"); !strings.Contains(body, `href="/shopping?y=2026&amp;w=40"`) {
+		t.Fatal("approved week has no link to its list")
+	}
+	if _, body := get(t, h, "/week?y=2026&w=41"); strings.Contains(body, `href="/shopping?y=2026&amp;w=41"`) {
+		t.Fatal("draft week links to a list")
+	}
+}

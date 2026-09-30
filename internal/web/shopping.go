@@ -11,27 +11,37 @@ import (
 	"github.com/aldersfors/matlistan/internal/store"
 	"github.com/aldersfors/matlistan/internal/validate"
 	"github.com/aldersfors/matlistan/internal/web/views"
-	"github.com/aldersfors/matlistan/internal/week"
 	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
+func shoppingHref(k weekplan.Key) string {
+	return fmt.Sprintf("/shopping?y=%d&w=%d", k.Year, k.Week)
+}
+
+// shoppingList shows week y/w's list, or without a week the latest list up to the upcoming
+// week. A week without a list still gets the arrows, so stepping past it works.
 func (s *server) shoppingList(w http.ResponseWriter, r *http.Request) {
+	k, ok := s.weekKey(r)
+	if !ok {
+		s.badRequest(w, r)
+		return
+	}
+	explicit := r.URL.Query().Get("y") != "" || r.URL.Query().Get("w") != ""
 	var l shopping.List
 	var err error
-	if r.URL.Query().Get("y") != "" || r.URL.Query().Get("w") != "" {
-		k, ok := s.weekKey(r)
-		if !ok {
-			s.badRequest(w, r)
-			return
-		}
+	if explicit {
 		l, err = s.Store.GetShoppingList(r.Context(), k)
 	} else {
-		l, err = s.Store.CurrentShoppingList(r.Context(),
-			weekplan.KeyOf(week.Upcoming(s.Now()).Days[0]))
+		l, err = s.Store.CurrentShoppingList(r.Context(), k)
 	}
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		s.render(w, r, http.StatusOK, views.ShoppingPage(views.Shopping{}))
+		v := s.shoppingWeek(k)
+		v.None = s.Catalog.T("shopping.none")
+		if explicit {
+			v.None = s.Catalog.T("shopping.none_week", "n", k.Week)
+		}
+		s.render(w, r, http.StatusOK, views.ShoppingPage(v))
 		return
 	case err != nil:
 		s.fail(w, r, err)
@@ -74,11 +84,9 @@ func (s *server) rebuildList(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) shoppingView(l shopping.List, e validate.Errors) views.Shopping {
 	c := s.Catalog
-	monday := l.Key.Monday(s.Now().Location())
-	v := views.Shopping{ListID: l.ID, Year: l.Key.Year, Week: l.Key.Week, HasList: true,
-		Label:  c.WeekLabel(l.Key.Week),
-		Range:  c.T("week.range", "from", c.Date(monday), "to", c.Date(monday.AddDate(0, 0, 6))),
-		AtHome: c.N("shopping.at_home", l.Excluded), Errors: e}
+	v := s.shoppingWeek(l.Key)
+	v.ListID, v.HasList, v.Errors = l.ID, true, e
+	v.AtHome = c.N("shopping.at_home", l.Excluded)
 	left := 0
 	for _, it := range l.Items {
 		if !it.Checked {
@@ -89,16 +97,25 @@ func (s *server) shoppingView(l shopping.List, e validate.Errors) views.Shopping
 			v.Sections = append(v.Sections, views.ShoppingSection{Name: name})
 		}
 		sec := &v.Sections[len(v.Sections)-1]
-		sec.Items = append(sec.Items, s.shoppingRow(it))
+		sec.Items = append(sec.Items, s.shoppingRow(it, l.Key))
 	}
 	v.Left = c.N("shopping.left", left)
 	return v
 }
 
-func (s *server) shoppingRow(it shopping.Item) views.ShoppingRow {
+// shoppingWeek is the page header for week k: its name, dates and the arrows.
+func (s *server) shoppingWeek(k weekplan.Key) views.Shopping {
 	c := s.Catalog
-	return views.ShoppingRow{ID: it.ID, Line: shopping.ItemLine(c, it), Days: it.Days,
-		Checked: it.Checked, Manual: it.Manual,
+	monday := k.Monday(s.Now().Location())
+	return views.Shopping{Year: k.Year, Week: k.Week, Label: c.WeekLabel(k.Week),
+		Range:    c.T("week.range", "from", c.Date(monday), "to", c.Date(monday.AddDate(0, 0, 6))),
+		PrevHref: shoppingHref(k.AddWeeks(-1)), NextHref: shoppingHref(k.AddWeeks(1))}
+}
+
+func (s *server) shoppingRow(it shopping.Item, k weekplan.Key) views.ShoppingRow {
+	c := s.Catalog
+	return views.ShoppingRow{ID: it.ID, Year: k.Year, Week: k.Week,
+		Line: shopping.ItemLine(c, it), Days: it.Days, Checked: it.Checked, Manual: it.Manual,
 		RemoveLabel: c.T("shopping.remove", "name", it.Name)}
 }
 
@@ -117,16 +134,21 @@ func (s *server) toggleItem(w http.ResponseWriter, r *http.Request) {
 		s.badRequest(w, r)
 		return
 	}
+	k, ok := s.weekKey(r)
+	if !ok {
+		s.badRequest(w, r)
+		return
+	}
 	it, err := s.Store.SetItemChecked(r.Context(), id, checked == "1")
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
 	if r.Header.Get("HX-Request") != "true" {
-		http.Redirect(w, r, "/shopping", http.StatusSeeOther)
+		http.Redirect(w, r, shoppingHref(k), http.StatusSeeOther)
 		return
 	}
-	s.render(w, r, http.StatusOK, views.ShoppingRowView(s.shoppingRow(it)))
+	s.render(w, r, http.StatusOK, views.ShoppingRowView(s.shoppingRow(it, k)))
 }
 
 func (s *server) addItem(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +156,8 @@ func (s *server) addItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	listID, err := strconv.ParseInt(r.PostFormValue("list"), 10, 64)
-	if err != nil {
+	k, ok := s.weekKey(r)
+	if err != nil || !ok {
 		s.badRequest(w, r)
 		return
 	}
@@ -151,8 +174,7 @@ func (s *server) addItem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(e) > 0 {
-		l, err := s.Store.CurrentShoppingList(r.Context(),
-			weekplan.KeyOf(week.Upcoming(s.Now()).Days[0]))
+		l, err := s.Store.GetShoppingList(r.Context(), k)
 		if err != nil {
 			s.fail(w, r, err)
 			return
@@ -160,7 +182,7 @@ func (s *server) addItem(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, http.StatusUnprocessableEntity, views.ShoppingPage(s.shoppingView(l, e)))
 		return
 	}
-	http.Redirect(w, r, "/shopping", http.StatusSeeOther)
+	http.Redirect(w, r, shoppingHref(k), http.StatusSeeOther)
 }
 
 func (s *server) removeItem(w http.ResponseWriter, r *http.Request) {
@@ -169,9 +191,17 @@ func (s *server) removeItem(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
+	if !readForm(w, r) {
+		return
+	}
+	k, ok := s.weekKey(r)
+	if !ok {
+		s.badRequest(w, r)
+		return
+	}
 	if err := s.Store.RemoveManualItem(r.Context(), id); err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/shopping", http.StatusSeeOther)
+	http.Redirect(w, r, shoppingHref(k), http.StatusSeeOther)
 }

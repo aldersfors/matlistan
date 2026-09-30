@@ -195,6 +195,7 @@
   "week.busy": "Två andra veckor planeras just nu. Försök igen om en minut.",
   "shopping.title": "Inköpslista",
   "shopping.none": "Ingen godkänd vecka än. Godkänn en vecka för att få dess inköpslista.",
+  "shopping.none_week": "Vecka {n} har ingen inköpslista.",
   "shopping.empty": "Allt för veckan finns redan hemma.",
   "shopping.export.title": "Matlistan vecka {n}",
   "shopping.export.none": "Ingen godkänd vecka än.",
