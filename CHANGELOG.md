@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/aldersfors/matlistan/compare/v0.7.0...v0.7.1) (2026-10-02)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/failsafe-go/failsafe-go to v0.9.8 ([#33](https://github.com/aldersfors/matlistan/issues/33)) ([724df3f](https://github.com/aldersfors/matlistan/commit/724df3f35211a8794d981377aed033c49624d59f))
+
 ## [0.7.0](https://github.com/aldersfors/matlistan/compare/v0.6.0...v0.7.0) (2026-10-02)
 
 
