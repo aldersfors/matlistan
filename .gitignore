@@ -5,7 +5,9 @@
 # Local env
 .env
 .env.*
+!deploy/compose/.env.example
 .envrc
+deploy/compose/secrets/
 
 # Editors and OS
 .idea/

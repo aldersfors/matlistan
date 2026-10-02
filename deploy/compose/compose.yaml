@@ -1,0 +1,71 @@
+# Matlistan and PostgreSQL with Docker Compose, for running it without Kubernetes.
+# docs/compose.md walks through the .env file, the secrets and the OIDC client.
+
+x-matlistan: &matlistan
+  image: ghcr.io/aldersfors/matlistan:0.7.0 # x-release-please-version
+  # The same hardening as the Helm chart: a read-only root, no capabilities, no setuid.
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  depends_on:
+    db:
+      condition: service_healthy
+  environment:
+    MATLISTAN_BASE_URL: ${MATLISTAN_BASE_URL:?set MATLISTAN_BASE_URL in .env}
+    # The database is only reachable on this compose network, so the connection is not TLS.
+    MATLISTAN_DATABASE_URL: postgres://matlistan:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/matlistan?sslmode=disable
+    MATLISTAN_SESSION_KEY_FILE: /run/secrets/session_key
+    MATLISTAN_OIDC_ISSUER: ${OIDC_ISSUER:?set OIDC_ISSUER in .env}
+    MATLISTAN_OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-matlistan}
+    MATLISTAN_OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc_client_secret
+    MATLISTAN_OIDC_CLAIM: ${OIDC_CLAIM:-groups}
+    MATLISTAN_OIDC_ALLOWED: ${OIDC_ALLOWED:?set OIDC_ALLOWED in .env}
+    MATLISTAN_PROVIDER: ${LLM_PROVIDER:-anthropic}
+    MATLISTAN_MODEL: ${LLM_MODEL:-}
+    MATLISTAN_OPENAI_BASE_URL: ${LLM_BASE_URL:-}
+    MATLISTAN_API_KEY_FILE: /run/secrets/llm_api_key
+    MATLISTAN_LOCALE: ${MATLISTAN_LOCALE:-en}
+    MATLISTAN_TIMEZONE: ${MATLISTAN_TIMEZONE:-UTC}
+  secrets: [session_key, oidc_client_secret, llm_api_key]
+
+services:
+  matlistan:
+    <<: *matlistan
+    command: [serve]
+    # Only on this host: put a reverse proxy with TLS in front for phones.
+    ports: ["127.0.0.1:${MATLISTAN_PORT:-8080}:8080"]
+    restart: unless-stopped
+
+  # Plans next week. Run it from cron on Sunday: docker compose run --rm generate
+  generate:
+    <<: *matlistan
+    command: [generate]
+    profiles: [jobs]
+
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: matlistan
+      POSTGRES_DB: matlistan
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      # Allergies are health data: keep this volume on an encrypted disk.
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "matlistan", "-d", "matlistan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+secrets:
+  session_key:
+    file: ./secrets/session_key
+  oidc_client_secret:
+    file: ./secrets/oidc_client_secret
+  llm_api_key:
+    file: ./secrets/llm_api_key
+
+volumes:
+  db:

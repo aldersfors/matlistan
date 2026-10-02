@@ -5,7 +5,26 @@ dinners from the family's preferences, ages, allergies and history. You lock
 the dinners you want to keep, plan the rest again and approve the week, and it
 produces a shopping list that an iOS Shortcut pulls into Apple Notes. Recipes can be typed in or imported from a link to a recipe page.
 
-Status: in use at home; see [docs/deploy.md](docs/deploy.md) to run it.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png">
+    <img src="docs/screenshots/week-light.png" width="200" alt="The week: five dinners with a reason for each, Tuesday locked, no dinner at home at the weekend">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/recipe-dark.png">
+    <img src="docs/screenshots/recipe-light.png" width="200" alt="A recipe with its ingredients and steps">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/cook-dark.png">
+    <img src="docs/screenshots/cook-light.png" width="200" alt="Cooking step by step, with a timer for the step">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/shopping-dark.png">
+    <img src="docs/screenshots/shopping-light.png" width="200" alt="The shopping list by section, a dot for each day that needs the item">
+  </picture>
+</p>
+
+Status: in use at home. Everyone in the household sees the same week, live, on their own phone.
 
 ## Development
 
@@ -17,14 +36,25 @@ Tools come from `mise install`. Tests need Docker or Podman (testcontainers).
 
 `mise run test`, `mise run lint`, `mise run templ` and `mise run css` cover the rest.
 See [docs/shortcut.md](docs/shortcut.md) for putting the shopping list in Apple Notes.
+`hack/screenshots.sh` takes every screen at phone size and the README's images in
+`docs/screenshots`; it needs the dev stack, seeded with `mise run dev:seed`.
 
-## Deploy
+## Run it
 
-The Helm chart is in `charts/matlistan` and published to
+Matlistan needs PostgreSQL, an OpenID Connect provider to sign in with, and an API key for
+Anthropic, OpenAI or an OpenAI-compatible server. English is the default; set
+`MATLISTAN_LOCALE=sv` and `MATLISTAN_TIMEZONE=Europe/Stockholm` for Swedish.
+
+**Docker Compose.** [deploy/compose](deploy/compose) runs Matlistan and PostgreSQL on one
+host; [docs/compose.md](docs/compose.md) walks through it:
+
+    cd deploy/compose
+    cp .env.example .env        # then fill it in, and create the secrets
+    docker compose up -d
+
+**Kubernetes.** The Helm chart is in `charts/matlistan` and published to
 `oci://ghcr.io/aldersfors/helm-charts/matlistan`; [docs/deploy.md](docs/deploy.md) walks through
 the Secrets, the OIDC client and an install. `mise run chart:test` renders and checks it.
-English is the default; set `MATLISTAN_LOCALE=sv` and `MATLISTAN_TIMEZONE=Europe/Stockholm`
-for the homelab setup.
 
 ## Licence
 

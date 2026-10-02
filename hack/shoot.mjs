@@ -2,12 +2,15 @@
 // Headless Chrome on macOS will not open a window narrower than 500px, so --window-size
 // cannot emulate a phone; device metrics emulation can.
 // Usage: node hack/shoot.mjs <out-dir> <base-url> <light|dark> name=path...
+// SHOOT_FRAME=1 captures one phone screen at 2x instead of the full page, as the README shows
+// them: a full page puts the fixed tab bar in the middle of a long screen.
 import { spawn } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const [out, base, scheme, ...shots] = process.argv.slice(2);
+const frame = process.env.SHOOT_FRAME === "1";
 const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const profile = mkdtempSync(join(tmpdir(), "matlistan-shoot-"));
 const port = 9333;
@@ -56,7 +59,7 @@ const next = (method) => new Promise((resolve) => waiters.push({ method, resolve
 
 await send("Page.enable");
 await send("Emulation.setDeviceMetricsOverride",
-  { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  { width: 390, height: 844, deviceScaleFactor: frame ? 2 : 1, mobile: true });
 await send("Emulation.setEmulatedMedia",
   { features: [{ name: "prefers-color-scheme", value: scheme }] });
 
@@ -74,7 +77,7 @@ try {
       await sleep(200);
     }
     const { cssContentSize } = await send("Page.getLayoutMetrics");
-    const height = Math.max(844, Math.ceil(cssContentSize.height));
+    const height = frame ? 844 : Math.max(844, Math.ceil(cssContentSize.height));
     const { data } = await send("Page.captureScreenshot", { format: "png",
       captureBeyondViewport: true, clip: { x: 0, y: 0, width: 390, height, scale: 1 } });
     writeFileSync(join(out, `${name}-${scheme}.png`), Buffer.from(data, "base64"));

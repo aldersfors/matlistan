@@ -59,6 +59,10 @@
           "type": "yaml",
           "path": "charts/matlistan/Chart.yaml",
           "jsonpath": "$.appVersion"
+        },
+        {
+          "type": "generic",
+          "path": "deploy/compose/compose.yaml"
         }
       ]
     }
