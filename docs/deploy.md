@@ -4,6 +4,9 @@ Matlistan ships as a container image, `ghcr.io/aldersfors/matlistan`, and a Helm
 `oci://ghcr.io/aldersfors/helm-charts/matlistan`. Both are signed with cosign (keyless, from
 this repository's release workflow).
 
+This page is for Kubernetes. To run it on one host without Kubernetes, see
+[compose.md](compose.md).
+
 ## What you need
 
 - Kubernetes 1.30 or later (the Sunday CronJob uses `timeZone`).

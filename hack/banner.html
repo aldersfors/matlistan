@@ -1,0 +1,59 @@
+<!doctype html>
+<!-- The README banner, 1280x640 (also GitHub's social preview size). hack/screenshots.sh
+     renders it to docs/banner.png from the screenshots it has just taken. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Matlistan banner</title>
+<style>
+  @font-face { font-family: "Geist"; font-weight: 400; src: url("../internal/web/static/fonts/geist-sans-400.woff2") format("woff2"); }
+  @font-face { font-family: "Geist"; font-weight: 700; src: url("../internal/web/static/fonts/geist-sans-700.woff2") format("woff2"); }
+  @font-face { font-family: "Bricolage Grotesque"; font-weight: 800; src: url("../internal/web/static/fonts/bricolage-grotesque-800.woff2") format("woff2"); }
+  :root {
+    --navy: #0d1c28; --ink: #e8ecf0; --muted: #a0aab4; --gold: #d8b85e; --line: #25323f;
+    --day1: #8ab8d0; --day2: #5a8fa8; --day3: #3a6582; --day4: #2a4f6b; --day5: #1f3058;
+    --day6: #d8b85e; --day7: #7a5f10;
+  }
+  html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
+  body { background: var(--navy); color: var(--ink); font-family: "Geist", sans-serif; position: relative; }
+  .glow { position: absolute; right: -120px; top: -160px; width: 820px; height: 820px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(138, 184, 208, .16), rgba(13, 28, 40, 0) 65%); }
+  .copy { position: absolute; left: 76px; top: 92px; width: 560px; display: flex; flex-direction: column; gap: 22px; }
+  .brand { display: flex; align-items: center; gap: 20px; }
+  .brand img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 0 0 1px var(--line); }
+  h1 { margin: 0; font: 800 88px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.03em; }
+  h2 { margin: 0; font: 800 40px/1.12 "Bricolage Grotesque", sans-serif; letter-spacing: -.01em; color: var(--gold); }
+  p { margin: 0; font-size: 22px; line-height: 1.45; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .chips span { font-weight: 700; font-size: 17px; border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 15px; color: var(--ink); }
+  .phone { position: absolute; width: 252px; border-radius: 34px; overflow: hidden;
+    box-shadow: 0 0 0 9px #16222e, 0 0 0 10px #2b3a48, 0 30px 60px rgba(0, 0, 0, .5); }
+  .phone img { display: block; width: 100%; }
+  .back-left { left: 706px; top: 128px; transform: rotate(-7deg); }
+  .back-right { left: 966px; top: 128px; transform: rotate(7deg); }
+  .front { left: 836px; top: 68px; width: 270px; z-index: 2; }
+  .week { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; display: flex; z-index: 3; }
+  .week i { flex: 1; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="copy">
+    <div class="brand">
+      <img src="../internal/web/static/splash/app-icon.svg" alt="">
+      <h1>Matlistan</h1>
+    </div>
+    <h2>Dinner for the week, planned around your family.</h2>
+    <p>Every Sunday it drafts next week from what everyone likes, can't eat and rated last time. Keep the dinners you want, plan the rest again, and the shopping list follows.</p>
+    <div class="chips"><span>Self-hosted</span><span>Live on every phone</span><span>Claude, OpenAI or your own model</span></div>
+  </div>
+  <div class="phone back-left"><img src="../docs/screenshots/shopping-light.png" alt=""></div>
+  <div class="phone back-right"><img src="../docs/screenshots/cook-dark.png" alt=""></div>
+  <div class="phone front"><img src="../docs/screenshots/week-light.png" alt=""></div>
+  <div class="week">
+    <i style="background: var(--day1)"></i><i style="background: var(--day2)"></i><i style="background: var(--day3)"></i>
+    <i style="background: var(--day4)"></i><i style="background: var(--day5)"></i><i style="background: var(--day6)"></i>
+    <i style="background: var(--day7)"></i>
+  </div>
+</body>
+</html>
