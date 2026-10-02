@@ -8,27 +8,28 @@
 TRUNCATE ratings, shopping_items, shopping_lists, plan_entries, week_plans,
     recipe_ingredients, recipes, staples, members, api_tokens RESTART IDENTITY CASCADE;
 
-INSERT INTO members (name, birth_year, allergens, diets, likes, dislikes) VALUES
-    ('Anna', 1985, '{}', '{}', 'thailändskt, soppor', 'koriander'),
-    ('Erik', 1984, '{}', '{}', 'grytor', ''),
-    ('Maja', 2014, '{nuts}', '{}', 'tacos, pasta', 'svamp'),
-    ('Leo', 2019, '{}', '{}', 'köttbullar', 'stark mat');
+-- Each key is keys.Slug of the name or title, as the app would make it.
+INSERT INTO members (key, name, birth_year, allergens, diets, likes, dislikes) VALUES
+    ('anna', 'Anna', 1985, '{}', '{}', 'thailändskt, soppor', 'koriander'),
+    ('erik', 'Erik', 1984, '{}', '{}', 'grytor', ''),
+    ('maja', 'Maja', 2014, '{nuts}', '{}', 'tacos, pasta', 'svamp'),
+    ('leo', 'Leo', 2019, '{}', '{}', 'köttbullar', 'stark mat');
 
 INSERT INTO staples (name, name_key) VALUES ('Salt', 'salt'), ('Olivolja', 'olivolja'),
     ('Vetemjöl', 'vetemjöl');
 
-INSERT INTO recipes (title, title_key, lang, servings, active_minutes, total_minutes, tags,
+INSERT INTO recipes (key, title, title_key, lang, servings, active_minutes, total_minutes, tags,
     steps, diets, allergens, source) VALUES
-    ('Krämig pumpasoppa', 'krämig pumpasoppa', 'sv', 4, 15, 30, '{soppa}',
+    ('kramig-pumpasoppa', 'Krämig pumpasoppa', 'krämig pumpasoppa', 'sv', 4, 15, 30, '{soppa}',
      '{"Skala och tärna pumpan och löken.","Fräs löken i olja, lägg i pumpan och vatten.","Koka i 20 minuter och mixa slät med grädden."}',
      '{vegetarian}', '{milk}', 'manual'),
-    ('Köttbullar med potatismos', 'köttbullar med potatismos', 'sv', 4, 30, 40, '{favorit}',
+    ('kottbullar-med-potatismos', 'Köttbullar med potatismos', 'köttbullar med potatismos', 'sv', 4, 30, 40, '{favorit}',
      '{"Blanda ströbröd och mjölk, låt svälla.","Rör ner färs och lök och rulla bullar.","Stek bullarna i smör 10 min.","Koka potatisen i 20 minuter och mosa med mjölk och smör."}',
      '{}', '{milk,gluten}', 'manual'),
-    ('Kycklingpasta med spenat', 'kycklingpasta med spenat', 'sv', 4, 15, 20, '{vardag}',
+    ('kycklingpasta-med-spenat', 'Kycklingpasta med spenat', 'kycklingpasta med spenat', 'sv', 4, 15, 20, '{vardag}',
      '{"Koka pastan.","Stek kycklingen, lägg i spenat och grädde.","Blanda med pastan."}',
      '{}', '{milk,gluten}', 'manual'),
-    ('Ärtsoppa och pannkakor', 'ärtsoppa och pannkakor', 'sv', 4, 20, 40, '{torsdag}',
+    ('artsoppa-och-pannkakor', 'Ärtsoppa och pannkakor', 'ärtsoppa och pannkakor', 'sv', 4, 20, 40, '{torsdag}',
      '{"Värm ärtsoppan.","Vispa smeten och grädda pannkakorna."}',
      '{}', '{milk,eggs,gluten,mustard}', 'manual');
 
