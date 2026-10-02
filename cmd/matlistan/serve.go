@@ -104,13 +104,15 @@ func serveWith(ctx context.Context, cfg config.Config, log zerolog.Logger) error
 	if err != nil {
 		return err
 	}
+	stopping := make(chan struct{})
 	srv := &http.Server{Addr: cfg.Addr, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 2 * time.Minute,
 		Handler: web.New(web.Deps{Catalog: catalog, Theme: th, Auth: authn, Store: db, Planner: pl,
 			Provider: webProvider(cfg.Planner), Importer: newImporter(llm, cfg.Locale),
 			BaseURL: cfg.BaseURL, PushKey: vapidPublic(vapid),
-			Now: now,
+			Now: now, Done: stopping,
 			Log: log})}
+	srv.RegisterOnShutdown(func() { close(stopping) }) // open event streams would hold up Shutdown
 	metrics := &http.Server{Addr: cfg.MetricsAddr, ReadHeaderTimeout: 10 * time.Second,
 		Handler: web.Metrics()}
 	errc := make(chan error, 2)

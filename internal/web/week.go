@@ -61,6 +61,7 @@ func (s *server) week(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v.Launch = r.URL.Query().Get("launch") == "1" // the manifest's start_url
+	v.ContextOpen = r.URL.Query().Get("conditions") == "open"
 	s.render(w, r, http.StatusOK, views.WeekPage(v))
 }
 
@@ -94,6 +95,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 		Approved: plan.Status == weekplan.StatusApproved, HasEntries: len(plan.Entries) > 0,
 		PrevHref: weekHref(k.AddWeeks(-1)), NextHref: weekHref(k.AddWeeks(1)),
 		StatusHref: fmt.Sprintf("/fragments/week-status?y=%d&w=%d", k.Year, k.Week),
+		LiveHref:   fmt.Sprintf("/week/events?y=%d&w=%d", k.Year, k.Week),
 		Errors:     e}
 	if plan.Error != "" {
 		v.Error = c.T(plan.Error)
@@ -117,6 +119,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 			d.Meta = c.T("recipes.minutes", "n", en.TotalMinutes) + ", " +
 				c.N("recipes.servings", en.Servings)
 		}
+		d.Replanning = v.Generating && d.Planned && !d.Locked
 		d.LockLabel = c.T("week.lock", "day", d.Name)
 		switch {
 		case d.Locked:
@@ -242,7 +245,9 @@ func (s *server) saveWeekContext(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
+	s.live.publish(k)
+	// Conditions save as they change, so the form stays open for the next one.
+	http.Redirect(w, r, weekHref(k)+"&conditions=open", http.StatusSeeOther)
 }
 
 func (s *server) generateWeek(w http.ResponseWriter, r *http.Request) {
@@ -260,10 +265,16 @@ func (s *server) generateWeek(w http.ResponseWriter, r *http.Request) {
 	}
 	// The job must outlive this request, so it gets its own bounded context, not r.Context().
 	//nolint:contextcheck // detached on purpose, see above
-	started := s.jobs.start(k, func(ctx context.Context) error { return s.Planner.Generate(ctx, k) })
+	started := s.jobs.start(k, func(ctx context.Context) error {
+		defer s.live.publish(k) // other open pages show the dinners or the error
+		return s.Planner.Generate(ctx, k)
+	})
 	if !started && !s.jobs.running(k) {
 		s.plannerBusy(w, r, k)
 		return
+	}
+	if started {
+		s.live.publish(k)
 	}
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
 }
@@ -288,6 +299,7 @@ func (s *server) lockDinner(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	s.live.publish(k)
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
 }
 
@@ -312,6 +324,7 @@ func (s *server) approveWeek(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	s.live.publish(k)
 	http.Redirect(w, r, weekHref(k), http.StatusSeeOther)
 }
 

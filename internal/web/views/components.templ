@@ -68,7 +68,7 @@ templ checkboxes(legend, name string, opts []Option, e validate.Errors) {
 		<div class="flex flex-wrap gap-2">
 			for _, o := range opts {
 				<label class="flex min-h-11 items-center gap-2 rounded-full border border-line bg-panel px-3">
-					<input type="checkbox" name={ name } value={ o.Value } checked?={ o.Checked }/>
+					<input type="checkbox" id={ name + "." + o.Value } name={ name } value={ o.Value } checked?={ o.Checked }/>
 					<span>{ o.Label }</span>
 				</label>
 			}

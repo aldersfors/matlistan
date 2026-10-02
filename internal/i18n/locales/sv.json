@@ -172,6 +172,8 @@
   "week.regenerate_unlocked": "Planera om olåsta",
   "week.all_locked": "Alla middagar är låsta",
   "week.lock": "Lås middagen på {day}",
+  "week.replanning": "Planeras…",
+  "week.kept": "Behålls",
   "week.generating": "Planerar veckan. Det tar en minut eller två.",
   "week.approve": "Godkänn veckan",
   "week.no_dinner": "Ingen middag hemma",

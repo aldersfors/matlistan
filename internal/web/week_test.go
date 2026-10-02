@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -300,5 +301,64 @@ func TestConditionsUpdatePlannedServings(t *testing.T) {
 	p, _ := st.GetPlan(t.Context(), _w40)
 	if len(p.Entries) != 2 || p.Entries[0].Servings != 4 || p.Entries[1].Servings != 1 {
 		t.Fatalf("entries = %+v", p.Entries)
+	}
+}
+
+// Planning the unlocked days again shows which dinners are being replaced and which are kept.
+func TestReplanningMarksUnlockedDays(t *testing.T) {
+	st := newFakeStore()
+	pl := &fakePlanner{st: st}
+	h, s := newPlanningServer(t, i18n.SV, st, pl)
+	post(t, h, "/week/generate", weekForm(nil))
+	s.jobs.wait()
+	post(t, h, "/week/lock", weekForm(url.Values{"day": {"2"}, "locked": {"1"}}))
+	pl.gate = make(chan struct{})
+	post(t, h, "/week/generate", weekForm(nil))
+	_, body := get(t, h, "/week?y=2026&w=40")
+	close(pl.gate)
+	s.jobs.wait()
+	if !strings.Contains(body, `<span class="text-sm text-muted line-through">Pumpasoppa</span>`) {
+		t.Error("the unlocked dinner is not shown as being replaced")
+	}
+	if strings.Contains(body, `line-through">Köttbullar`) || !strings.Contains(body, `aria-label="Behålls"`) {
+		t.Error("the locked dinner is not shown as kept")
+	}
+	// Days 1 and 3-7 are planned again (the default context plans all seven).
+	if n := strings.Count(body, "Planeras…"); n != 6 {
+		t.Errorf("%d days marked as being planned, want 6", n)
+	}
+	if _, body := get(t, h, "/week?y=2026&w=40"); strings.Contains(body, "Planeras…") {
+		t.Error("still marked after planning")
+	}
+}
+
+// Who is away on a day is kept with the week and shown checked on the next visit.
+func TestAwayMembersAreKept(t *testing.T) {
+	st := newFakeStore()
+	id, _ := st.CreateMember(t.Context(), household.Member{Name: "Erik", BirthYear: 1984})
+	h, _ := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	rec := post(t, h, "/week/context", weekForm(url.Values{"days.0.home": {"on"},
+		"days.2.home": {"on"}, "days.2.away": {itoa(id)}}))
+	_, body := get(t, h, rec.Header().Get("Location"))
+	checked := fmt.Sprintf(`id="days.2.away.%d" name="days.2.away" value="%d" checked`, id, id)
+	if !strings.Contains(body, checked) {
+		t.Errorf("Erik not shown away on Wednesday")
+	}
+	if strings.Contains(body, fmt.Sprintf(`id="days.0.away.%d" name="days.0.away" value="%d" checked`, id, id)) {
+		t.Errorf("Erik shown away on Monday")
+	}
+}
+
+// A day without dinner at home is a short row with only a strip of the day's colour.
+func TestNoDinnerDayLooksOff(t *testing.T) {
+	st := newFakeStore()
+	h, _ := newPlanningServer(t, i18n.SV, st, &fakePlanner{st: st})
+	post(t, h, "/week/context", weekForm(url.Values{"days.0.home": {"on"}}))
+	_, body := get(t, h, "/week?y=2026&w=40")
+	if n := strings.Count(body, "border-l-6 pl-3 text-muted day-strip-"); n != 6 {
+		t.Errorf("%d days without dinner, want 6", n)
+	}
+	if !strings.Contains(body, `day-1"`) || strings.Contains(body, "day-strip-1") {
+		t.Error("Monday, with dinner at home, is not a full row")
 	}
 }

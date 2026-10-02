@@ -172,6 +172,8 @@
   "week.regenerate_unlocked": "Plan the unlocked days again",
   "week.all_locked": "Every dinner is locked",
   "week.lock": "Lock {day}'s dinner",
+  "week.replanning": "Planning…",
+  "week.kept": "Kept",
   "week.generating": "Planning the week. This takes a minute or two.",
   "week.approve": "Approve the week",
   "week.no_dinner": "No dinner at home",
