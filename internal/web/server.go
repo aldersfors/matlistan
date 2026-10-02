@@ -100,6 +100,8 @@ type Deps struct {
 	Importer RecipeImporter
 	// PushKey is the base64url VAPID public key; empty turns web push off.
 	PushKey string
+	// Done closes when the server shuts down, ending open event streams; nil never closes.
+	Done <-chan struct{}
 }
 
 // RecipeImporter reads a recipe page into an unsaved recipe plus note keys for the form.
@@ -113,8 +115,10 @@ type Provider struct{ Name, Host string }
 
 type server struct {
 	Deps
-	jobs   *jobs
-	footer views.Build
+	jobs      *jobs
+	live      *broker
+	heartbeat time.Duration // between comments on an idle event stream
+	footer    views.Build
 }
 
 // jobTimeout bounds one background planning run.
@@ -131,7 +135,8 @@ func buildServer(d Deps) *server {
 	if d.Build.Version == "" {
 		d.Build = release.Get()
 	}
-	s := &server{Deps: d, jobs: newJobs(jobTimeout, d.Log)}
+	s := &server{Deps: d, jobs: newJobs(jobTimeout, d.Log), live: newBroker(),
+		heartbeat: _liveHeartbeat}
 	s.footer = s.footerBuild(d.Build)
 	return s
 }
@@ -186,6 +191,7 @@ func (s *server) handler() http.Handler {
 	})
 	app.HandleFunc("GET /week", s.week)
 	app.HandleFunc("GET /fragments/week-status", s.weekStatus)
+	app.HandleFunc("GET /week/events", s.weekEvents)
 	app.HandleFunc("POST /week/context", s.saveWeekContext)
 	app.HandleFunc("POST /week/generate", s.generateWeek)
 	app.HandleFunc("POST /week/lock", s.lockDinner)

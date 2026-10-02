@@ -22,7 +22,8 @@ templ Layout(title, active string) {
 			for _, s := range splash.Screens {
 				<link rel="apple-touch-startup-image" media={ s.Media() } href={ "/static/splash/" + s.File() }/>
 			}
-			<meta name="htmx-config" content='{"includeIndicatorStyles":false}'/>
+			// responseHandling is htmx's default plus 422, so a form's validation errors show.
+			<meta name="htmx-config" content='{"includeIndicatorStyles":false,"responseHandling":[{"code":"204","swap":false},{"code":"422","swap":true},{"code":"[23]..","swap":true},{"code":"[45]..","swap":false,"error":true}]}'/>
 			<title>{ title } - { i18n.T(ctx, "app.name") }</title>
 			<link rel="stylesheet" href="/static/app.css"/>
 			<link rel="stylesheet" href="/static/theme.css"/>

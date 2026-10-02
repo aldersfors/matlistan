@@ -73,6 +73,13 @@
   .day-5 { background: var(--ml-day5); color: var(--ml-day5-ink); }
   .day-6 { background: var(--ml-day6); color: var(--ml-day6-ink); }
   .day-7 { background: var(--ml-day7); color: var(--ml-day7-ink); }
+  .day-strip-1 { border-left-color: var(--ml-day1); }
+  .day-strip-2 { border-left-color: var(--ml-day2); }
+  .day-strip-3 { border-left-color: var(--ml-day3); }
+  .day-strip-4 { border-left-color: var(--ml-day4); }
+  .day-strip-5 { border-left-color: var(--ml-day5); }
+  .day-strip-6 { border-left-color: var(--ml-day6); }
+  .day-strip-7 { border-left-color: var(--ml-day7); }
 }
 
 /* Web push section: what shows depends on the device's state, set by push.js. */
