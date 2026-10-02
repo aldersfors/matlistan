@@ -2,7 +2,7 @@
 # docs/compose.md walks through the .env file, the secrets and the OIDC client.
 
 x-matlistan: &matlistan
-  image: ghcr.io/aldersfors/matlistan:0.7.1 # x-release-please-version
+  image: ghcr.io/aldersfors/matlistan:0.7.2 # x-release-please-version
   # The same hardening as the Helm chart: a read-only root, no capabilities, no setuid.
   read_only: true
   tmpfs: [/tmp]
