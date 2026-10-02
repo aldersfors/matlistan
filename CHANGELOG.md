@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/aldersfors/matlistan/compare/v0.6.0...v0.7.0) (2026-10-02)
+
+
+### Features
+
+* **week:** save conditions on change and show changes live ([#29](https://github.com/aldersfors/matlistan/issues/29)) ([69a8262](https://github.com/aldersfors/matlistan/commit/69a826217c4cb7f84db39e30449f4b189d4cb854))
+
+
+### Bug fixes
+
+* **hack:** give seeded members and recipes their keys ([#31](https://github.com/aldersfors/matlistan/issues/31)) ([4fea76c](https://github.com/aldersfors/matlistan/commit/4fea76c92b0746442ad95e6fc9e1124b803db117))
+
 ## [0.6.0](https://github.com/aldersfors/matlistan/compare/v0.5.0...v0.6.0) (2026-09-30)
 
 
