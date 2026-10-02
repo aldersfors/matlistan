@@ -1,5 +1,7 @@
 # Matlistan
 
+<p align="center"><img src="docs/banner.png" alt="Matlistan: dinner for the week, planned around your family. Phones show the week, the shopping list and cooking step by step."></p>
+
 A weekly meal planner for the household. Every Sunday it drafts next week's
 dinners from the family's preferences, ages, allergies and history. You lock
 the dinners you want to keep, plan the rest again and approve the week, and it
@@ -36,8 +38,8 @@ Tools come from `mise install`. Tests need Docker or Podman (testcontainers).
 
 `mise run test`, `mise run lint`, `mise run templ` and `mise run css` cover the rest.
 See [docs/shortcut.md](docs/shortcut.md) for putting the shopping list in Apple Notes.
-`hack/screenshots.sh` takes every screen at phone size and the README's images in
-`docs/screenshots`; it needs the dev stack, seeded with `mise run dev:seed`.
+`hack/screenshots.sh` takes every screen at phone size, the README's images in
+`docs/screenshots` and the banner from `hack/banner.html`; it needs the dev stack, seeded with `mise run dev:seed`.
 
 ## Run it
 

@@ -17,11 +17,11 @@ curl -s -c "$jar" -b "$jar" -L -o /dev/null "$base/week"
 curl -s -c "$jar" -b "$jar" -o /dev/null -d "y=$y&w=$w&days.0.home=on&days.1.home=on&days.2.home=on&days.3.home=on&days.4.home=on" "$base/week/context"
 db "INSERT INTO plan_entries (plan_id, day, recipe_id, servings, why)
     SELECT p.id, v.d, v.r, 4, v.why FROM week_plans p,
-    (VALUES (1, 1, 'Pumpan är i säsong och ni har inte ätit soppa på fem veckor.'),
-            (2, 2, 'Alla fyra gav den Gott! i augusti.'),
-            (3, 3, 'Klar på 20 minuter före handbollen.'),
-            (4, 4, 'Torsdag som vanligt.'),
-            (5, 3, 'Fredag: snabbt, och alla åt upp sist.')) v(d, r, why)
+    (VALUES (1, 1, 'Pumpkin is in season and you have not had soup in five weeks.'),
+            (2, 2, 'All four gave it top marks in August.'),
+            (3, 3, 'Ready in 20 minutes, before handball practice.'),
+            (4, 4, 'Pea soup on Thursday, as usual.'),
+            (5, 3, 'Friday: quick, and everyone finished it last time.')) v(d, r, why)
     WHERE p.iso_year = $y AND p.iso_week = $w ON CONFLICT DO NOTHING"
 
 curl -s -c "$jar" -b "$jar" -o /dev/null -d "y=$y&w=$w&day=2&locked=1" "$base/week/lock"
@@ -47,4 +47,14 @@ for scheme in light dark; do
   readme "$scheme" shopping=/shopping
 done
 rm -f "$jar"
+
+# The README banner, from hack/banner.html and the screenshots above. Served over http, not
+# file://, so Chrome loads its fonts.
+python3 -m http.server 8099 --bind 127.0.0.1 >/dev/null 2>&1 &
+srv=$!
+trap 'kill $srv 2>/dev/null' EXIT
+sleep 1
+SHOOT_FRAME=1 SHOOT_SIZE=1280x640 node hack/shoot.mjs docs http://127.0.0.1:8099 dark \
+  banner=/hack/banner.html
+mv docs/banner-dark.png docs/banner.png
 echo "screenshots in $out"
