@@ -3,7 +3,7 @@ module github.com/aldersfors/matlistan
 go 1.26.7
 
 require (
-	github.com/a-h/templ v0.3.1020
+	github.com/a-h/templ v0.3.1070
 	github.com/anthropics/anthropic-sdk-go v1.78.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/failsafe-go/failsafe-go v0.9.8
@@ -54,7 +54,7 @@ require (
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
