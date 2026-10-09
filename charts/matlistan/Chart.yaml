@@ -2,8 +2,8 @@ apiVersion: v2
 name: matlistan
 description: Weekly meal planner that drafts next week's dinners and a shopping list.
 type: application
-version: 0.7.2
-appVersion: 0.7.2
+version: 0.7.3
+appVersion: 0.7.3
 home: https://github.com/aldersfors/matlistan
 sources:
   - https://github.com/aldersfors/matlistan

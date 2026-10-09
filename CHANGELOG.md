@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.3](https://github.com/aldersfors/matlistan/compare/v0.7.2...v0.7.3) (2026-10-09)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/a-h/templ to v0.3.1070 ([#45](https://github.com/aldersfors/matlistan/issues/45)) ([6c20446](https://github.com/aldersfors/matlistan/commit/6c20446d079e430b0a9ab9c12e886134e174d24b))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.79.0 ([#52](https://github.com/aldersfors/matlistan/issues/52)) ([85f27a3](https://github.com/aldersfors/matlistan/commit/85f27a31a009ad5f8326ecfc8e212537f1ce3909))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.79.1 ([#53](https://github.com/aldersfors/matlistan/issues/53)) ([989b0dd](https://github.com/aldersfors/matlistan/commit/989b0ddb14497d450f5ee3004c7c6a12fb55e71a))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.71.2 ([#47](https://github.com/aldersfors/matlistan/issues/47)) ([199ed78](https://github.com/aldersfors/matlistan/commit/199ed782a742c72b78e3492676eff644d45855df))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.72.0 ([#49](https://github.com/aldersfors/matlistan/issues/49)) ([9d1f379](https://github.com/aldersfors/matlistan/commit/9d1f379d76e75768275e92cba00f318431400dae))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.73.0 ([#51](https://github.com/aldersfors/matlistan/issues/51)) ([1b37464](https://github.com/aldersfors/matlistan/commit/1b37464fdca420e6dccd357738cc215f2b0f4fc9))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.74.0 ([#54](https://github.com/aldersfors/matlistan/issues/54)) ([3dfa8b9](https://github.com/aldersfors/matlistan/commit/3dfa8b96105e618de369354d75dd01cc5d13b1b1))
+* **deps:** update module github.com/prometheus/client_golang to v1.25.0 ([#55](https://github.com/aldersfors/matlistan/issues/55)) ([cabcede](https://github.com/aldersfors/matlistan/commit/cabcedefa09f571f8b8a9ddf3b56140974d98add))
+* **deps:** update module golang.org/x/net to v0.60.0 ([#57](https://github.com/aldersfors/matlistan/issues/57)) ([58c68b1](https://github.com/aldersfors/matlistan/commit/58c68b1b5aa472c2199dbc8f53cb12d031ca76d9))
+
 ## [0.7.2](https://github.com/aldersfors/matlistan/compare/v0.7.1...v0.7.2) (2026-10-02)
 
 
