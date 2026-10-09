@@ -1,0 +1,26 @@
+{
+  // Org-wide behaviour comes from the preset (github.com/aldersfors/aldersfors).
+  // Only what is specific to matlistan lives here.
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["github>aldersfors/aldersfors:default.json5"],
+
+  customManagers: [
+    {
+      // The distroless base image in .ko.yaml, which no built-in manager reads.
+      customType: "regex",
+      managerFilePatterns: ["/^\\.ko\\.yaml$/"],
+      matchStrings: [
+        "defaultBaseImage: (?<depName>[^:@\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})",
+      ],
+      datasourceTemplate: "docker",
+    },
+  ],
+
+  packageRules: [
+    {
+      matchManagers: ["custom.regex"],
+      matchUpdateTypes: ["digest"],
+      commitMessageTopic: "the distroless base image",
+    },
+  ],
+}
