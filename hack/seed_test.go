@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/testcontainers/testcontainers-go"
+	tcexec "github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
 	"github.com/aldersfors/matlistan/internal/keys"
@@ -37,7 +38,8 @@ func seedDB(t *testing.T) (*postgres.PostgresContainer, func(args ...string) (in
 	return ctr, func(args ...string) (int, string) {
 		cmd := append([]string{"psql", "-U", "matlistan", "-d", "matlistan", "-v",
 			"ON_ERROR_STOP=1"}, args...)
-		code, out, err := ctr.Exec(ctx, cmd)
+		// Multiplexed strips Docker's stream frame headers, which otherwise land in the text.
+		code, out, err := ctr.Exec(ctx, cmd, tcexec.Multiplexed())
 		if err != nil {
 			t.Fatal(err)
 		}
