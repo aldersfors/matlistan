@@ -14,7 +14,8 @@ const _ratingsJoin = ` LEFT JOIN (SELECT recipe_id, avg(score)::float8 AS averag
 // _keptGenerated keeps generated recipes out of the library until they are well rated.
 const _keptGenerated = ` (r.source <> 'generated' OR coalesce(rt.average, 0) >= 4) `
 
-// SetRating stores a member's score for an approved week's dinner, replacing an earlier one.
+// SetRating stores a member's score for an approved week's recipe dinner, replacing an
+// earlier one.
 func (s *Store) SetRating(ctx context.Context, k weekplan.Key, day int, memberID int64,
 	score int) error {
 	tag, err := s.pool.Exec(ctx, `INSERT INTO ratings (plan_id, day, member_id, recipe_id, score)
@@ -22,6 +23,7 @@ func (s *Store) SetRating(ctx context.Context, k weekplan.Key, day int, memberID
 		FROM week_plans p JOIN plan_entries e ON e.plan_id = p.id AND e.day = $3
 		JOIN members m ON m.id = $4 AND m.archived_at IS NULL
 		WHERE p.iso_year = $1 AND p.iso_week = $2 AND p.status = 'approved'
+		AND e.recipe_id IS NOT NULL
 		ON CONFLICT (plan_id, day, member_id) DO UPDATE SET score = EXCLUDED.score,
 		rated_at = now()`, k.Year, k.Week, day, memberID, score)
 	if err != nil {
