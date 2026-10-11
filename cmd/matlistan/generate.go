@@ -63,12 +63,16 @@ func generate(ctx context.Context, e env, args []string) int {
 		log.Error().Err(err).Msg("planner")
 		return 1
 	}
-	if p, err := db.GetPlan(ctx, k); err == nil && (len(p.Entries) > 0 ||
-		p.Status == weekplan.StatusApproved) {
+	if p, err := db.GetPlan(ctx, k); err == nil && alreadyPlanned(p) {
 		log.Info().Str("week", k.String()).Msg("week already planned")
 		return 0
 	}
-	if err := svc.Generate(ctx, k); err != nil {
+	err = svc.Generate(ctx, k)
+	if errors.Is(err, planner.ErrAllLocked) { // the family set every dinner by hand
+		log.Info().Str("week", k.String()).Msg("nothing left to plan")
+		return 0
+	}
+	if err != nil {
 		log.Error().Err(err).Str("week", k.String()).Msg("generate")
 		return 1
 	}
@@ -83,6 +87,12 @@ func generate(ctx context.Context, e env, args []string) int {
 	}
 	log.Info().Str("week", k.String()).Msg("week planned")
 	return 0
+}
+
+// alreadyPlanned reports whether the scheduled run has nothing to do for p: the planner has
+// run for it, or it is approved. Dinners the family set by hand ahead of it do not count.
+func alreadyPlanned(p weekplan.Plan) bool {
+	return p.Status == weekplan.StatusApproved || p.Generated
 }
 
 func parseWeekFlag(s string) (weekplan.Key, error) {

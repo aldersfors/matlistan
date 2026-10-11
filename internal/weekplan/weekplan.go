@@ -130,12 +130,21 @@ func (c Context) Validate(memberIDs []int64) validate.Errors {
 // Entry is one planned dinner as shown.
 type Entry struct {
 	Day                    int
-	RecipeID               int64
+	RecipeID               int64 // 0 for a dinner the family typed, such as "Hämtmat"
 	Title                  string
 	TotalMinutes, Servings int
 	Why                    string
 	Locked                 bool // kept when the rest of the draft is planned again
 }
+
+// Custom reports whether the dinner is text the family typed rather than a recipe.
+func (e Entry) Custom() bool { return e.RecipeID == 0 }
+
+// TitleMaxRunes bounds a dinner the family types instead of choosing a recipe.
+const TitleMaxRunes = 60
+
+// TidyTitle puts a typed dinner on one line with single spaces.
+func TidyTitle(s string) string { return strings.Join(strings.Fields(s), " ") }
 
 // Plan is a week with its conditions and dinners.
 type Plan struct {
@@ -146,6 +155,7 @@ type Plan struct {
 	Error      string
 	Entries    []Entry
 	ApprovedBy string
+	Generated  bool // the planner has stored dinners for the week at least once
 }
 
 // Entry returns the dinner planned for day (1..7).

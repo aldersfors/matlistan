@@ -202,6 +202,28 @@ func TestGenerateKeepsLockedDinners(t *testing.T) {
 	}
 }
 
+// A dinner the family typed is kept like a locked recipe, and the model hears of it as
+// another day of the week.
+func TestGenerateKeepsTypedDinners(t *testing.T) {
+	st := baseStore()
+	st.plan = &weekplan.Plan{Key: _k, Status: weekplan.StatusDraft,
+		Context: weekplan.DefaultContext(2),
+		Entries: []weekplan.Entry{{Day: 1, Title: "Hämtmat", Locked: true}}}
+	reply := `{"days":[{"day":2,"why":"Omväxling.","library_recipe_id":null,"new_recipe":` +
+		`{"title":"Pumpasoppa","description":"","servings":2,"active_minutes":10,` +
+		`"total_minutes":30,"tags":[],"steps":["Koka"],"diets":[],"allergens":[],` +
+		`"ingredients":[{"name":"pumpa","quantity":1,"unit":"kg","section":"produce",` +
+		`"optional":false}]}}]}`
+	llm := &scripted{replies: []string{reply}}
+	if err := newTestService(st, llm).Generate(context.Background(), _k); err != nil {
+		t.Fatal(err)
+	}
+	if len(st.saved) != 1 || st.saved[0].Day != 2 ||
+		!strings.Contains(llm.sent[0], `"other_days_this_week":["Hämtmat"]`) {
+		t.Fatalf("saved %+v prompt %s", st.saved, llm.sent[0])
+	}
+}
+
 // With every planned dinner locked there is nothing to plan, and the model is not asked.
 func TestGenerateWithEverythingLocked(t *testing.T) {
 	st := baseStore()

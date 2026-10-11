@@ -13,6 +13,7 @@ type WeekDay struct {
 	Index                        int
 	Name, Date, Title, Why, Meta string
 	LockLabel, Href              string
+	ChangeHref, ChangeLabel      string // the day page, for setting the dinner by hand
 	RecipeID                     int64
 	Planned, Locked              bool
 	Replanning                   bool // a plan is running and this dinner is not kept
@@ -45,6 +46,10 @@ type Week struct {
 }
 
 func (w Week) hidden() templ.Component { return weekFields(w.Year, w.Number) }
+
+// editable reports whether dinners may be set by hand now: a draft in the planning window
+// that is not being planned. No planner is needed.
+func (w Week) editable() bool { return w.Plannable && !w.Approved && !w.Generating }
 
 func lockValue(lock bool) string {
 	if lock {
@@ -127,13 +132,30 @@ templ WeekPage(w Week) {
 										<span class="text-sm text-muted line-through">{ d.Title }</span>
 									}
 								} else if d.Title == "" {
-									<span class="text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</span>
+									if w.editable() {
+										<a class="text-muted italic" href={ templ.URL(d.ChangeHref) }>{ i18n.T(ctx, "week.empty.slot") }</a>
+									} else {
+										<span class="text-muted italic">{ i18n.T(ctx, "week.empty.slot") }</span>
+									}
 								} else {
-									<a class="font-bold" href={ templ.URL(d.Href) }>{ d.Title }</a>
-									<span class="text-sm text-muted italic">{ d.Why }</span>
-									<span class="text-xs text-muted">{ d.Meta }</span>
+									if d.Href != "" {
+										<a class="font-bold" href={ templ.URL(d.Href) }>{ d.Title }</a>
+									} else {
+										<span class="font-bold">{ d.Title }</span>
+									}
+									if d.Why != "" {
+										<span class="text-sm text-muted italic">{ d.Why }</span>
+									}
+									if d.Meta != "" {
+										<span class="text-xs text-muted">{ d.Meta }</span>
+									}
 								}
 							</div>
+							if d.Title != "" && w.editable() {
+								<a class="flex w-12 items-center justify-center text-muted" href={ templ.URL(d.ChangeHref) } aria-label={ d.ChangeLabel }>
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M14 6l4 4"></path></svg>
+								</a>
+							}
 							if d.Title != "" && w.Configured && w.Plannable && !w.Approved && !w.Generating {
 								// htmx posts and swaps in the redirected page's <main>, so the scroll
 								// position stays; without JavaScript it is a plain form post.
@@ -165,13 +187,14 @@ templ WeekPage(w Week) {
 			if w.ShoppingHref != "" {
 				<a class="flex h-12 items-center justify-center rounded-2xl border border-line font-bold" href={ templ.URL(w.ShoppingHref) }>{ i18n.T(ctx, "nav.shopping") }</a>
 			}
-			if w.Configured && w.Plannable && !w.Approved && !w.Generating {
-				if w.HasEntries {
-					<form method="post" action="/week/approve">
-						@w.hidden()
-						@primaryButton(i18n.T(ctx, "week.approve"))
-					</form>
-				}
+			// A week planned by hand is approved without a planner; only planning needs one.
+			if w.editable() && w.HasEntries {
+				<form method="post" action="/week/approve">
+					@w.hidden()
+					@primaryButton(i18n.T(ctx, "week.approve"))
+				</form>
+			}
+			if w.Configured && w.editable() {
 				<form method="post" action="/week/generate">
 					@w.hidden()
 					if w.HasEntries && w.Open == 0 {

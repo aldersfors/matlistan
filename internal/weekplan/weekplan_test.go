@@ -115,3 +115,19 @@ func TestUseUpLimits(t *testing.T) {
 		t.Errorf("60 characters refused: %v", e)
 	}
 }
+
+func TestTypedDinners(t *testing.T) {
+	for in, want := range map[string]string{
+		"  Falukorv   i ugn ": "Falukorv i ugn",
+		"Falukorv\n i ugn":    "Falukorv i ugn",
+		"   ":                 "",
+		"Hämtmat":             "Hämtmat",
+	} {
+		if got := TidyTitle(in); got != want {
+			t.Errorf("TidyTitle(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if !(Entry{Title: "Gäster"}).Custom() || (Entry{RecipeID: 3, Title: "Ärtsoppa"}).Custom() {
+		t.Fatal("Custom is wrong")
+	}
+}

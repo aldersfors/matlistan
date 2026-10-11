@@ -104,7 +104,7 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 		v.ShoppingHref = shoppingHref(k)
 	}
 	if v.Approved && slices.ContainsFunc(plan.Entries, func(e weekplan.Entry) bool {
-		return s.eaten(k, e.Day)
+		return !e.Custom() && s.eaten(k, e.Day)
 	}) {
 		v.RateHref = fmt.Sprintf("/week/rate?y=%d&w=%d", k.Year, k.Week)
 	}
@@ -115,10 +115,14 @@ func (s *server) weekView(w http.ResponseWriter, r *http.Request, k weekplan.Key
 			Date: strconv.Itoa(day.Day()), Planned: !dc.Skip}
 		if en, ok := plan.Entry(i + 1); ok {
 			d.RecipeID, d.Title, d.Why, d.Locked = en.RecipeID, en.Title, en.Why, en.Locked
-			d.Href = fmt.Sprintf("/recipes/%d?servings=%d&day=%d", en.RecipeID, en.Servings, i+1)
-			d.Meta = c.T("recipes.minutes", "n", en.TotalMinutes) + ", " +
-				c.N("recipes.servings", en.Servings)
+			if !en.Custom() { // a typed dinner has no recipe to open
+				d.Href = fmt.Sprintf("/recipes/%d?servings=%d&day=%d", en.RecipeID, en.Servings, i+1)
+				d.Meta = c.T("recipes.minutes", "n", en.TotalMinutes) + ", " +
+					c.N("recipes.servings", en.Servings)
+			}
 		}
+		d.ChangeHref = fmt.Sprintf("/week/day?y=%d&w=%d&day=%d", k.Year, k.Week, i+1)
+		d.ChangeLabel = c.T("week.change", "day", d.Name)
 		d.Replanning = v.Generating && d.Planned && !d.Locked
 		d.LockLabel = c.T("week.lock", "day", d.Name)
 		switch {

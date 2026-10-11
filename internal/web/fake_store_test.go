@@ -287,6 +287,46 @@ func (f *fakeStore) SetEntryLocked(_ context.Context, k weekplan.Key, day int, l
 	return store.ErrNotFound
 }
 
+func (f *fakeStore) SetEntry(_ context.Context, k weekplan.Key, c weekplan.Context, day int,
+	recipeID int64, title string, servings int) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.plans[k]
+	if ok && p.Status == weekplan.StatusApproved {
+		return store.ErrApproved
+	}
+	if !ok {
+		p = weekplan.Plan{Key: k, Status: weekplan.StatusDraft, Context: c}
+	}
+	e := weekplan.Entry{Day: day, RecipeID: recipeID, Title: title, Servings: servings,
+		Locked: true}
+	if r, ok := f.recipes[recipeID]; ok {
+		e.Title, e.TotalMinutes = r.Title, r.TotalMinutes
+	}
+	p.Entries = slices.DeleteFunc(slices.Clone(p.Entries),
+		func(o weekplan.Entry) bool { return o.Day == day })
+	p.Entries = append(p.Entries, e)
+	slices.SortFunc(p.Entries, func(a, b weekplan.Entry) int { return a.Day - b.Day })
+	f.plans[k] = p
+	return nil
+}
+
+func (f *fakeStore) ClearEntry(_ context.Context, k weekplan.Key, day int) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.plans[k]
+	if !ok || p.Status != weekplan.StatusDraft {
+		return store.ErrNotFound
+	}
+	n := len(p.Entries)
+	p.Entries = slices.DeleteFunc(slices.Clone(p.Entries),
+		func(o weekplan.Entry) bool { return o.Day == day })
+	if len(p.Entries) == n {
+		return store.ErrNotFound
+	}
+	f.plans[k] = p
+	return nil
+}
 func (f *fakeStore) ApprovePlan(_ context.Context, k weekplan.Key, subject string,
 	items []shopping.Item, excluded int) error {
 	f.mu.Lock()

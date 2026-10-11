@@ -57,6 +57,9 @@ type Store interface {
 	GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, error)
 	SaveContext(ctx context.Context, k weekplan.Key, c weekplan.Context, servings [7]int) error
 	SetEntryLocked(ctx context.Context, k weekplan.Key, day int, locked bool) error
+	SetEntry(ctx context.Context, k weekplan.Key, c weekplan.Context, day int, recipeID int64,
+		title string, servings int) error
+	ClearEntry(ctx context.Context, k weekplan.Key, day int) error
 	ApprovePlan(ctx context.Context, k weekplan.Key, subject string, items []shopping.Item,
 		excluded int) error
 	PlanIngredients(ctx context.Context, k weekplan.Key) ([]shopping.Use, error)
@@ -195,6 +198,8 @@ func (s *server) handler() http.Handler {
 	app.HandleFunc("POST /week/context", s.saveWeekContext)
 	app.HandleFunc("POST /week/generate", s.generateWeek)
 	app.HandleFunc("POST /week/lock", s.lockDinner)
+	app.HandleFunc("GET /week/day", s.weekDay)
+	app.HandleFunc("POST /week/day", s.setDay)
 	app.HandleFunc("POST /week/approve", s.approveWeek)
 	app.HandleFunc("GET /family", s.family)
 	app.HandleFunc("GET /family/new", s.newMember)

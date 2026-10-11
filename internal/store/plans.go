@@ -21,9 +21,9 @@ func (s *Store) GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, err
 	p := weekplan.Plan{Key: k}
 	var raw []byte
 	var status string
-	err := s.pool.QueryRow(ctx, `SELECT id, status, context, error, approved_by
-		FROM week_plans WHERE iso_year = $1 AND iso_week = $2`, k.Year, k.Week).
-		Scan(&p.ID, &status, &raw, &p.Error, &p.ApprovedBy)
+	err := s.pool.QueryRow(ctx, `SELECT id, status, context, error, approved_by,
+		generated_at IS NOT NULL FROM week_plans WHERE iso_year = $1 AND iso_week = $2`,
+		k.Year, k.Week).Scan(&p.ID, &status, &raw, &p.Error, &p.ApprovedBy, &p.Generated)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return weekplan.Plan{}, ErrNotFound
 	}
@@ -34,8 +34,9 @@ func (s *Store) GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, err
 	if err := json.Unmarshal(raw, &p.Context); err != nil {
 		return weekplan.Plan{}, fmt.Errorf("get plan context: %w", err)
 	}
-	rows, err := s.pool.Query(ctx, `SELECT e.day, e.recipe_id, r.title, r.total_minutes,
-		e.servings, e.why, e.locked FROM plan_entries e JOIN recipes r ON r.id = e.recipe_id
+	rows, err := s.pool.Query(ctx, `SELECT e.day, coalesce(e.recipe_id, 0),
+		coalesce(r.title, e.title), coalesce(r.total_minutes, 0), e.servings, e.why, e.locked
+		FROM plan_entries e LEFT JOIN recipes r ON r.id = e.recipe_id
 		WHERE e.plan_id = $1 ORDER BY e.day`, p.ID)
 	if err != nil {
 		return weekplan.Plan{}, fmt.Errorf("get plan entries: %w", err)
@@ -132,7 +133,8 @@ func (s *Store) SavePicks(ctx context.Context, k weekplan.Key, c weekplan.Contex
 			if _, err := tx.Exec(ctx, `INSERT INTO plan_entries
 				(plan_id, day, recipe_id, servings, why) VALUES ($1, $2, $3, $4, $5)
 				ON CONFLICT (plan_id, day) DO UPDATE SET recipe_id = EXCLUDED.recipe_id,
-				servings = EXCLUDED.servings, why = EXCLUDED.why WHERE NOT plan_entries.locked`,
+				title = '', servings = EXCLUDED.servings, why = EXCLUDED.why
+				WHERE NOT plan_entries.locked`,
 				id, p.Day, recipeID, p.Servings, p.Why); err != nil {
 				return err
 			}
@@ -150,6 +152,47 @@ func (s *Store) SetEntryLocked(ctx context.Context, k weekplan.Key, day int, loc
 		AND e.day = $3`, k.Year, k.Week, day, locked)
 	if err != nil {
 		return fmt.Errorf("lock dinner: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// SetEntry sets day's dinner in week k's draft to a recipe (recipeID > 0) or to text the
+// family typed, and locks it so planning again keeps it. A new week starts with conditions c;
+// an existing week keeps its own.
+func (s *Store) SetEntry(ctx context.Context, k weekplan.Key, c weekplan.Context, day int,
+	recipeID int64, title string, servings int) error {
+	if (recipeID > 0) == (title != "") {
+		panic("invariant violated: SetEntry needs a recipe or a title, not both")
+	}
+	var recipe *int64
+	if recipeID > 0 {
+		recipe = &recipeID
+	}
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		id, err := upsertDraft(ctx, tx, k, c, false)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO plan_entries
+			(plan_id, day, recipe_id, title, servings, locked) VALUES ($1, $2, $3, $4, $5, true)
+			ON CONFLICT (plan_id, day) DO UPDATE SET recipe_id = EXCLUDED.recipe_id,
+			title = EXCLUDED.title, servings = EXCLUDED.servings, why = '', locked = true`,
+			id, day, recipe, title, servings)
+		return err
+	})
+	return wrapPlanErr("set dinner", err)
+}
+
+// ClearEntry removes day's dinner from week k's draft; ErrNotFound when there is none.
+func (s *Store) ClearEntry(ctx context.Context, k weekplan.Key, day int) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM plan_entries e USING week_plans p
+		WHERE e.plan_id = p.id AND p.iso_year = $1 AND p.iso_week = $2 AND p.status = 'draft'
+		AND e.day = $3`, k.Year, k.Week, day)
+	if err != nil {
+		return fmt.Errorf("clear dinner: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return ErrNotFound

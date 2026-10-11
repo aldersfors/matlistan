@@ -48,7 +48,7 @@ func (s *server) rateWeek(w http.ResponseWriter, r *http.Request) {
 	v := views.RateWeek{Label: c.WeekLabel(k.Week), Hint: c.T("rate.hint"),
 		Range: c.T("week.range", "from", c.Date(monday), "to", c.Date(monday.AddDate(0, 0, 6)))}
 	for _, e := range plan.Entries {
-		if !s.eaten(k, e.Day) {
+		if e.Custom() || !s.eaten(k, e.Day) {
 			continue
 		}
 		d := views.RateDinner{Day: e.Day, Title: e.Title,
