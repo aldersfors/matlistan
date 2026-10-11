@@ -162,3 +162,28 @@ func TestSetDinnerNeedsAnIdleDraft(t *testing.T) {
 		t.Errorf("GET approved week: %d", res.StatusCode)
 	}
 }
+
+// The week shows a typed dinner without a recipe link, and every planned day of an idle
+// draft links to its day page, also without a planner.
+func TestWeekLinksToTheDayPage(t *testing.T) {
+	st := newFakeStore()
+	h := newServer(t, i18n.SV, true, st)
+	_, body := get(t, h, "/week?y=2026&w=40")
+	if !strings.Contains(body, `href="/week/day?y=2026&amp;w=40&amp;day=1"`) {
+		t.Fatal("empty day does not link to the day page")
+	}
+	post(t, h, "/week/day", dayForm("2", url.Values{"title": {"Hämtmat"}}))
+	_, body = get(t, h, "/week?y=2026&w=40")
+	if !strings.Contains(body, "Hämtmat") || strings.Contains(body, `href="/recipes/0`) ||
+		!strings.Contains(body, `aria-label="Ändra middagen på Tis"`) {
+		t.Fatalf("typed dinner row:\n%s", body)
+	}
+}
+
+func TestApprovedWeekHasNoChangeLinks(t *testing.T) {
+	_, st, _ := approvedWeekServer(t)
+	h := newServer(t, i18n.SV, true, st)
+	if _, body := get(t, h, "/week?y=2026&w=40"); strings.Contains(body, "/week/day?") {
+		t.Fatal("approved week links to the day page")
+	}
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/aldersfors/matlistan/internal/household"
 	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/weekplan"
 )
 
 func rateForm(day, member, score string) url.Values {
@@ -150,5 +151,31 @@ func TestOnlyEatenDinnersCanBeRated(t *testing.T) {
 	if rec := postHX(t, h, "/fragments/ratings", rateForm("1", itoa(id), "5")); rec.Code !=
 		http.StatusOK {
 		t.Errorf("rating Monday on Monday evening: %d", rec.Code)
+	}
+}
+
+// A typed dinner is not rated; with only typed dinners eaten there is nothing to rate.
+func TestTypedDinnersAreNotRated(t *testing.T) {
+	h, st := ratedWeek(t) // Monday and Tuesday have been eaten
+	typed := func(days ...int) {
+		st.mu.Lock()
+		defer st.mu.Unlock()
+		p := st.plans[_w40]
+		for _, d := range days {
+			p.Entries[d-1] = weekplan.Entry{Day: d, Title: "Hämtmat", Servings: 4, Locked: true}
+		}
+		st.plans[_w40] = p
+	}
+	typed(1)
+	if _, body := get(t, h, "/week/rate?y=2026&w=40"); strings.Contains(body, "Hämtmat") ||
+		!strings.Contains(body, "Köttbullar") {
+		t.Errorf("rate page with one typed dinner:\n%s", body)
+	}
+	typed(2)
+	if _, body := get(t, h, "/week?y=2026&w=40"); strings.Contains(body, "/week/rate?") {
+		t.Error("rating link for typed dinners only")
+	}
+	if res, _ := get(t, h, "/week/rate?y=2026&w=40"); res.StatusCode != http.StatusNotFound {
+		t.Errorf("rate page: %d", res.StatusCode)
 	}
 }
