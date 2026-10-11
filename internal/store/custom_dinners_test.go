@@ -172,3 +172,24 @@ func TestCustomDinnersMigrationDown(t *testing.T) {
 		t.Fatalf("entries after down = %d, %v", n, err)
 	}
 }
+
+// A dinner set by hand does not count as the planner having run, so the scheduled run still
+// plans the rest of the week.
+func TestHandSetDinnersAreNotAGeneratedWeek(t *testing.T) {
+	s, ctx := newTestStore(t), context.Background()
+	id, _ := s.CreateRecipe(ctx, soup())
+	c := weekplan.DefaultContext(7)
+	if err := s.SetEntry(ctx, _w40, c, 5, 0, "Hämtmat", 4); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := s.GetPlan(ctx, _w40); p.Generated {
+		t.Fatal("hand-set week counts as generated")
+	}
+	if err := s.SavePicks(ctx, _w40, c, []weekplan.Pick{{Day: 1, RecipeID: id, Servings: 4}},
+		true); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := s.GetPlan(ctx, _w40); !p.Generated {
+		t.Fatal("planned week does not count as generated")
+	}
+}

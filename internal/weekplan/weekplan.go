@@ -155,6 +155,7 @@ type Plan struct {
 	Error      string
 	Entries    []Entry
 	ApprovedBy string
+	Generated  bool // the planner has stored dinners for the week at least once
 }
 
 // Entry returns the dinner planned for day (1..7).

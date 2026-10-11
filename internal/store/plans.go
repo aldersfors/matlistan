@@ -21,9 +21,9 @@ func (s *Store) GetPlan(ctx context.Context, k weekplan.Key) (weekplan.Plan, err
 	p := weekplan.Plan{Key: k}
 	var raw []byte
 	var status string
-	err := s.pool.QueryRow(ctx, `SELECT id, status, context, error, approved_by
-		FROM week_plans WHERE iso_year = $1 AND iso_week = $2`, k.Year, k.Week).
-		Scan(&p.ID, &status, &raw, &p.Error, &p.ApprovedBy)
+	err := s.pool.QueryRow(ctx, `SELECT id, status, context, error, approved_by,
+		generated_at IS NOT NULL FROM week_plans WHERE iso_year = $1 AND iso_week = $2`,
+		k.Year, k.Week).Scan(&p.ID, &status, &raw, &p.Error, &p.ApprovedBy, &p.Generated)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return weekplan.Plan{}, ErrNotFound
 	}
