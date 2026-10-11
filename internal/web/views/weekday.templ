@@ -1,0 +1,77 @@
+package views
+
+import (
+	"strconv"
+
+	"github.com/aldersfors/matlistan/internal/i18n"
+	"github.com/aldersfors/matlistan/internal/validate"
+)
+
+// WeekDayEdit is the screen that sets one day's dinner by hand.
+type WeekDayEdit struct {
+	Year, Number, Day   int
+	Heading             string
+	BackLabel, BackHref string
+	Query               string // the recipe search
+	Title               string // the typed dinner, shown for editing
+	HasDinner           bool
+	Recipes             []RecipeItem
+	Errors              validate.Errors
+}
+
+templ dayFields(v WeekDayEdit) {
+	@weekFields(v.Year, v.Number)
+	<input type="hidden" name="day" value={ strconv.Itoa(v.Day) }/>
+}
+
+templ WeekDayPage(v WeekDayEdit) {
+	@Layout(v.Heading, "week") {
+		<main class="mx-auto flex min-h-dvh max-w-md flex-col gap-3 px-3 pb-8">
+			<header class="flex flex-col gap-1 px-2 pt-12 pb-2">
+				<a class="flex h-11 items-center gap-1 text-sm text-muted" href={ templ.URL(v.BackHref) }>
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+					<span>{ v.BackLabel }</span>
+				</a>
+				<h1 class="font-display text-4xl leading-none font-extrabold tracking-tight">{ v.Heading }</h1>
+			</header>
+			<form method="post" action="/week/day" class="flex flex-col gap-3 rounded-2xl bg-panel p-4">
+				@dayFields(v)
+				@formSummary(v.Errors)
+				@textField(i18n.T(ctx, "week.day.own"), "title", v.Title, v.Errors)
+				@primaryButton(i18n.T(ctx, "week.day.save"))
+			</form>
+			<h2 class="px-2 pt-2 font-display text-xl font-bold">{ i18n.T(ctx, "week.day.pick") }</h2>
+			<form method="get" action="/week/day" role="search">
+				@dayFields(v)
+				<label class="flex flex-col gap-1">
+					<span class="sr-only">{ i18n.T(ctx, "recipes.search") }</span>
+					<input class="h-12 rounded-xl border border-line bg-panel px-3" type="search" name="q" value={ v.Query } placeholder={ i18n.T(ctx, "recipes.search") }/>
+				</label>
+			</form>
+			if len(v.Recipes) == 0 {
+				<p class="px-2 text-muted">{ i18n.T(ctx, "week.day.none") }</p>
+			}
+			<ul class="flex flex-col gap-1.5">
+				for _, it := range v.Recipes {
+					<li>
+						<form method="post" action="/week/day">
+							@dayFields(v)
+							<input type="hidden" name="recipe" value={ strconv.FormatInt(it.ID, 10) }/>
+							<button type="submit" class="flex min-h-14 w-full items-center justify-between gap-2 rounded-2xl bg-panel px-4 py-2 text-left">
+								<span class="font-bold">{ it.Title }</span>
+								<span class="shrink-0 text-sm text-muted">{ it.Meta }</span>
+							</button>
+						</form>
+					</li>
+				}
+			</ul>
+			if v.HasDinner {
+				<form method="post" action="/week/day">
+					@dayFields(v)
+					<input type="hidden" name="clear" value="1"/>
+					<button type="submit" class="h-12 w-full rounded-2xl border border-line font-bold">{ i18n.T(ctx, "week.day.clear") }</button>
+				</form>
+			}
+		</main>
+	}
+}
