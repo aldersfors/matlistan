@@ -187,3 +187,21 @@ func TestApprovedWeekHasNoChangeLinks(t *testing.T) {
 		t.Fatal("approved week links to the day page")
 	}
 }
+
+// Without a planner, a week planned by hand is approved and gets its list; only planning is
+// missing.
+func TestHandPlannedWeekIsApprovedWithoutAPlanner(t *testing.T) {
+	st := newFakeStore()
+	h := newServer(t, i18n.SV, true, st)
+	if _, body := get(t, h, "/week?y=2026&w=40"); strings.Contains(body, "Godkänn veckan") {
+		t.Fatal("approve offered for an empty week")
+	}
+	post(t, h, "/week/day", dayForm("1", url.Values{"title": {"Hämtmat"}}))
+	_, body := get(t, h, "/week?y=2026&w=40")
+	if !strings.Contains(body, "Godkänn veckan") || strings.Contains(body, "Planera veckan</button>") {
+		t.Fatalf("hand-planned week without a planner:\n%s", body)
+	}
+	if rec := post(t, h, "/week/approve", weekForm(nil)); rec.Code != http.StatusSeeOther {
+		t.Fatalf("approve: %d", rec.Code)
+	}
+}

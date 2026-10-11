@@ -187,13 +187,14 @@ templ WeekPage(w Week) {
 			if w.ShoppingHref != "" {
 				<a class="flex h-12 items-center justify-center rounded-2xl border border-line font-bold" href={ templ.URL(w.ShoppingHref) }>{ i18n.T(ctx, "nav.shopping") }</a>
 			}
-			if w.Configured && w.Plannable && !w.Approved && !w.Generating {
-				if w.HasEntries {
-					<form method="post" action="/week/approve">
-						@w.hidden()
-						@primaryButton(i18n.T(ctx, "week.approve"))
-					</form>
-				}
+			// A week planned by hand is approved without a planner; only planning needs one.
+			if w.editable() && w.HasEntries {
+				<form method="post" action="/week/approve">
+					@w.hidden()
+					@primaryButton(i18n.T(ctx, "week.approve"))
+				</form>
+			}
+			if w.Configured && w.editable() {
 				<form method="post" action="/week/generate">
 					@w.hidden()
 					if w.HasEntries && w.Open == 0 {
