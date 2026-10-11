@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/aldersfors/matlistan/compare/v0.7.3...v0.8.0) (2026-10-11)
+
+
+### Features
+
+* **week:** set a day's dinner by hand ([#80](https://github.com/aldersfors/matlistan/issues/80)) ([da7f914](https://github.com/aldersfors/matlistan/commit/da7f9146dca7d1829baaac8acbf79d58c8f5f5e9))
+
 ## [0.7.3](https://github.com/aldersfors/matlistan/compare/v0.7.2...v0.7.3) (2026-10-09)
 
 
