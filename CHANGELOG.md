@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.1](https://github.com/aldersfors/matlistan/compare/v0.8.0...v0.8.1) (2026-10-16)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.80.0 ([#97](https://github.com/aldersfors/matlistan/issues/97)) ([3d38106](https://github.com/aldersfors/matlistan/commit/3d38106dba650ecc4204746096f664d4458573c9))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.76.0 ([#103](https://github.com/aldersfors/matlistan/issues/103)) ([13b5f15](https://github.com/aldersfors/matlistan/commit/13b5f1502b624600a6069a76c4fcef47388ea584))
+* **deps:** update module golang.org/x/net to v0.61.0 ([#99](https://github.com/aldersfors/matlistan/issues/99)) ([cd3b874](https://github.com/aldersfors/matlistan/commit/cd3b8746b707d55c589bd10a2a9af5954a72280c))
+
 ## [0.8.0](https://github.com/aldersfors/matlistan/compare/v0.7.3...v0.8.0) (2026-10-11)
 
 
