@@ -4,7 +4,7 @@ go 1.26.7
 
 require (
 	github.com/a-h/templ v0.3.1070
-	github.com/anthropics/anthropic-sdk-go v1.81.0
+	github.com/anthropics/anthropic-sdk-go v1.82.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/failsafe-go/failsafe-go v0.9.8
 	github.com/go-jose/go-jose/v4 v4.1.6
@@ -32,7 +32,6 @@ require (
 	github.com/bits-and-blooms/bitset v1.26.0 // indirect
 	github.com/buger/jsonparser v1.6.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/cenkalti/backoff/v7 v7.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
