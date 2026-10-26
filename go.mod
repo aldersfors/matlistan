@@ -10,7 +10,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/go-cmp v0.7.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/openai/openai-go/v3 v3.84.0
+	github.com/openai/openai-go/v3 v3.84.1
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/rs/zerolog v1.35.1
