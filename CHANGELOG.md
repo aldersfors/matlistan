@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.2](https://github.com/aldersfors/matlistan/compare/v0.8.1...v0.8.2) (2026-10-26)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.81.0 ([#116](https://github.com/aldersfors/matlistan/issues/116)) ([0f9cb9b](https://github.com/aldersfors/matlistan/commit/0f9cb9b641a4fd0832d2a59f42c5aa64f8f1229e))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.82.0 ([#120](https://github.com/aldersfors/matlistan/issues/120)) ([32679c9](https://github.com/aldersfors/matlistan/commit/32679c936c27cfca25cce9a470b54a82cda13d02))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.84.0 ([#126](https://github.com/aldersfors/matlistan/issues/126)) ([2a3190a](https://github.com/aldersfors/matlistan/commit/2a3190a818a4224168b55cc1b2d797d29c9a0ac8))
+* **deps:** update module github.com/go-jose/go-jose/v4 to v4.1.6 ([#117](https://github.com/aldersfors/matlistan/issues/117)) ([865f874](https://github.com/aldersfors/matlistan/commit/865f874c6cf5246fe27f9806d47f92615d6ad1b2))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.78.0 ([#112](https://github.com/aldersfors/matlistan/issues/112)) ([4a79fa5](https://github.com/aldersfors/matlistan/commit/4a79fa5074b18293533e49855ba81d5977abf69f))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.84.0 ([#123](https://github.com/aldersfors/matlistan/issues/123)) ([593032e](https://github.com/aldersfors/matlistan/commit/593032e0c11e62b244331222c9f31d4a5a8927f4))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.84.1 ([#127](https://github.com/aldersfors/matlistan/issues/127)) ([a1be283](https://github.com/aldersfors/matlistan/commit/a1be283899dbd4b2c49a4f22693fa874b8809355))
+* **deps:** update module github.com/pressly/goose/v3 to v3.29.0 ([#113](https://github.com/aldersfors/matlistan/issues/113)) ([5c3cb8f](https://github.com/aldersfors/matlistan/commit/5c3cb8f21434e14badbcf3f61718c9357353c5a9))
+
 ## [0.8.1](https://github.com/aldersfors/matlistan/compare/v0.8.0...v0.8.1) (2026-10-16)
 
 
