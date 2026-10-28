@@ -4,7 +4,7 @@ go 1.26.7
 
 require (
 	github.com/a-h/templ v0.3.1070
-	github.com/anthropics/anthropic-sdk-go/v2 v2.1.0
+	github.com/anthropics/anthropic-sdk-go/v2 v2.2.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/failsafe-go/failsafe-go v0.9.8
 	github.com/go-jose/go-jose/v4 v4.1.6
