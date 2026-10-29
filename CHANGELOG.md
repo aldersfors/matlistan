@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.3](https://github.com/aldersfors/matlistan/compare/v0.8.2...v0.8.3) (2026-10-29)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v2 ([#130](https://github.com/aldersfors/matlistan/issues/130)) ([6765ef1](https://github.com/aldersfors/matlistan/commit/6765ef118d7cca04c6b1ca0f6685824cc52f6ff5))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v2 ([#133](https://github.com/aldersfors/matlistan/issues/133)) ([d0b555a](https://github.com/aldersfors/matlistan/commit/d0b555abd75491f6bc5c10956863885d2dd43163))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v2 ([#139](https://github.com/aldersfors/matlistan/issues/139)) ([9dc5add](https://github.com/aldersfors/matlistan/commit/9dc5addb773047b6072ae831c57b68fdde62ac75))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.2.0 ([#134](https://github.com/aldersfors/matlistan/issues/134)) ([d4050d0](https://github.com/aldersfors/matlistan/commit/d4050d05935e91eaa039e1df2f66b1dc573db9cb))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.3.0 ([#142](https://github.com/aldersfors/matlistan/issues/142)) ([1f3f2fd](https://github.com/aldersfors/matlistan/commit/1f3f2fd0bc2ba20e83be33860e4becc9027f9f1f))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.85.0 ([#128](https://github.com/aldersfors/matlistan/issues/128)) ([bc7d2c8](https://github.com/aldersfors/matlistan/commit/bc7d2c8624aba9491cae7606f84e8eb19def1231))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.85.1 ([#135](https://github.com/aldersfors/matlistan/issues/135)) ([5f522be](https://github.com/aldersfors/matlistan/commit/5f522be498ac22c7206728586cbd4fa1db94d4d3))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.86.0 ([#137](https://github.com/aldersfors/matlistan/issues/137)) ([dc62ed8](https://github.com/aldersfors/matlistan/commit/dc62ed84104aa6a75a09cb39352825b778ddd496))
+* **deps:** update module golang.org/x/net to v0.62.0 [security] ([#136](https://github.com/aldersfors/matlistan/issues/136)) ([1f7f743](https://github.com/aldersfors/matlistan/commit/1f7f7434638ae652e6ea3eda8ca180de1fc8fade))
+
 ## [0.8.2](https://github.com/aldersfors/matlistan/compare/v0.8.1...v0.8.2) (2026-10-26)
 
 
