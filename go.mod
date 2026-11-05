@@ -9,7 +9,7 @@ require (
 	github.com/failsafe-go/failsafe-go v0.9.8
 	github.com/go-jose/go-jose/v4 v4.1.7
 	github.com/google/go-cmp v0.7.0
-	github.com/jackc/pgx/v5 v5.11.0
+	github.com/jackc/pgx/v5 v5.12.0
 	github.com/openai/openai-go/v3 v3.90.0
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/prometheus/client_golang v1.25.0
