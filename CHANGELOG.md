@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.4](https://github.com/aldersfors/matlistan/compare/v0.8.3...v0.8.4) (2026-11-07)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.4.0 ([#152](https://github.com/aldersfors/matlistan/issues/152)) ([f792362](https://github.com/aldersfors/matlistan/commit/f792362c132a034b040fed57ff4551178c8e757d))
+* **deps:** update module github.com/go-jose/go-jose/v4 to v4.1.7 ([#160](https://github.com/aldersfors/matlistan/issues/160)) ([700294b](https://github.com/aldersfors/matlistan/commit/700294bf950edd0b3a5284bcc7957184d530dc85))
+* **deps:** update module github.com/jackc/pgx/v5 to v5.12.0 ([#163](https://github.com/aldersfors/matlistan/issues/163)) ([041f63e](https://github.com/aldersfors/matlistan/commit/041f63ecc5a9a4afabac52af80413a615df4de96))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.89.0 ([#151](https://github.com/aldersfors/matlistan/issues/151)) ([012d574](https://github.com/aldersfors/matlistan/commit/012d5748011b81afe9ecd39d9cd098989627bdff))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.90.0 ([#156](https://github.com/aldersfors/matlistan/issues/156)) ([5e080fc](https://github.com/aldersfors/matlistan/commit/5e080fc7dc3a14d7fa8a4079fcdf98cb04ef9065))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.91.0 ([#162](https://github.com/aldersfors/matlistan/issues/162)) ([468e04b](https://github.com/aldersfors/matlistan/commit/468e04bb57071afb15d306fbee48185a9a570cc1))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.91.1 ([#169](https://github.com/aldersfors/matlistan/issues/169)) ([087adec](https://github.com/aldersfors/matlistan/commit/087adec37aafaef3b0ad6d139e88e23d8d0218df))
+
 ## [0.8.3](https://github.com/aldersfors/matlistan/compare/v0.8.2...v0.8.3) (2026-11-01)
 
 
