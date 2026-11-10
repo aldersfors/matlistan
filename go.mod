@@ -7,7 +7,7 @@ require (
 	github.com/anthropics/anthropic-sdk-go/v2 v2.6.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/failsafe-go/failsafe-go v0.9.8
-	github.com/go-jose/go-jose/v4 v4.1.8
+	github.com/go-jose/go-jose/v4 v4.1.9
 	github.com/google/go-cmp v0.7.0
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/openai/openai-go/v3 v3.95.0
