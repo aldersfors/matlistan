@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.5](https://github.com/aldersfors/matlistan/compare/v0.8.4...v0.8.5) (2026-11-12)
+
+
+### Bug fixes
+
+* **deps:** bump Go toolchain to 1.27.4 ([#193](https://github.com/aldersfors/matlistan/issues/193)) ([a065459](https://github.com/aldersfors/matlistan/commit/a0654594d19a770fa93dfe808ab849b910e48c58))
+* **deps:** update module github.com/a-h/templ to v0.3.1100 ([#144](https://github.com/aldersfors/matlistan/issues/144)) ([f34df84](https://github.com/aldersfors/matlistan/commit/f34df84201f718c9c6286d7574dfe4441a1dd1df))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.5.0 ([#172](https://github.com/aldersfors/matlistan/issues/172)) ([a247e2f](https://github.com/aldersfors/matlistan/commit/a247e2f6f348779f9f082a74c695c1325777da92))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.6.0 ([#181](https://github.com/aldersfors/matlistan/issues/181)) ([fe73d20](https://github.com/aldersfors/matlistan/commit/fe73d20c6cc7b963b9c644aa9039812420fb959d))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.7.0 ([#186](https://github.com/aldersfors/matlistan/issues/186)) ([d992cb2](https://github.com/aldersfors/matlistan/commit/d992cb2e43212dc8441e770bfb5aab0eeae67ace))
+* **deps:** update module github.com/go-jose/go-jose/v4 to v4.1.8 ([#171](https://github.com/aldersfors/matlistan/issues/171)) ([b4021b1](https://github.com/aldersfors/matlistan/commit/b4021b1f3a67f64f451bee2afbe51cbced13b744))
+* **deps:** update module github.com/go-jose/go-jose/v4 to v4.1.9 ([#183](https://github.com/aldersfors/matlistan/issues/183)) ([1045999](https://github.com/aldersfors/matlistan/commit/1045999bf48d6daaadf8c8959959e6a8f87f5412))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.94.0 ([#176](https://github.com/aldersfors/matlistan/issues/176)) ([399be5f](https://github.com/aldersfors/matlistan/commit/399be5fcfc32deeb6192a4daef6597c2ce5fd7e1))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.95.0 ([#182](https://github.com/aldersfors/matlistan/issues/182)) ([43c30ac](https://github.com/aldersfors/matlistan/commit/43c30ac58783ac92cfed409f693e88173c302449))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.96.0 ([#185](https://github.com/aldersfors/matlistan/issues/185)) ([8ce4161](https://github.com/aldersfors/matlistan/commit/8ce4161f4d264f430e580138701f6b0a324a57eb))
+* **deps:** update module golang.org/x/oauth2 to v0.38.0 ([#194](https://github.com/aldersfors/matlistan/issues/194)) ([788c33b](https://github.com/aldersfors/matlistan/commit/788c33b5ba956ebd898dd91368b9482a7e155d1e))
+* **deps:** update testcontainers-go monorepo to v0.45.0 ([#184](https://github.com/aldersfors/matlistan/issues/184)) ([c97fcfb](https://github.com/aldersfors/matlistan/commit/c97fcfbaf6c42f10d63bddfc4d7629c2e234c00e))
+
 ## [0.8.4](https://github.com/aldersfors/matlistan/compare/v0.8.3...v0.8.4) (2026-11-07)
 
 
