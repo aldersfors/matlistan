@@ -1,11 +1,11 @@
 [tools]
-go = "1.27.3"
-golangci-lint = "2.15.0"
+go = "1.27.4"
+golangci-lint = "2.14.0"
 ko = "0.19.1"
-helm = "4.3.1"
+helm = "4.3.0"
 # cook.js tests and hack/shoot.mjs; no npm packages.
 node = "22.23.2"
-"go:golang.org/x/vuln/cmd/govulncheck" = "v1.9.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "v1.8.0"
 "github:tailwindlabs/tailwindcss" = { version = "4.3.3", bin = "tailwindcss" }
 
 [env]
