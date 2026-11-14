@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.6](https://github.com/aldersfors/matlistan/compare/v0.8.5...v0.8.6) (2026-11-14)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/openai/openai-go/v3 to v3.97.0 ([#201](https://github.com/aldersfors/matlistan/issues/201)) ([1f9bf1b](https://github.com/aldersfors/matlistan/commit/1f9bf1b8a4ada3c2baf545135fa28c060443c41e))
+
 ## [0.8.5](https://github.com/aldersfors/matlistan/compare/v0.8.4...v0.8.5) (2026-11-12)
 
 
