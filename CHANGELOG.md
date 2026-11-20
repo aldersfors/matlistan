@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.6](https://github.com/aldersfors/matlistan/compare/v0.8.5...v0.8.6) (2026-11-20)
+
+
+### Bug fixes
+
+* **deps:** update module github.com/a-h/templ to v0.3.1118 ([#212](https://github.com/aldersfors/matlistan/issues/212)) ([880b387](https://github.com/aldersfors/matlistan/commit/880b387f2f3d64d44e6d4c9f61983f7a7660b170))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.9.0 ([#206](https://github.com/aldersfors/matlistan/issues/206)) ([26da639](https://github.com/aldersfors/matlistan/commit/26da6395388c5c7100fc1c0ec985eeec72b7ac3f))
+* **deps:** update module github.com/jackc/pgx/v5 to v5.13.0 ([#210](https://github.com/aldersfors/matlistan/issues/210)) ([fc283cf](https://github.com/aldersfors/matlistan/commit/fc283cf87653ecce5a4e597cc8801a74040cb116))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.97.0 ([#201](https://github.com/aldersfors/matlistan/issues/201)) ([1f9bf1b](https://github.com/aldersfors/matlistan/commit/1f9bf1b8a4ada3c2baf545135fa28c060443c41e))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.98.0 ([#205](https://github.com/aldersfors/matlistan/issues/205)) ([a7d7616](https://github.com/aldersfors/matlistan/commit/a7d7616a6decd0df2c191f2a5fcf6f507b6dc8ee))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.99.0 ([#217](https://github.com/aldersfors/matlistan/issues/217)) ([66148d5](https://github.com/aldersfors/matlistan/commit/66148d557086c291fe84fd4fad7ea3c3afe56165))
+* **deps:** update module github.com/pressly/goose/v3 to v3.30.0 ([#208](https://github.com/aldersfors/matlistan/issues/208)) ([a0f64ad](https://github.com/aldersfors/matlistan/commit/a0f64ad59b6723b8a96522c25b7194d99c8e96c3))
+* **deps:** update module github.com/pressly/goose/v3 to v3.30.1 ([#214](https://github.com/aldersfors/matlistan/issues/214)) ([18c3b73](https://github.com/aldersfors/matlistan/commit/18c3b735d2d0fb3ad1233251e3f8c5d51f9ee9ae))
+
 ## [0.8.5](https://github.com/aldersfors/matlistan/compare/v0.8.4...v0.8.5) (2026-11-12)
 
 
